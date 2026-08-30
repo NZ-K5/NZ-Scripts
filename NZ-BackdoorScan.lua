@@ -76,6 +76,25 @@ local currentTheme = "Default"
 local isMinimized = false
 local scanActive = false
 
+local exclusions = {
+    "FireOnServer",
+    "SetDefaultColorOnClient",
+    "TakeControl",
+    "ReleaseControl",
+    "SendToClient",
+    "BroadcastToAll",
+    "UpdateClient",
+    "SyncData",
+    "NetworkEvent",
+    "RemoteCall",
+    "ClientEvent",
+    "ServerEvent",
+    "Replicate",
+    "Dispatch",
+    "TriggerClient",
+    "InvokeServer"
+}
+
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 600, 0, 480)
 frame.Position = UDim2.new(0.5, -300, 0.5, -240)
@@ -135,7 +154,7 @@ titleLabel.Parent = titleBar
 local subtitleLabel = Instance.new("TextLabel")
 subtitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
 subtitleLabel.Position = UDim2.new(0.6, 0, 0, 0)
-subtitleLabel.Text = "v3.0"
+subtitleLabel.Text = "v3.1"
 subtitleLabel.TextColor3 = Color3.fromRGB(100, 100, 140)
 subtitleLabel.TextSize = 12
 subtitleLabel.Font = Enum.Font.Gotham
@@ -541,6 +560,15 @@ for _, t in ipairs(themeColors) do
     themeY = themeY + 50
 end
 
+local function isExcluded(name)
+    for _, exclusion in pairs(exclusions) do
+        if name:find(exclusion) then
+            return true
+        end
+    end
+    return false
+end
+
 local function performScan()
     scanActive = false
     scanBtn.Text = "Start Scan"
@@ -550,11 +578,18 @@ local function performScan()
     
     for _, v in pairs(allInstances) do
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") or v:IsA("BindableEvent") or v:IsA("BindableFunction") then
-            local name = v.Name:lower()
-            if name:find("backdoor") or name:find("exploit") or name:find("admin") or name:find("remote") or name:find("inject") or name:find("execute") or name:find("load") or name:find("script") or name:find("run") or name:find("control") or name:find("command") or name:find("hack") or name:find("exec") or name:find("module") or name:find("server") or name:find("client") or name:find("network") then
+            local name = v.Name
+            local lowerName = name:lower()
+            
+            if isExcluded(name) then
+                goto continue
+            end
+            
+            if lowerName:find("backdoor") or lowerName:find("exploit") or lowerName:find("admin") or lowerName:find("inject") or lowerName:find("execute") or lowerName:find("load") or lowerName:find("script") or lowerName:find("run") or lowerName:find("control") or lowerName:find("command") or lowerName:find("hack") or lowerName:find("exec") or lowerName:find("module") or lowerName:find("server") or lowerName:find("client") or lowerName:find("network") or lowerName:find("teleport") or lowerName:find("give") or lowerName:find("spawn") or lowerName:find("delete") or lowerName:find("remove") or lowerName:find("kick") or lowerName:find("ban") or lowerName:find("mute") or lowerName:find("unmute") or lowerName:find("god") or lowerName:find("fly") or lowerName:find("noclip") or lowerName:find("speed") or lowerName:find("jump") or lowerName:find("kill") or lowerName:find("heal") or lowerName:find("loop") or lowerName:find("bypass") then
                 table.insert(found, v)
             end
         end
+        ::continue::
     end
     
     if #found > 0 then
@@ -571,18 +606,18 @@ local function performScan()
                 addResult("Found: " .. v.Name .. " (" .. v.ClassName .. ")", Color3.fromRGB(255, 200, 50))
             end
         end
-        scanStatus.Text = "Found " .. #backdoorsFound .. " backdoors"
+        scanStatus.Text = "Found " .. #backdoorsFound .. " potential backdoors"
         scanStatus.TextColor3 = Color3.fromRGB(255, 200, 50)
-        addResult("Scan complete - " .. #backdoorsFound .. " backdoors found", Color3.fromRGB(0, 255, 200))
-        headerLabel.Text = "Scan complete - " .. #backdoorsFound .. " backdoors found"
+        addResult("Scan complete - " .. #backdoorsFound .. " potential backdoors found", Color3.fromRGB(0, 255, 200))
+        headerLabel.Text = "Scan complete - " .. #backdoorsFound .. " potential backdoors found"
         headerLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
     else
-        addResult("Error Game Has No Backdoors: Code-203", Color3.fromRGB(255, 50, 80))
+        addResult("No suspicious backdoors found", Color3.fromRGB(0, 255, 200))
         scanStatus.Text = "No backdoors found"
-        scanStatus.TextColor3 = Color3.fromRGB(255, 50, 80)
-        addResult("Scan complete - No backdoors found", Color3.fromRGB(255, 200, 50))
-        headerLabel.Text = "No backdoors found - Code-203"
-        headerLabel.TextColor3 = Color3.fromRGB(255, 50, 80)
+        scanStatus.TextColor3 = Color3.fromRGB(0, 255, 200)
+        addResult("Scan complete - No backdoors found", Color3.fromRGB(0, 255, 200))
+        headerLabel.Text = "No backdoors found - System clean"
+        headerLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
     end
 end
 
