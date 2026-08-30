@@ -1,7 +1,6 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local guiParent = player:WaitForChild("PlayerGui")
 
@@ -76,7 +75,6 @@ local themes = {
 local currentTheme = "Default"
 local isMinimized = false
 local scanActive = false
-local scanConnection = nil
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 600, 0, 480)
@@ -244,10 +242,6 @@ closeBtn.MouseButton1Click:Connect(function()
 
     local function destroyAll()
         confirm:Destroy()
-        if scanConnection then
-            pcall(function() scanConnection:Disconnect() end)
-            scanConnection = nil
-        end
         root:Destroy()
         blur:Destroy()
     end
@@ -478,7 +472,8 @@ for _, t in ipairs(themeColors) do
 end
 
 local function performScan()
-    if not scanActive then return end
+    scanActive = false
+    scanBtn.Text = "Start Scan"
     
     local found = {}
     local allInstances = workspace:GetDescendants()
@@ -486,7 +481,7 @@ local function performScan()
     for _, v in pairs(allInstances) do
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") or v:IsA("BindableEvent") or v:IsA("BindableFunction") then
             local name = v.Name:lower()
-            if name:find("backdoor") or name:find("exploit") or name:find("admin") or name:find("remote") or name:find("inject") or name:find("execute") or name:find("load") or name:find("script") or name:find("run") or name:find("control") or name:find("command") or name:find("hack") then
+            if name:find("backdoor") or name:find("exploit") or name:find("admin") or name:find("remote") or name:find("inject") or name:find("execute") or name:find("load") or name:find("script") or name:find("run") or name:find("control") or name:find("command") or name:find("hack") or name:find("exec") or name:find("module") or name:find("server") or name:find("client") or name:find("network") then
                 table.insert(found, v)
             end
         end
@@ -508,18 +503,12 @@ local function performScan()
         end
         scanStatus.Text = "Found " .. #backdoorsFound .. " backdoors"
         scanStatus.TextColor3 = Color3.fromRGB(255, 200, 50)
+        addResult("Scan complete - " .. #backdoorsFound .. " backdoors found", Color3.fromRGB(0, 255, 200))
     else
-        if #backdoorsFound == 0 then
-            addResult("Error Game Has No Backdoors: Code-203", Color3.fromRGB(255, 50, 80))
-            scanStatus.Text = "No backdoors found"
-            scanStatus.TextColor3 = Color3.fromRGB(255, 50, 80)
-            scanActive = false
-            scanBtn.Text = "Start Scan"
-            if scanConnection then
-                pcall(function() scanConnection:Disconnect() end)
-                scanConnection = nil
-            end
-        end
+        addResult("Error Game Has No Backdoors: Code-203", Color3.fromRGB(255, 50, 80))
+        scanStatus.Text = "No backdoors found"
+        scanStatus.TextColor3 = Color3.fromRGB(255, 50, 80)
+        addResult("Scan complete - No backdoors found", Color3.fromRGB(255, 200, 50))
     end
 end
 
@@ -529,32 +518,20 @@ local function toggleScan()
         scanBtn.Text = "Start Scan"
         scanStatus.Text = "Scan Stopped"
         scanStatus.TextColor3 = Color3.fromRGB(255, 200, 50)
-        if scanConnection then
-            pcall(function() scanConnection:Disconnect() end)
-            scanConnection = nil
-        end
         addResult("Scan interrupted", Color3.fromRGB(255, 200, 50))
-    else
-        clearResults()
-        addResult("System initialized", Color3.fromRGB(0, 255, 200))
-        scanActive = true
-        scanBtn.Text = "Scanning..."
-        scanStatus.Text = "Scanning for backdoors..."
-        scanStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
-        addResult("Scan started", Color3.fromRGB(0, 255, 200))
-
-        if scanConnection then
-            pcall(function() scanConnection:Disconnect() end)
-            scanConnection = nil
-        end
-
-        performScan()
-        
-        scanConnection = RunService.Heartbeat:Connect(function()
-            if not scanActive then return end
-            performScan()
-        end)
+        return
     end
+    
+    clearResults()
+    addResult("System initialized", Color3.fromRGB(0, 255, 200))
+    addResult("Scanning game for backdoors...", Color3.fromRGB(200, 200, 230))
+    scanActive = true
+    scanBtn.Text = "Scanning..."
+    scanStatus.Text = "Scanning for backdoors..."
+    scanStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
+    
+    task.wait(0.5)
+    performScan()
 end
 
 scanBtn.MouseButton1Click:Connect(toggleScan)
