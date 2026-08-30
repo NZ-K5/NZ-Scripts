@@ -63,7 +63,7 @@ local themes = {
 }
 
 local currentTheme = "Default"
-local isOpen = true
+local isMinimized = false
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 520, 0, 380)
@@ -95,7 +95,7 @@ titleBar.BackgroundTransparency = 1
 titleBar.Parent = frame
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.7, 0, 1, 0)
+titleLabel.Size = UDim2.new(0.8, 0, 1, 0)
 titleLabel.Position = UDim2.new(0, 12, 0, 0)
 titleLabel.Text = "NZ-Brookhaven"
 titleLabel.TextColor3 = themes.Default.accent
@@ -104,6 +104,28 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.BackgroundTransparency = 1
 titleLabel.Parent = titleBar
+
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 32, 0, 32)
+minimizeBtn.Position = UDim2.new(1, -80, 0, 4)
+minimizeBtn.Text = "-"
+minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+minimizeBtn.TextSize = 20
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+minimizeBtn.BackgroundTransparency = 0.2
+minimizeBtn.Parent = titleBar
+local minCorner = Instance.new("UICorner", minimizeBtn)
+minCorner.CornerRadius = UDim.new(0, 6)
+
+minimizeBtn.MouseEnter:Connect(function()
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    minimizeBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
+end)
+minimizeBtn.MouseLeave:Connect(function()
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+end)
 
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 32, 0, 32)
@@ -128,43 +150,28 @@ closeBtn.MouseLeave:Connect(function()
 end)
 
 closeBtn.MouseButton1Click:Connect(function()
-    isOpen = false
-    frame.Visible = false
-    blur.Size = 0
-end)
+    local confirm = Instance.new("TextButton")
+    confirm.Size = UDim2.new(0, 120, 0, 30)
+    confirm.Position = UDim2.new(0.5, -60, 0.5, -15)
+    confirm.Text = "Confirm Close?"
+    confirm.TextColor3 = Color3.fromRGB(255, 255, 255)
+    confirm.TextSize = 14
+    confirm.Font = Enum.Font.GothamBold
+    confirm.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
+    confirm.Parent = frame
+    local cCorner = Instance.new("UICorner", confirm)
+    cCorner.CornerRadius = UDim.new(0, 6)
+    confirm.ZIndex = 999
 
-local reopenBtn = Instance.new("TextButton")
-reopenBtn.Size = UDim2.new(0, 32, 0, 32)
-reopenBtn.Position = UDim2.new(1, -80, 0, 4)
-reopenBtn.Text = "R"
-reopenBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
-reopenBtn.TextSize = 18
-reopenBtn.Font = Enum.Font.GothamBold
-reopenBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-reopenBtn.BackgroundTransparency = 0.2
-reopenBtn.Parent = titleBar
-local reopenCorner = Instance.new("UICorner", reopenBtn)
-reopenCorner.CornerRadius = UDim.new(0, 6)
+    local function destroyAll()
+        confirm:Destroy()
+        root:Destroy()
+        blur:Destroy()
+    end
 
-reopenBtn.MouseEnter:Connect(function()
-    reopenBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-    reopenBtn.TextColor3 = Color3.fromRGB(100, 255, 180)
-end)
-reopenBtn.MouseLeave:Connect(function()
-    reopenBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    reopenBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
-end)
-
-reopenBtn.MouseButton1Click:Connect(function()
-    isOpen = true
-    frame.Visible = true
-    blur.Size = 6
-    frame.Size = UDim2.new(0, 0, 0, 0)
-    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 520, 0, 380),
-        Position = UDim2.new(0.5, -260, 0.5, -190)
-    }):Play()
+    confirm.MouseButton1Click:Connect(destroyAll)
+    task.wait(3)
+    confirm:Destroy()
 end)
 
 local tabContainer = Instance.new("Frame")
@@ -330,7 +337,7 @@ local function createThemeButton(name, y)
         stroke.Color = t.stroke
         titleLabel.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= deleteBtn and child ~= reopenBtn then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= deleteBtn and child ~= minimizeBtn then
                 if child.Text == "Apply" or child.Text == "Car Modded Customization" then
                     child.TextColor3 = t.accent
                 end
@@ -343,8 +350,8 @@ local function createThemeButton(name, y)
             end
         end
         closeBtn.BackgroundColor3 = t.button
-        reopenBtn.BackgroundColor3 = t.button
-        reopenBtn.TextColor3 = t.accent
+        minimizeBtn.BackgroundColor3 = t.button
+        minimizeBtn.TextColor3 = t.accent
         deleteBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         deleteBtn.TextColor3 = t.danger
     end)
@@ -450,23 +457,56 @@ end)
 carPage.Visible = true
 tabCar.TextColor3 = themes.Default.accent
 
+local function minimizeGUI()
+    isMinimized = true
+    frame.Size = UDim2.new(0, 200, 0, 40)
+    frame.Position = UDim2.new(0.5, -100, 0.5, -20)
+    tabContainer.Visible = false
+    carPage.Visible = false
+    otherPage.Visible = false
+    themePage.Visible = false
+    closeBtn.Visible = true
+    minimizeBtn.Text = "+"
+    minimizeBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
+    titleLabel.Text = "NZ-BH"
+    titleLabel.TextSize = 16
+    blur.Size = 0
+end
+
+local function maximizeGUI()
+    isMinimized = false
+    frame.Size = UDim2.new(0, 520, 0, 380)
+    frame.Position = UDim2.new(0.5, -260, 0.5, -190)
+    tabContainer.Visible = true
+    carPage.Visible = true
+    otherPage.Visible = false
+    themePage.Visible = false
+    closeBtn.Visible = true
+    minimizeBtn.Text = "-"
+    minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+    titleLabel.Text = "NZ-Brookhaven"
+    titleLabel.TextSize = 18
+    blur.Size = 6
+    tabCar.TextColor3 = themes[currentTheme].accent
+    tabOther.TextColor3 = Color3.fromRGB(200, 200, 210)
+    tabTheme.TextColor3 = Color3.fromRGB(200, 200, 210)
+end
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    if isMinimized then
+        maximizeGUI()
+    else
+        minimizeGUI()
+    end
+end)
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.Insert then
-        if isOpen then
-            isOpen = false
-            frame.Visible = false
-            blur.Size = 0
+        if isMinimized then
+            maximizeGUI()
         else
-            isOpen = true
-            frame.Visible = true
-            blur.Size = 6
-            frame.Size = UDim2.new(0, 0, 0, 0)
-            frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-            TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Size = UDim2.new(0, 520, 0, 380),
-                Position = UDim2.new(0.5, -260, 0.5, -190)
-            }):Play()
+            minimizeGUI()
         end
     end
 end)
