@@ -369,7 +369,7 @@ local function makeResultItem(text, y, parent, color)
 end
 
 local resultsList = Instance.new("Frame")
-resultsList.Size = UDim2.new(1, 0, 0, 340)
+resultsList.Size = UDim2.new(1, 0, 0, 300)
 resultsList.Position = UDim2.new(0, 0, 0, 10)
 resultsList.BackgroundTransparency = 1
 resultsList.Parent = resultsPage
@@ -382,7 +382,7 @@ local function addResult(text, color)
     local y = #resultItems * 40
     local item = makeResultItem(text, y, resultsList, color)
     table.insert(resultItems, item)
-    resultsList.Size = UDim2.new(1, 0, 0, math.max(340, #resultItems * 40 + 20))
+    resultsList.Size = UDim2.new(1, 0, 0, math.max(300, #resultItems * 40 + 20))
     resultsPage.CanvasSize = UDim2.new(0, 0, 0, math.max(400, #resultItems * 40 + 30))
 end
 
@@ -392,12 +392,59 @@ local function clearResults()
     end
     resultItems = {}
     backdoorsFound = {}
-    resultsList.Size = UDim2.new(1, 0, 0, 340)
+    resultsList.Size = UDim2.new(1, 0, 0, 300)
     resultsPage.CanvasSize = UDim2.new(0, 0, 0, 400)
 end
 
 addResult("System initialized", Color3.fromRGB(0, 255, 200))
 addResult("Waiting for scan...", Color3.fromRGB(200, 200, 230))
+
+local copyBtn = Instance.new("TextButton")
+copyBtn.Size = UDim2.new(0, 180, 0, 35)
+copyBtn.Position = UDim2.new(0.5, -90, 0, 355)
+copyBtn.Text = "Copy All Results"
+copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+copyBtn.TextSize = 14
+copyBtn.Font = Enum.Font.GothamBold
+copyBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 40)
+copyBtn.Parent = resultsPage
+local copyCorner = Instance.new("UICorner", copyBtn)
+copyCorner.CornerRadius = UDim.new(0, 8)
+
+copyBtn.MouseEnter:Connect(function()
+    TweenService:Create(copyBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(30, 80, 50)}):Play()
+end)
+copyBtn.MouseLeave:Connect(function()
+    TweenService:Create(copyBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(20, 60, 40)}):Play()
+end)
+
+copyBtn.MouseButton1Click:Connect(function()
+    if #resultItems == 0 then
+        return
+    end
+    
+    local textToCopy = "NZ Backdoor Scan Results\n"
+    textToCopy = textToCopy .. "========================\n"
+    textToCopy = textToCopy .. "Total Backdoors Found: " .. #backdoorsFound .. "\n"
+    textToCopy = textToCopy .. "========================\n\n"
+    
+    for _, item in pairs(resultItems) do
+        local textBox = item:FindFirstChildWhichIsA("TextBox")
+        if textBox then
+            textToCopy = textToCopy .. textBox.Text .. "\n"
+        end
+    end
+    
+    local clipboard = setclipboard or toclipboard or (function() end)
+    if clipboard then
+        clipboard(textToCopy)
+        copyBtn.Text = "Copied!"
+        copyBtn.BackgroundColor3 = Color3.fromRGB(30, 80, 30)
+        task.wait(1.5)
+        copyBtn.Text = "Copy All Results"
+        copyBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 40)
+    end
+end)
 
 local themeY = 10
 local themeLabel = Instance.new("TextLabel")
@@ -440,8 +487,9 @@ local function createThemeButton(name, y, color)
         glowStroke.Color = t.glow
         titleLabel.TextColor3 = t.accent
         scanStatus.TextColor3 = t.accent
+        copyBtn.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= scanBtn and child ~= stopBtn then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= scanBtn and child ~= stopBtn and child ~= copyBtn then
                 if child.Text == "Scanner" or child.Text == "Results" or child.Text == "Theme" then
                     child.TextColor3 = t.accent
                 end
@@ -455,6 +503,7 @@ local function createThemeButton(name, y, color)
         minimizeBtn.TextColor3 = t.accent
         scanBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 40)
         stopBtn.BackgroundColor3 = Color3.fromRGB(60, 20, 25)
+        copyBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 40)
     end)
     return btn
 end
