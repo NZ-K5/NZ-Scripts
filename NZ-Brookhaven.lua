@@ -70,6 +70,7 @@ local flyActive = false
 local noclipConnections = {}
 local flyConnection = nil
 local flySpeed = 50
+local originalCollision = {}
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 520, 0, 460)
@@ -288,10 +289,10 @@ local turboBox = makeBox(yOff, carPage, "TurboEnabled")
 local turboApply = makeApply(yOff, carPage)
 yOff = yOff + 40
 
-makeLabel("Noclip", yOff, carPage)
+makeLabel("Noclip (Walls Only)", yOff, carPage)
 local noclipBtn = Instance.new("TextButton")
 noclipBtn.Size = UDim2.new(0, 120, 0, 30)
-noclipBtn.Position = UDim2.new(0, 150, 0, yOff)
+noclipBtn.Position = UDim2.new(0, 180, 0, yOff)
 noclipBtn.Text = "OFF"
 noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 noclipBtn.TextSize = 14
@@ -302,10 +303,10 @@ local noclipCorner = Instance.new("UICorner", noclipBtn)
 noclipCorner.CornerRadius = UDim.new(0, 4)
 yOff = yOff + 40
 
-makeLabel("Fly", yOff, carPage)
+makeLabel("Fly (Q Up / E Down)", yOff, carPage)
 local flyBtn = Instance.new("TextButton")
 flyBtn.Size = UDim2.new(0, 120, 0, 30)
-flyBtn.Position = UDim2.new(0, 150, 0, yOff)
+flyBtn.Position = UDim2.new(0, 180, 0, yOff)
 flyBtn.Text = "OFF"
 flyBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 flyBtn.TextSize = 14
@@ -440,6 +441,7 @@ local carModel
 
 local function updateCarModel(newCar)
     carModel = newCar
+    originalCollision = {}
 end
 
 for _, v in pairs(workspace:GetDescendants()) do
@@ -474,6 +476,7 @@ workspace.DescendantRemoving:Connect(function(desc)
         flyBtn.Text = "OFF"
         flyBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         flyBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        originalCollision = {}
     end
 end)
 
@@ -484,6 +487,16 @@ local function findValue(name)
             return v
         end
     end
+end
+
+local function restoreCollision()
+    for part, data in pairs(originalCollision) do
+        if part and part:IsA("BasePart") then
+            part.CanCollide = data.collide
+            part.CanTouch = data.touch
+        end
+    end
+    originalCollision = {}
 end
 
 local function toggleNoclip()
@@ -498,8 +511,13 @@ local function toggleNoclip()
         noclipBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         noclipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         
+        originalCollision = {}
         for _, part in pairs(carModel:GetDescendants()) do
             if part:IsA("BasePart") then
+                originalCollision[part] = {
+                    collide = part.CanCollide,
+                    touch = part.CanTouch
+                }
                 local conn = part.Touched:Connect(function(hit)
                     if hit and hit:IsA("BasePart") and hit.Parent ~= carModel then
                         local char = player.Character
@@ -509,6 +527,14 @@ local function toggleNoclip()
                                 return
                             end
                         end
+                        if hit.Name == "Floor" or hit.Name == "Ground" or hit:IsA("Terrain") then
+                            return
+                        end
+                        if hit.Parent and hit.Parent:FindFirstChild("Humanoid") then
+                            return
+                        end
+                        part.CanCollide = false
+                        part.CanTouch = false
                     end
                 end)
                 table.insert(noclipConnections, conn)
@@ -526,12 +552,7 @@ local function toggleNoclip()
         end
         noclipConnections = {}
         
-        for _, part in pairs(carModel:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-                part.CanTouch = true
-            end
-        end
+        restoreCollision()
     end
 end
 
@@ -582,9 +603,9 @@ local function toggleFly()
             local right = rootPart.CFrame.RightVector * (moveDirection.X * flySpeed)
             local up = Vector3.new(0, 0, 0)
             
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
                 up = Vector3.new(0, flySpeed, 0)
-            elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.X) then
+            elseif UserInputService:IsKeyDown(Enum.KeyCode.E) then
                 up = Vector3.new(0, -flySpeed, 0)
             end
             
@@ -612,6 +633,12 @@ local function toggleFly()
         if flyConnection then
             pcall(function() flyConnection:Disconnect() end)
             flyConnection = nil
+        end
+        
+        for _, part in pairs(carModel:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Velocity = Vector3.new(0, 0, 0)
+            end
         end
     end
 end
