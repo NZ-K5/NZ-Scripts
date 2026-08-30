@@ -1,4 +1,4 @@
-﻿local Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
@@ -7,9 +7,6 @@ local guiParent = player:WaitForChild("PlayerGui")
 pcall(function()
     if guiParent:FindFirstChild("ModRoot") then
         guiParent.ModRoot:Destroy()
-    end
-    if guiParent:FindFirstChild("NZBHButton") then
-        guiParent.NZBHButton:Destroy()
     end
 end)
 
@@ -20,7 +17,7 @@ root.ResetOnSpawn = false
 root.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local blur = Instance.new("BlurEffect", game:GetService("Lighting"))
-blur.Size = 0
+blur.Size = 6
 
 local themes = {
     Default = {
@@ -66,7 +63,7 @@ local themes = {
 }
 
 local currentTheme = "Default"
-local isOpen = false
+local isOpen = true
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 520, 0, 380)
@@ -75,7 +72,7 @@ frame.BackgroundColor3 = themes.Default.background
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
 frame.Parent = root
-frame.Visible = false
+frame.Visible = true
 frame.ZIndex = 10
 
 local corner = Instance.new("UICorner", frame)
@@ -98,7 +95,7 @@ titleBar.BackgroundTransparency = 1
 titleBar.Parent = frame
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.8, 0, 1, 0)
+titleLabel.Size = UDim2.new(0.7, 0, 1, 0)
 titleLabel.Position = UDim2.new(0, 12, 0, 0)
 titleLabel.Text = "NZ-Brookhaven"
 titleLabel.TextColor3 = themes.Default.accent
@@ -131,31 +128,43 @@ closeBtn.MouseLeave:Connect(function()
 end)
 
 closeBtn.MouseButton1Click:Connect(function()
-    local confirm = Instance.new("TextButton")
-    confirm.Size = UDim2.new(0, 120, 0, 30)
-    confirm.Position = UDim2.new(0.5, -60, 0.5, -15)
-    confirm.Text = "Confirm Close?"
-    confirm.TextColor3 = Color3.fromRGB(255, 255, 255)
-    confirm.TextSize = 14
-    confirm.Font = Enum.Font.GothamBold
-    confirm.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
-    confirm.Parent = frame
-    local cCorner = Instance.new("UICorner", confirm)
-    cCorner.CornerRadius = UDim.new(0, 6)
-    confirm.ZIndex = 999
-    
-    local function destroyAll()
-        confirm:Destroy()
-        root:Destroy()
-        blur:Destroy()
-        if guiParent:FindFirstChild("NZBHButton") then
-            guiParent.NZBHButton:Destroy()
-        end
-    end
-    
-    confirm.MouseButton1Click:Connect(destroyAll)
-    task.wait(3)
-    confirm:Destroy()
+    isOpen = false
+    frame.Visible = false
+    blur.Size = 0
+end)
+
+local reopenBtn = Instance.new("TextButton")
+reopenBtn.Size = UDim2.new(0, 32, 0, 32)
+reopenBtn.Position = UDim2.new(1, -80, 0, 4)
+reopenBtn.Text = "R"
+reopenBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
+reopenBtn.TextSize = 18
+reopenBtn.Font = Enum.Font.GothamBold
+reopenBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+reopenBtn.BackgroundTransparency = 0.2
+reopenBtn.Parent = titleBar
+local reopenCorner = Instance.new("UICorner", reopenBtn)
+reopenCorner.CornerRadius = UDim.new(0, 6)
+
+reopenBtn.MouseEnter:Connect(function()
+    reopenBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+    reopenBtn.TextColor3 = Color3.fromRGB(100, 255, 180)
+end)
+reopenBtn.MouseLeave:Connect(function()
+    reopenBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    reopenBtn.TextColor3 = Color3.fromRGB(0, 255, 150)
+end)
+
+reopenBtn.MouseButton1Click:Connect(function()
+    isOpen = true
+    frame.Visible = true
+    blur.Size = 6
+    frame.Size = UDim2.new(0, 0, 0, 0)
+    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 520, 0, 380),
+        Position = UDim2.new(0.5, -260, 0.5, -190)
+    }):Play()
 end)
 
 local tabContainer = Instance.new("Frame")
@@ -286,9 +295,6 @@ delCorner.CornerRadius = UDim.new(0, 8)
 deleteBtn.MouseButton1Click:Connect(function()
     root:Destroy()
     blur:Destroy()
-    if guiParent:FindFirstChild("NZBHButton") then
-        guiParent.NZBHButton:Destroy()
-    end
 end)
 
 local themeY = 0
@@ -316,7 +322,7 @@ local function createThemeButton(name, y)
     btn.Parent = themePage
     local c = Instance.new("UICorner", btn)
     c.CornerRadius = UDim.new(0, 6)
-    
+
     btn.MouseButton1Click:Connect(function()
         currentTheme = name
         local t = themes[name]
@@ -324,7 +330,7 @@ local function createThemeButton(name, y)
         stroke.Color = t.stroke
         titleLabel.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= deleteBtn then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= deleteBtn and child ~= reopenBtn then
                 if child.Text == "Apply" or child.Text == "Car Modded Customization" then
                     child.TextColor3 = t.accent
                 end
@@ -337,18 +343,10 @@ local function createThemeButton(name, y)
             end
         end
         closeBtn.BackgroundColor3 = t.button
+        reopenBtn.BackgroundColor3 = t.button
+        reopenBtn.TextColor3 = t.accent
         deleteBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         deleteBtn.TextColor3 = t.danger
-        if guiParent:FindFirstChild("NZBHButton") then
-            local btnStroke = guiParent.NZBHButton:FindFirstChild("UIStroke")
-            if btnStroke then
-                btnStroke.Color = t.stroke
-            end
-            local btnLabel = guiParent.NZBHButton:FindFirstChild("TextLabel")
-            if btnLabel then
-                btnLabel.TextColor3 = t.accent
-            end
-        end
     end)
     return btn
 end
@@ -452,76 +450,24 @@ end)
 carPage.Visible = true
 tabCar.TextColor3 = themes.Default.accent
 
-local visible = false
-frame.Visible = false
-blur.Size = 0
-
-local nzbhButton = Instance.new("TextButton")
-nzbhButton.Name = "NZBHButton"
-nzbhButton.Size = UDim2.new(0, 80, 0, 80)
-nzbhButton.Position = UDim2.new(0, 10, 0.5, -40)
-nzbhButton.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-nzbhButton.BackgroundTransparency = 0.08
-nzbhButton.Parent = guiParent
-nzbhButton.ZIndex = 999
-
-local btnCorner = Instance.new("UICorner", nzbhButton)
-btnCorner.CornerRadius = UDim.new(0, 14)
-
-local btnStroke = Instance.new("UIStroke", nzbhButton)
-btnStroke.Color = themes.Default.stroke
-btnStroke.Thickness = 2
-btnStroke.Transparency = 0.4
-
-local btnGlow = Instance.new("UIStroke", nzbhButton)
-btnGlow.Color = themes.Default.stroke
-btnGlow.Thickness = 8
-btnGlow.Transparency = 0.8
-
-local btnGrad = Instance.new("UIGradient", nzbhButton)
-btnGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 30)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15))
-})
-
-local btnLabel = Instance.new("TextLabel")
-btnLabel.Size = UDim2.new(1, 0, 1, 0)
-btnLabel.Position = UDim2.new(0, 0, 0, 0)
-btnLabel.Text = "NZ-BH"
-btnLabel.TextColor3 = themes.Default.accent
-btnLabel.TextSize = 18
-btnLabel.Font = Enum.Font.GothamBold
-btnLabel.BackgroundTransparency = 1
-btnLabel.Parent = nzbhButton
-
-local function toggleMenu()
-    isOpen = not isOpen
-    if isOpen then
-        frame.Visible = true
-        frame.Size = UDim2.new(0, 0, 0, 0)
-        frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-        TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 520, 0, 380),
-            Position = UDim2.new(0.5, -260, 0.5, -190)
-        }):Play()
-        blur.Size = 6
-    else
-        TweenService:Create(frame, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0, 0),
-            Position = UDim2.new(0.5, 0, 0.5, 0)
-        }):Play()
-        task.wait(0.2)
-        frame.Visible = false
-        blur.Size = 0
-    end
-end
-
-nzbhButton.MouseButton1Click:Connect(toggleMenu)
-
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.Insert then
-        toggleMenu()
+        if isOpen then
+            isOpen = false
+            frame.Visible = false
+            blur.Size = 0
+        else
+            isOpen = true
+            frame.Visible = true
+            blur.Size = 6
+            frame.Size = UDim2.new(0, 0, 0, 0)
+            frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+            TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 520, 0, 380),
+                Position = UDim2.new(0.5, -260, 0.5, -190)
+            }):Play()
+        end
     end
 end)
 
