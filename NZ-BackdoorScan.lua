@@ -354,7 +354,7 @@ local function makeResultItem(text, y, parent, color)
     local c = Instance.new("UICorner", b)
     c.CornerRadius = UDim.new(0, 6)
 
-    local l = Instance.new("TextLabel")
+    local l = Instance.new("TextBox")
     l.Size = UDim2.new(1, -20, 1, 0)
     l.Position = UDim2.new(0, 10, 0, 0)
     l.Text = text
@@ -363,6 +363,7 @@ local function makeResultItem(text, y, parent, color)
     l.Font = Enum.Font.Gotham
     l.BackgroundTransparency = 1
     l.TextXAlignment = Enum.TextXAlignment.Left
+    l.ClearTextOnFocus = false
     l.Parent = b
     return b
 end
