@@ -115,7 +115,7 @@ titleBar.Parent = frame
 local titleIcon = Instance.new("TextLabel")
 titleIcon.Size = UDim2.new(0, 30, 1, 0)
 titleIcon.Position = UDim2.new(0, 12, 0, 0)
-titleIcon.Text = "⬡"
+titleIcon.Text = ""
 titleIcon.TextColor3 = themes.Default.accent
 titleIcon.TextSize = 20
 titleIcon.Font = Enum.Font.GothamBold
@@ -148,7 +148,7 @@ subtitleLabel.Parent = titleBar
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Size = UDim2.new(0, 34, 0, 34)
 minimizeBtn.Position = UDim2.new(1, -80, 0, 5)
-minimizeBtn.Text = "−"
+minimizeBtn.Text = "-"
 minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
 minimizeBtn.TextSize = 22
 minimizeBtn.Font = Enum.Font.GothamBold
@@ -172,7 +172,7 @@ end)
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 34, 0, 34)
 closeBtn.Position = UDim2.new(1, -40, 0, 5)
-closeBtn.Text = "✕"
+closeBtn.Text = "X"
 closeBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
 closeBtn.TextSize = 18
 closeBtn.Font = Enum.Font.GothamBold
@@ -264,11 +264,11 @@ tabContainer.Position = UDim2.new(0, 15, 0, 50)
 tabContainer.BackgroundTransparency = 1
 tabContainer.Parent = frame
 
-local function createTab(name, x, icon)
+local function createTab(name, x)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 170, 1, 0)
     btn.Position = UDim2.new(0, x, 0, 0)
-    btn.Text = icon .. " " .. name
+    btn.Text = name
     btn.TextColor3 = Color3.fromRGB(180, 180, 210)
     btn.TextSize = 13
     btn.Font = Enum.Font.GothamBold
@@ -280,9 +280,9 @@ local function createTab(name, x, icon)
     return btn
 end
 
-local tabScan = createTab("Scanner", 0, "◈")
-local tabResults = createTab("Results", 180, "▣")
-local tabTheme = createTab("Theme", 360, "◆")
+local tabScan = createTab("Scanner", 0)
+local tabResults = createTab("Results", 180)
+local tabTheme = createTab("Theme", 360)
 
 local function createPage()
     local pg = Instance.new("ScrollingFrame")
@@ -320,7 +320,7 @@ local function makeStatusLabel(y)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, -20, 0, 40)
     l.Position = UDim2.new(0, 0, 0, y)
-    l.Text = "⚡ System Ready"
+    l.Text = "System Ready"
     l.TextColor3 = Color3.fromRGB(0, 255, 200)
     l.TextSize = 16
     l.Font = Enum.Font.GothamBold
@@ -347,8 +347,8 @@ local function makeButton(text, y, color)
     return b
 end
 
-local scanBtn = makeButton("▶ Start Scan", 60, Color3.fromRGB(20, 60, 40))
-local stopBtn = makeButton("■ Stop Scan", 110, Color3.fromRGB(60, 20, 25))
+local scanBtn = makeButton("Start Scan", 60, Color3.fromRGB(20, 60, 40))
+local stopBtn = makeButton("Stop Scan", 110, Color3.fromRGB(60, 20, 25))
 
 local function makeResultItem(text, y, parent)
     local b = Instance.new("Frame")
@@ -359,7 +359,7 @@ local function makeResultItem(text, y, parent)
     b.Parent = parent
     local c = Instance.new("UICorner", b)
     c.CornerRadius = UDim.new(0, 6)
-    
+
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, -20, 1, 0)
     l.Position = UDim2.new(0, 10, 0, 0)
@@ -389,8 +389,8 @@ local function addResult(text)
     resultsPage.CanvasSize = UDim2.new(0, 0, 0, math.max(400, #resultItems * 40 + 30))
 end
 
-addResult("● System initialized")
-addResult("● Waiting for scan...")
+addResult("System initialized")
+addResult("Waiting for scan...")
 
 local themeY = 10
 local themeLabel = Instance.new("TextLabel")
@@ -417,14 +417,14 @@ local function createThemeButton(name, y, color)
     btn.Parent = themePage
     local c = Instance.new("UICorner", btn)
     c.CornerRadius = UDim.new(0, 8)
-    
+
     btn.MouseEnter:Connect(function()
         TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0}):Play()
     end)
     btn.MouseLeave:Connect(function()
         TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.2}):Play()
     end)
-    
+
     btn.MouseButton1Click:Connect(function()
         currentTheme = name
         local t = themes[name]
@@ -432,11 +432,10 @@ local function createThemeButton(name, y, color)
         stroke.Color = t.stroke
         glowStroke.Color = t.glow
         titleLabel.TextColor3 = t.accent
-        titleIcon.TextColor3 = t.accent
         scanStatus.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
             if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= scanBtn and child ~= stopBtn then
-                if child.Text:find("Scanner") or child.Text:find("Results") or child.Text:find("Theme") then
+                if child.Text == "Scanner" or child.Text == "Results" or child.Text == "Theme" then
                     child.TextColor3 = t.accent
                 end
             end
@@ -469,37 +468,37 @@ end
 local function toggleScan()
     if scanActive then
         scanActive = false
-        scanBtn.Text = "▶ Start Scan"
-        scanStatus.Text = "⏹ Scan Stopped"
+        scanBtn.Text = "Start Scan"
+        scanStatus.Text = "Scan Stopped"
         scanStatus.TextColor3 = Color3.fromRGB(255, 200, 50)
         if scanConnection then
             pcall(function() scanConnection:Disconnect() end)
             scanConnection = nil
         end
-        addResult("● Scan interrupted")
+        addResult("Scan interrupted")
     else
         scanActive = true
-        scanBtn.Text = "● Scanning..."
-        scanStatus.Text = "⚡ Scanning for backdoors..."
+        scanBtn.Text = "Scanning..."
+        scanStatus.Text = "Scanning for backdoors..."
         scanStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
-        addResult("● Scan started")
-        
+        addResult("Scan started")
+
         if scanConnection then
             pcall(function() scanConnection:Disconnect() end)
             scanConnection = nil
         end
-        
+
         local scanCount = 0
         scanConnection = RunService.Heartbeat:Connect(function()
             if not scanActive then return end
-            
+
             scanCount = scanCount + 1
             if scanCount % 10 == 0 then
                 local found = false
                 for _, v in pairs(workspace:GetDescendants()) do
                     if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") or v:IsA("BindableEvent") or v:IsA("BindableFunction") then
                         if v.Name:lower():find("backdoor") or v.Name:lower():find("exploit") or v.Name:lower():find("admin") or v.Name:lower():find("remote") then
-                            addResult("⚠ Found: " .. v.Name .. " (" .. v.ClassName .. ")")
+                            addResult("Found: " .. v.Name .. " (" .. v.ClassName .. ")")
                             found = true
                             break
                         end
@@ -507,7 +506,7 @@ local function toggleScan()
                 end
                 if not found then
                     local statuses = {"Scanning network...", "Checking services...", "Analyzing remotes...", "Inspecting bindables...", "Searching for exploits..."}
-                    scanStatus.Text = "⚡ " .. statuses[math.random(1, #statuses)]
+                    scanStatus.Text = statuses[math.random(1, #statuses)]
                 end
             end
         end)
@@ -568,7 +567,6 @@ local function minimizeGUI()
     minimizeBtn.TextColor3 = Color3.fromRGB(0, 255, 200)
     titleLabel.Text = "NZ-BD"
     titleLabel.TextSize = 16
-    titleIcon.Visible = false
     subtitleLabel.Visible = false
     blur.Size = 0
 end
@@ -582,11 +580,10 @@ local function maximizeGUI()
     resultsPage.Visible = false
     themePage.Visible = false
     closeBtn.Visible = true
-    minimizeBtn.Text = "−"
+    minimizeBtn.Text = "-"
     minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
     titleLabel.Text = "NZ Backdoor Scan"
     titleLabel.TextSize = 18
-    titleIcon.Visible = true
     subtitleLabel.Visible = true
     blur.Size = 8
     tabScan.TextColor3 = themes[currentTheme].accent
