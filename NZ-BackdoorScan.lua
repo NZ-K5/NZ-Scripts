@@ -137,7 +137,7 @@ titleLabel.Parent = titleBar
 local subtitleLabel = Instance.new("TextLabel")
 subtitleLabel.Size = UDim2.new(0.4, 0, 1, 0)
 subtitleLabel.Position = UDim2.new(0.6, 0, 0, 0)
-subtitleLabel.Text = "v2.0.1"
+subtitleLabel.Text = "v3.0"
 subtitleLabel.TextColor3 = Color3.fromRGB(100, 100, 140)
 subtitleLabel.TextSize = 12
 subtitleLabel.Font = Enum.Font.Gotham
@@ -350,7 +350,7 @@ end
 local scanBtn = makeButton("Start Scan", 60, Color3.fromRGB(20, 60, 40))
 local stopBtn = makeButton("Stop Scan", 110, Color3.fromRGB(60, 20, 25))
 
-local function makeResultItem(text, y, parent)
+local function makeResultItem(text, y, parent, color)
     local b = Instance.new("Frame")
     b.Size = UDim2.new(1, -10, 0, 35)
     b.Position = UDim2.new(0, 0, 0, y)
@@ -364,7 +364,7 @@ local function makeResultItem(text, y, parent)
     l.Size = UDim2.new(1, -20, 1, 0)
     l.Position = UDim2.new(0, 10, 0, 0)
     l.Text = text
-    l.TextColor3 = Color3.fromRGB(200, 200, 230)
+    l.TextColor3 = color or Color3.fromRGB(200, 200, 230)
     l.TextSize = 13
     l.Font = Enum.Font.Gotham
     l.BackgroundTransparency = 1
@@ -380,17 +380,29 @@ resultsList.BackgroundTransparency = 1
 resultsList.Parent = resultsPage
 
 local resultItems = {}
+local backdoorsFound = {}
 
-local function addResult(text)
+local function addResult(text, color)
+    color = color or Color3.fromRGB(200, 200, 230)
     local y = #resultItems * 40
-    local item = makeResultItem(text, y, resultsList)
+    local item = makeResultItem(text, y, resultsList, color)
     table.insert(resultItems, item)
     resultsList.Size = UDim2.new(1, 0, 0, math.max(340, #resultItems * 40 + 20))
     resultsPage.CanvasSize = UDim2.new(0, 0, 0, math.max(400, #resultItems * 40 + 30))
 end
 
-addResult("System initialized")
-addResult("Waiting for scan...")
+local function clearResults()
+    for _, item in pairs(resultItems) do
+        item:Destroy()
+    end
+    resultItems = {}
+    backdoorsFound = {}
+    resultsList.Size = UDim2.new(1, 0, 0, 340)
+    resultsPage.CanvasSize = UDim2.new(0, 0, 0, 400)
+end
+
+addResult("System initialized", Color3.fromRGB(0, 255, 200))
+addResult("Waiting for scan...", Color3.fromRGB(200, 200, 230))
 
 local themeY = 10
 local themeLabel = Instance.new("TextLabel")
@@ -465,6 +477,52 @@ for _, t in ipairs(themeColors) do
     themeY = themeY + 50
 end
 
+local function performScan()
+    if not scanActive then return end
+    
+    local found = {}
+    local allInstances = workspace:GetDescendants()
+    
+    for _, v in pairs(allInstances) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") or v:IsA("BindableEvent") or v:IsA("BindableFunction") then
+            local name = v.Name:lower()
+            if name:find("backdoor") or name:find("exploit") or name:find("admin") or name:find("remote") or name:find("inject") or name:find("execute") or name:find("load") or name:find("script") or name:find("run") or name:find("control") or name:find("command") or name:find("hack") then
+                table.insert(found, v)
+            end
+        end
+    end
+    
+    if #found > 0 then
+        for _, v in pairs(found) do
+            local alreadyAdded = false
+            for _, existing in pairs(backdoorsFound) do
+                if existing == v then
+                    alreadyAdded = true
+                    break
+                end
+            end
+            if not alreadyAdded then
+                table.insert(backdoorsFound, v)
+                addResult("Found: " .. v.Name .. " (" .. v.ClassName .. ")", Color3.fromRGB(255, 200, 50))
+            end
+        end
+        scanStatus.Text = "Found " .. #backdoorsFound .. " backdoors"
+        scanStatus.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        if #backdoorsFound == 0 then
+            addResult("Error Game Has No Backdoors: Code-203", Color3.fromRGB(255, 50, 80))
+            scanStatus.Text = "No backdoors found"
+            scanStatus.TextColor3 = Color3.fromRGB(255, 50, 80)
+            scanActive = false
+            scanBtn.Text = "Start Scan"
+            if scanConnection then
+                pcall(function() scanConnection:Disconnect() end)
+                scanConnection = nil
+            end
+        end
+    end
+end
+
 local function toggleScan()
     if scanActive then
         scanActive = false
@@ -475,40 +533,26 @@ local function toggleScan()
             pcall(function() scanConnection:Disconnect() end)
             scanConnection = nil
         end
-        addResult("Scan interrupted")
+        addResult("Scan interrupted", Color3.fromRGB(255, 200, 50))
     else
+        clearResults()
+        addResult("System initialized", Color3.fromRGB(0, 255, 200))
         scanActive = true
         scanBtn.Text = "Scanning..."
         scanStatus.Text = "Scanning for backdoors..."
         scanStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
-        addResult("Scan started")
+        addResult("Scan started", Color3.fromRGB(0, 255, 200))
 
         if scanConnection then
             pcall(function() scanConnection:Disconnect() end)
             scanConnection = nil
         end
 
-        local scanCount = 0
+        performScan()
+        
         scanConnection = RunService.Heartbeat:Connect(function()
             if not scanActive then return end
-
-            scanCount = scanCount + 1
-            if scanCount % 10 == 0 then
-                local found = false
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") or v:IsA("BindableEvent") or v:IsA("BindableFunction") then
-                        if v.Name:lower():find("backdoor") or v.Name:lower():find("exploit") or v.Name:lower():find("admin") or v.Name:lower():find("remote") then
-                            addResult("Found: " .. v.Name .. " (" .. v.ClassName .. ")")
-                            found = true
-                            break
-                        end
-                    end
-                end
-                if not found then
-                    local statuses = {"Scanning network...", "Checking services...", "Analyzing remotes...", "Inspecting bindables...", "Searching for exploits..."}
-                    scanStatus.Text = statuses[math.random(1, #statuses)]
-                end
-            end
+            performScan()
         end)
     end
 end
