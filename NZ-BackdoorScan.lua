@@ -368,48 +368,34 @@ local function makeResultItem(text, y, parent, color)
     return b
 end
 
-local resultsList = Instance.new("Frame")
-resultsList.Size = UDim2.new(1, 0, 0, 300)
-resultsList.Position = UDim2.new(0, 0, 0, 10)
-resultsList.BackgroundTransparency = 1
-resultsList.Parent = resultsPage
+local resultsHeader = Instance.new("Frame")
+resultsHeader.Size = UDim2.new(1, 0, 0, 40)
+resultsHeader.Position = UDim2.new(0, 0, 0, 10)
+resultsHeader.BackgroundTransparency = 1
+resultsHeader.Parent = resultsPage
 
-local resultItems = {}
-local backdoorsFound = {}
-
-local function addResult(text, color)
-    color = color or Color3.fromRGB(200, 200, 230)
-    local y = #resultItems * 40
-    local item = makeResultItem(text, y, resultsList, color)
-    table.insert(resultItems, item)
-    resultsList.Size = UDim2.new(1, 0, 0, math.max(300, #resultItems * 40 + 20))
-    resultsPage.CanvasSize = UDim2.new(0, 0, 0, math.max(400, #resultItems * 40 + 30))
-end
-
-local function clearResults()
-    for _, item in pairs(resultItems) do
-        item:Destroy()
-    end
-    resultItems = {}
-    backdoorsFound = {}
-    resultsList.Size = UDim2.new(1, 0, 0, 300)
-    resultsPage.CanvasSize = UDim2.new(0, 0, 0, 400)
-end
-
-addResult("System initialized", Color3.fromRGB(0, 255, 200))
-addResult("Waiting for scan...", Color3.fromRGB(200, 200, 230))
+local headerLabel = Instance.new("TextLabel")
+headerLabel.Size = UDim2.new(0.6, 0, 1, 0)
+headerLabel.Position = UDim2.new(0, 0, 0, 0)
+headerLabel.Text = "System initialized"
+headerLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+headerLabel.TextSize = 13
+headerLabel.Font = Enum.Font.GothamBold
+headerLabel.BackgroundTransparency = 1
+headerLabel.TextXAlignment = Enum.TextXAlignment.Left
+headerLabel.Parent = resultsHeader
 
 local copyBtn = Instance.new("TextButton")
-copyBtn.Size = UDim2.new(0, 180, 0, 35)
-copyBtn.Position = UDim2.new(0.5, -90, 0, 355)
+copyBtn.Size = UDim2.new(0, 140, 0, 32)
+copyBtn.Position = UDim2.new(1, -145, 0, 4)
 copyBtn.Text = "Copy All Results"
 copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-copyBtn.TextSize = 14
+copyBtn.TextSize = 12
 copyBtn.Font = Enum.Font.GothamBold
 copyBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 40)
-copyBtn.Parent = resultsPage
+copyBtn.Parent = resultsHeader
 local copyCorner = Instance.new("UICorner", copyBtn)
-copyCorner.CornerRadius = UDim.new(0, 8)
+copyCorner.CornerRadius = UDim.new(0, 6)
 
 copyBtn.MouseEnter:Connect(function()
     TweenService:Create(copyBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(30, 80, 50)}):Play()
@@ -445,6 +431,39 @@ copyBtn.MouseButton1Click:Connect(function()
         copyBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 40)
     end
 end)
+
+local resultsList = Instance.new("Frame")
+resultsList.Size = UDim2.new(1, 0, 0, 310)
+resultsList.Position = UDim2.new(0, 0, 0, 55)
+resultsList.BackgroundTransparency = 1
+resultsList.Parent = resultsPage
+
+local resultItems = {}
+local backdoorsFound = {}
+
+local function addResult(text, color)
+    color = color or Color3.fromRGB(200, 200, 230)
+    local y = #resultItems * 40
+    local item = makeResultItem(text, y, resultsList, color)
+    table.insert(resultItems, item)
+    resultsList.Size = UDim2.new(1, 0, 0, math.max(310, #resultItems * 40 + 20))
+    resultsPage.CanvasSize = UDim2.new(0, 0, 0, math.max(420, #resultItems * 40 + 80))
+end
+
+local function clearResults()
+    for _, item in pairs(resultItems) do
+        item:Destroy()
+    end
+    resultItems = {}
+    backdoorsFound = {}
+    resultsList.Size = UDim2.new(1, 0, 0, 310)
+    resultsPage.CanvasSize = UDim2.new(0, 0, 0, 420)
+    headerLabel.Text = "System initialized"
+    headerLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+end
+
+addResult("System initialized", Color3.fromRGB(0, 255, 200))
+addResult("Waiting for scan...", Color3.fromRGB(200, 200, 230))
 
 local themeY = 10
 local themeLabel = Instance.new("TextLabel")
@@ -488,6 +507,7 @@ local function createThemeButton(name, y, color)
         titleLabel.TextColor3 = t.accent
         scanStatus.TextColor3 = t.accent
         copyBtn.TextColor3 = t.accent
+        headerLabel.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
             if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= scanBtn and child ~= stopBtn and child ~= copyBtn then
                 if child.Text == "Scanner" or child.Text == "Results" or child.Text == "Theme" then
@@ -554,11 +574,15 @@ local function performScan()
         scanStatus.Text = "Found " .. #backdoorsFound .. " backdoors"
         scanStatus.TextColor3 = Color3.fromRGB(255, 200, 50)
         addResult("Scan complete - " .. #backdoorsFound .. " backdoors found", Color3.fromRGB(0, 255, 200))
+        headerLabel.Text = "Scan complete - " .. #backdoorsFound .. " backdoors found"
+        headerLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
     else
         addResult("Error Game Has No Backdoors: Code-203", Color3.fromRGB(255, 50, 80))
         scanStatus.Text = "No backdoors found"
         scanStatus.TextColor3 = Color3.fromRGB(255, 50, 80)
         addResult("Scan complete - No backdoors found", Color3.fromRGB(255, 200, 50))
+        headerLabel.Text = "No backdoors found - Code-203"
+        headerLabel.TextColor3 = Color3.fromRGB(255, 50, 80)
     end
 end
 
@@ -569,12 +593,16 @@ local function toggleScan()
         scanStatus.Text = "Scan Stopped"
         scanStatus.TextColor3 = Color3.fromRGB(255, 200, 50)
         addResult("Scan interrupted", Color3.fromRGB(255, 200, 50))
+        headerLabel.Text = "Scan interrupted"
+        headerLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
         return
     end
     
     clearResults()
     addResult("System initialized", Color3.fromRGB(0, 255, 200))
     addResult("Scanning game for backdoors...", Color3.fromRGB(200, 200, 230))
+    headerLabel.Text = "Scanning game for backdoors..."
+    headerLabel.TextColor3 = Color3.fromRGB(200, 200, 230)
     scanActive = true
     scanBtn.Text = "Scanning..."
     scanStatus.Text = "Scanning for backdoors..."
