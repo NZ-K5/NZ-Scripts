@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local guiParent = player:WaitForChild("PlayerGui")
 
@@ -64,10 +65,15 @@ local themes = {
 
 local currentTheme = "Default"
 local isMinimized = false
+local noclipActive = false
+local flyActive = false
+local noclipConnections = {}
+local flyConnection = nil
+local flySpeed = 50
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 520, 0, 380)
-frame.Position = UDim2.new(0.5, -260, 0.5, -190)
+frame.Size = UDim2.new(0, 520, 0, 460)
+frame.Position = UDim2.new(0.5, -260, 0.5, -230)
 frame.BackgroundColor3 = themes.Default.background
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -95,7 +101,7 @@ titleBar.BackgroundTransparency = 1
 titleBar.Parent = frame
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.8, 0, 1, 0)
+titleLabel.Size = UDim2.new(0.7, 0, 1, 0)
 titleLabel.Position = UDim2.new(0, 12, 0, 0)
 titleLabel.Text = "NZ-Brookhaven"
 titleLabel.TextColor3 = themes.Default.accent
@@ -165,6 +171,13 @@ closeBtn.MouseButton1Click:Connect(function()
 
     local function destroyAll()
         confirm:Destroy()
+        for _, conn in pairs(noclipConnections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        if flyConnection then
+            pcall(function() flyConnection:Disconnect() end)
+            flyConnection = nil
+        end
         root:Destroy()
         blur:Destroy()
     end
@@ -205,7 +218,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -20, 1, -95)
     pg.Position = UDim2.new(0, 10, 0, 85)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 300)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 420)
     pg.ScrollBarThickness = 4
     pg.ScrollBarImageColor3 = themes.Default.accent
     pg.Parent = frame
@@ -273,7 +286,43 @@ yOff = yOff + 40
 makeLabel("Turbo String", yOff, carPage)
 local turboBox = makeBox(yOff, carPage, "TurboEnabled")
 local turboApply = makeApply(yOff, carPage)
-yOff = yOff + 45
+yOff = yOff + 40
+
+makeLabel("Noclip", yOff, carPage)
+local noclipBtn = Instance.new("TextButton")
+noclipBtn.Size = UDim2.new(0, 120, 0, 30)
+noclipBtn.Position = UDim2.new(0, 150, 0, yOff)
+noclipBtn.Text = "OFF"
+noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+noclipBtn.TextSize = 14
+noclipBtn.Font = Enum.Font.GothamBold
+noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+noclipBtn.Parent = carPage
+local noclipCorner = Instance.new("UICorner", noclipBtn)
+noclipCorner.CornerRadius = UDim.new(0, 4)
+yOff = yOff + 40
+
+makeLabel("Fly", yOff, carPage)
+local flyBtn = Instance.new("TextButton")
+flyBtn.Size = UDim2.new(0, 120, 0, 30)
+flyBtn.Position = UDim2.new(0, 150, 0, yOff)
+flyBtn.Text = "OFF"
+flyBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+flyBtn.TextSize = 14
+flyBtn.Font = Enum.Font.GothamBold
+flyBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+flyBtn.Parent = carPage
+local flyCorner = Instance.new("UICorner", flyBtn)
+flyCorner.CornerRadius = UDim.new(0, 4)
+yOff = yOff + 40
+
+makeLabel("Fly Speed", yOff, carPage)
+local flySpeedBox = makeBox(yOff, carPage, "50")
+local flySpeedApply = makeApply(yOff, carPage, "Set")
+flySpeedApply.Size = UDim2.new(0, 60, 0, 30)
+flySpeedApply.Position = UDim2.new(0, 310, 0, yOff)
+flySpeedApply.Text = "Set"
+yOff = yOff + 40
 
 local modButton = Instance.new("TextButton")
 modButton.Size = UDim2.new(0, 400, 0, 35)
@@ -286,6 +335,9 @@ modButton.BackgroundColor3 = themes.Default.button
 modButton.Parent = carPage
 local mbCorner = Instance.new("UICorner", modButton)
 mbCorner.CornerRadius = UDim.new(0, 6)
+yOff = yOff + 45
+
+carPage.CanvasSize = UDim2.new(0, 0, 0, yOff + 20)
 
 local deleteBtn = Instance.new("TextButton")
 deleteBtn.Size = UDim2.new(0, 200, 0, 40)
@@ -300,6 +352,13 @@ local delCorner = Instance.new("UICorner", deleteBtn)
 delCorner.CornerRadius = UDim.new(0, 8)
 
 deleteBtn.MouseButton1Click:Connect(function()
+    for _, conn in pairs(noclipConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    if flyConnection then
+        pcall(function() flyConnection:Disconnect() end)
+        flyConnection = nil
+    end
     root:Destroy()
     blur:Destroy()
 end)
@@ -337,8 +396,8 @@ local function createThemeButton(name, y)
         stroke.Color = t.stroke
         titleLabel.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= deleteBtn and child ~= minimizeBtn then
-                if child.Text == "Apply" or child.Text == "Car Modded Customization" then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= deleteBtn and child ~= minimizeBtn and child ~= noclipBtn and child ~= flyBtn and child ~= flySpeedApply then
+                if child.Text == "Apply" or child.Text == "Car Modded Customization" or child.Text == "Set" then
                     child.TextColor3 = t.accent
                 end
             end
@@ -354,6 +413,20 @@ local function createThemeButton(name, y)
         minimizeBtn.TextColor3 = t.accent
         deleteBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         deleteBtn.TextColor3 = t.danger
+        if noclipActive then
+            noclipBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            noclipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        if flyActive then
+            flyBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            flyBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            flyBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            flyBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
     end)
     return btn
 end
@@ -385,6 +458,22 @@ end)
 workspace.DescendantRemoving:Connect(function(desc)
     if desc == carModel then
         carModel = nil
+        for _, conn in pairs(noclipConnections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        noclipConnections = {}
+        noclipActive = false
+        noclipBtn.Text = "OFF"
+        noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        if flyConnection then
+            pcall(function() flyConnection:Disconnect() end)
+            flyConnection = nil
+        end
+        flyActive = false
+        flyBtn.Text = "OFF"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        flyBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
     end
 end)
 
@@ -396,6 +485,138 @@ local function findValue(name)
         end
     end
 end
+
+local function toggleNoclip()
+    if not carModel then
+        return
+    end
+    
+    noclipActive = not noclipActive
+    
+    if noclipActive then
+        noclipBtn.Text = "ON"
+        noclipBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        noclipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        
+        for _, part in pairs(carModel:GetDescendants()) do
+            if part:IsA("BasePart") then
+                local conn = part.Touched:Connect(function(hit)
+                    if hit and hit:IsA("BasePart") and hit.Parent ~= carModel then
+                        local char = player.Character
+                        if char and char:FindFirstChild("Humanoid") then
+                            local rootPart = char:FindFirstChild("HumanoidRootPart")
+                            if rootPart and rootPart.Parent == part.Parent then
+                                return
+                            end
+                        end
+                    end
+                end)
+                table.insert(noclipConnections, conn)
+                part.CanCollide = false
+                part.CanTouch = false
+            end
+        end
+    else
+        noclipBtn.Text = "OFF"
+        noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        for _, conn in pairs(noclipConnections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        noclipConnections = {}
+        
+        for _, part in pairs(carModel:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+                part.CanTouch = true
+            end
+        end
+    end
+end
+
+noclipBtn.MouseButton1Click:Connect(toggleNoclip)
+
+flySpeedApply.MouseButton1Click:Connect(function()
+    local speed = tonumber(flySpeedBox.Text)
+    if speed and speed > 0 then
+        flySpeed = speed
+    end
+end)
+
+local function toggleFly()
+    if not carModel then
+        return
+    end
+    
+    flyActive = not flyActive
+    
+    if flyActive then
+        flyBtn.Text = "ON"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        flyBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        
+        if flyConnection then
+            pcall(function() flyConnection:Disconnect() end)
+            flyConnection = nil
+        end
+        
+        flyConnection = RunService.Heartbeat:Connect(function()
+            if not carModel or not flyActive then
+                return
+            end
+            
+            local char = player.Character
+            if not char then return end
+            
+            local humanoid = char:FindFirstChild("Humanoid")
+            if not humanoid then return end
+            
+            local rootPart = char:FindFirstChild("HumanoidRootPart")
+            if not rootPart then return end
+            
+            local moveDirection = humanoid.MoveDirection
+            local lookVector = rootPart.CFrame.LookVector
+            
+            local forward = lookVector * (moveDirection.Z * flySpeed)
+            local right = rootPart.CFrame.RightVector * (moveDirection.X * flySpeed)
+            local up = Vector3.new(0, 0, 0)
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                up = Vector3.new(0, flySpeed, 0)
+            elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.X) then
+                up = Vector3.new(0, -flySpeed, 0)
+            end
+            
+            local velocity = forward + right + up
+            
+            if velocity.Magnitude > 0 then
+                local carRoot = carModel:FindFirstChild("HumanoidRootPart") or carModel:FindFirstChildWhichIsA("BasePart")
+                if carRoot then
+                    carRoot.Velocity = velocity
+                    carRoot.CFrame = carRoot.CFrame + velocity * 0.016
+                end
+                
+                for _, part in pairs(carModel:GetDescendants()) do
+                    if part:IsA("BasePart") and part ~= carRoot then
+                        part.Velocity = velocity
+                    end
+                end
+            end
+        end)
+    else
+        flyBtn.Text = "OFF"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        flyBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        if flyConnection then
+            pcall(function() flyConnection:Disconnect() end)
+            flyConnection = nil
+        end
+    end
+end
+
+flyBtn.MouseButton1Click:Connect(toggleFly)
 
 speedApply.MouseButton1Click:Connect(function()
     local v = findValue("MaxSpeed")
@@ -475,8 +696,8 @@ end
 
 local function maximizeGUI()
     isMinimized = false
-    frame.Size = UDim2.new(0, 520, 0, 380)
-    frame.Position = UDim2.new(0.5, -260, 0.5, -190)
+    frame.Size = UDim2.new(0, 520, 0, 460)
+    frame.Position = UDim2.new(0.5, -260, 0.5, -230)
     tabContainer.Visible = true
     carPage.Visible = true
     otherPage.Visible = false
