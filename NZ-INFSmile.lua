@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 local player = Players.LocalPlayer
 local guiParent = player:WaitForChild("PlayerGui")
 
@@ -18,7 +19,7 @@ root.ResetOnSpawn = false
 root.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 root.IgnoreGuiInset = true
 
-local blur = Instance.new("BlurEffect", game:GetService("Lighting"))
+local blur = Instance.new("BlurEffect", Lighting)
 blur.Size = 3
 
 local themes = {
@@ -68,15 +69,36 @@ local currentTheme = "Default"
 local isOpen = true
 local deleteInfectActive = false
 local deleteKillActive = false
+local deleteDoorsActive = false
+local rtxActive = false
+
 local infectConnection = nil
 local killConnection = nil
+local doorsConnection = nil
+
 local deletedInfect = {}
 local deletedKill = {}
+local deletedDoors = {}
+
+-- Store original lighting settings for RTX restore
+local originalLighting = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    ColorShift_Top = Lighting.ColorShift_Top,
+    ColorShift_Bottom = Lighting.ColorShift_Bottom,
+    EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
+    EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
+    GlobalShadows = Lighting.GlobalShadows,
+    ShadowSoftness = Lighting.ShadowSoftness,
+    Technology = Lighting.Technology
+}
 
 -- ========== MAIN GUI FRAME ==========
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 200)
-frame.Position = UDim2.new(0.5, -140, 0.5, -100)
+frame.Size = UDim2.new(0, 300, 0, 240)
+frame.Position = UDim2.new(0.5, -150, 0.5, -120)
 frame.BackgroundColor3 = themes.Default.background
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -114,7 +136,7 @@ titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.BackgroundTransparency = 1
 titleLabel.Parent = titleBar
 
--- ========== CLOSE BUTTON (MINIMIZE TO BUTTON) ==========
+-- ========== CLOSE BUTTON ==========
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
 closeBtn.Position = UDim2.new(1, -36, 0, 7)
@@ -137,7 +159,7 @@ tabContainer.Parent = frame
 
 local function createTab(name, x)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 120, 1, 0)
+    btn.Size = UDim2.new(0, 90, 1, 0)
     btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 210)
@@ -152,7 +174,8 @@ local function createTab(name, x)
 end
 
 local tabMods = createTab("Mods", 0)
-local tabTheme = createTab("Theme", 130)
+local tabGraphics = createTab("Graphics", 95)
+local tabTheme = createTab("Theme", 190)
 
 -- ========== PAGES ==========
 local function createPage()
@@ -160,7 +183,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -82)
     pg.Position = UDim2.new(0, 5, 0, 78)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 180)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 260)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = themes.Default.accent
     pg.Parent = frame
@@ -169,6 +192,7 @@ local function createPage()
 end
 
 local modsPage = createPage()
+local graphicsPage = createPage()
 local themePage = createPage()
 
 local function makeLabel(text, y, parent, w)
@@ -189,7 +213,7 @@ end
 local function makeToggle(y, parent)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 60, 0, 22)
-    btn.Position = UDim2.new(0, 150, 0, y)
+    btn.Position = UDim2.new(0, 170, 0, y)
     btn.Text = "OFF"
     btn.TextColor3 = Color3.fromRGB(255, 100, 100)
     btn.TextSize = 10
@@ -201,14 +225,19 @@ local function makeToggle(y, parent)
     return btn
 end
 
+-- ========== MODS PAGE ==========
 local yOff = 4
 
-makeLabel("Delete Infected", yOff, modsPage, 110)
+makeLabel("Delete Infected", yOff, modsPage, 120)
 local infectBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
-makeLabel("Disable Kill", yOff, modsPage, 110)
+makeLabel("Disable Kill Parts", yOff, modsPage, 120)
 local killBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Disable Doors/Gates", yOff, modsPage, 120)
+local doorsBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 32
 
 local statusLabel = Instance.new("TextLabel")
@@ -224,6 +253,27 @@ statusLabel.Parent = modsPage
 yOff = yOff + 28
 
 modsPage.CanvasSize = UDim2.new(0, 0, 0, yOff + 10)
+
+-- ========== GRAPHICS PAGE ==========
+local gY = 4
+
+makeLabel("RTX Graphics", gY, graphicsPage, 120)
+local rtxBtn = makeToggle(gY, graphicsPage)
+gY = gY + 28
+
+local rtxDesc = Instance.new("TextLabel")
+rtxDesc.Size = UDim2.new(1, -10, 0, 30)
+rtxDesc.Position = UDim2.new(0, 0, 0, gY)
+rtxDesc.Text = "Enables realistic lighting,\nshadows, bloom & more"
+rtxDesc.TextColor3 = Color3.fromRGB(150, 150, 170)
+rtxDesc.TextSize = 10
+rtxDesc.Font = Enum.Font.Gotham
+rtxDesc.BackgroundTransparency = 1
+rtxDesc.TextXAlignment = Enum.TextXAlignment.Left
+rtxDesc.Parent = graphicsPage
+gY = gY + 40
+
+graphicsPage.CanvasSize = UDim2.new(0, 0, 0, gY + 10)
 
 -- ========== THEME PAGE ==========
 local themeY = 4
@@ -260,8 +310,8 @@ local function createThemeButton(name, y, color)
         titleLabel.TextColor3 = t.accent
         statusLabel.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= infectBtn and child ~= killBtn then
-                if child.Text == "Mods" or child.Text == "Theme" then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= rtxBtn then
+                if child.Text == "Mods" or child.Text == "Graphics" or child.Text == "Theme" then
                     child.TextColor3 = t.accent
                 end
             end
@@ -270,20 +320,20 @@ local function createThemeButton(name, y, color)
             end
         end
         closeBtn.BackgroundColor3 = t.button
-        if deleteInfectActive then
-            infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-            infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            infectBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-            infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        local function updateToggle(btn, active)
+            if active then
+                btn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+                btn.TextColor3 = Color3.fromRGB(100, 255, 100)
+            else
+                btn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+                btn.TextColor3 = Color3.fromRGB(255, 100, 100)
+            end
         end
-        if deleteKillActive then
-            killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-            killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            killBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-            killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        end
+        updateToggle(infectBtn, deleteInfectActive)
+        updateToggle(killBtn, deleteKillActive)
+        updateToggle(doorsBtn, deleteDoorsActive)
+        updateToggle(rtxBtn, rtxActive)
     end
 
     btn.MouseButton1Click:Connect(applyTheme)
@@ -305,6 +355,8 @@ for _, t in ipairs(themeColors) do
 end
 
 -- ========== CORE FUNCTIONS ==========
+
+-- RESTORE FUNCTIONS
 local function restoreInfect()
     local count = 0
     local items = {}
@@ -349,6 +401,29 @@ local function restoreKill()
     return count
 end
 
+local function restoreDoors()
+    local count = 0
+    local items = {}
+    for _, item in pairs(deletedDoors) do
+        if item and not item.Parent then
+            table.insert(items, item)
+        end
+    end
+    for _, item in pairs(items) do
+        pcall(function()
+            item.Parent = workspace
+            count = count + 1
+        end)
+    end
+    deletedDoors = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " doors"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+    return count
+end
+
+-- SCAN & DELETE FUNCTIONS
 local function scanAndDeleteInfect()
     if not deleteInfectActive then
         restoreInfect()
@@ -405,6 +480,173 @@ local function scanAndDeleteKill()
     end
 end
 
+local function scanAndDeleteDoors()
+    if not deleteDoorsActive then
+        restoreDoors()
+        return
+    end
+    local found = {}
+    local keywords = {"door", "gate", "portal", "doorway", "entrance", "exit"}
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
+            if v.Name then
+                local nameLower = string.lower(v.Name)
+                for _, kw in pairs(keywords) do
+                    if nameLower:find(kw) then
+                        table.insert(found, v)
+                        break
+                    end
+                end
+            end
+        end
+    end
+    for _, v in pairs(found) do
+        if v and v.Parent then
+            table.insert(deletedDoors, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Del " .. #found .. " doors"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    elseif deleteDoorsActive then
+        statusLabel.Text = "No doors found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+-- ========== RTX FUNCTION ==========
+local function toggleRTX()
+    rtxActive = not rtxActive
+    
+    if rtxActive then
+        rtxBtn.Text = "ON"
+        rtxBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        rtxBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "RTX ENABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+        
+        originalLighting.Brightness = Lighting.Brightness
+        originalLighting.ClockTime = Lighting.ClockTime
+        originalLighting.Ambient = Lighting.Ambient
+        originalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
+        originalLighting.ColorShift_Top = Lighting.ColorShift_Top
+        originalLighting.ColorShift_Bottom = Lighting.ColorShift_Bottom
+        originalLighting.EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale
+        originalLighting.EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale
+        originalLighting.GlobalShadows = Lighting.GlobalShadows
+        originalLighting.ShadowSoftness = Lighting.ShadowSoftness
+        originalLighting.Technology = Lighting.Technology
+        
+        Lighting.Brightness = 2.5
+        Lighting.ClockTime = 14
+        Lighting.Ambient = Color3.fromRGB(80, 85, 95)
+        Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 150)
+        Lighting.ColorShift_Top = Color3.fromRGB(180, 200, 255)
+        Lighting.ColorShift_Bottom = Color3.fromRGB(100, 80, 120)
+        Lighting.EnvironmentDiffuseScale = 1.5
+        Lighting.EnvironmentSpecularScale = 1.5
+        Lighting.GlobalShadows = true
+        Lighting.ShadowSoftness = 0.5
+        Lighting.Technology = Enum.Technology.Future
+        
+        local bloom = Lighting:FindFirstChild("Bloom")
+        if not bloom then
+            bloom = Instance.new("BloomEffect")
+            bloom.Name = "Bloom"
+            bloom.Intensity = 0.5
+            bloom.Size = 2
+            bloom.Threshold = 0.3
+            bloom.Parent = Lighting
+        else
+            bloom.Intensity = 0.5
+            bloom.Size = 2
+            bloom.Threshold = 0.3
+        end
+        
+        local cc = Lighting:FindFirstChild("ColorCorrection")
+        if not cc then
+            cc = Instance.new("ColorCorrectionEffect")
+            cc.Name = "ColorCorrection"
+            cc.Saturation = 1.1
+            cc.Contrast = 1.1
+            cc.Brightness = 0.05
+            cc.Parent = Lighting
+        else
+            cc.Saturation = 1.1
+            cc.Contrast = 1.1
+            cc.Brightness = 0.05
+        end
+        
+        local sunRays = Lighting:FindFirstChild("SunRays")
+        if not sunRays then
+            sunRays = Instance.new("SunRaysEffect")
+            sunRays.Name = "SunRays"
+            sunRays.Intensity = 0.15
+            sunRays.Spread = 0.5
+            sunRays.Parent = Lighting
+        else
+            sunRays.Intensity = 0.15
+            sunRays.Spread = 0.5
+        end
+        
+        local dof = Lighting:FindFirstChild("DepthOfField")
+        if not dof then
+            dof = Instance.new("DepthOfFieldEffect")
+            dof.Name = "DepthOfField"
+            dof.FarIntensity = 0.3
+            dof.FarBlurSize = 2
+            dof.NearIntensity = 0
+            dof.NearBlurSize = 0
+            dof.FocusDistance = 50
+            dof.InFocusRadius = 30
+            dof.Parent = Lighting
+        else
+            dof.FarIntensity = 0.3
+            dof.FarBlurSize = 2
+            dof.NearIntensity = 0
+            dof.NearBlurSize = 0
+            dof.FocusDistance = 50
+            dof.InFocusRadius = 30
+        end
+        
+    else
+        rtxBtn.Text = "OFF"
+        rtxBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        rtxBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        statusLabel.Text = "RTX DISABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        Lighting.Brightness = originalLighting.Brightness
+        Lighting.ClockTime = originalLighting.ClockTime
+        Lighting.Ambient = originalLighting.Ambient
+        Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
+        Lighting.ColorShift_Top = originalLighting.ColorShift_Top
+        Lighting.ColorShift_Bottom = originalLighting.ColorShift_Bottom
+        Lighting.EnvironmentDiffuseScale = originalLighting.EnvironmentDiffuseScale
+        Lighting.EnvironmentSpecularScale = originalLighting.EnvironmentSpecularScale
+        Lighting.GlobalShadows = originalLighting.GlobalShadows
+        Lighting.ShadowSoftness = originalLighting.ShadowSoftness
+        Lighting.Technology = originalLighting.Technology
+        
+        local bloom = Lighting:FindFirstChild("Bloom")
+        if bloom then bloom:Destroy() end
+        local cc = Lighting:FindFirstChild("ColorCorrection")
+        if cc then cc:Destroy() end
+        local sunRays = Lighting:FindFirstChild("SunRays")
+        if sunRays then sunRays:Destroy() end
+        local dof = Lighting:FindFirstChild("DepthOfField")
+        if dof then dof:Destroy() end
+        
+        task.wait(0.5)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+rtxBtn.MouseButton1Click:Connect(toggleRTX)
+rtxBtn.TouchTap:Connect(toggleRTX)
+
 -- ========== TOGGLES ==========
 local function toggleInfect()
     deleteInfectActive = not deleteInfectActive
@@ -412,7 +654,7 @@ local function toggleInfect()
         infectBtn.Text = "ON"
         infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
+        statusLabel.Text = "Scanning infect..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         if infectConnection then
             pcall(function() infectConnection:Disconnect() end)
@@ -451,7 +693,7 @@ local function toggleKill()
         killBtn.Text = "ON"
         killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
+        statusLabel.Text = "Scanning kill..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         if killConnection then
             pcall(function() killConnection:Disconnect() end)
@@ -484,34 +726,88 @@ end
 killBtn.MouseButton1Click:Connect(toggleKill)
 killBtn.TouchTap:Connect(toggleKill)
 
+local function toggleDoors()
+    deleteDoorsActive = not deleteDoorsActive
+    if deleteDoorsActive then
+        doorsBtn.Text = "ON"
+        doorsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        doorsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning doors..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        if doorsConnection then
+            pcall(function() doorsConnection:Disconnect() end)
+            doorsConnection = nil
+        end
+        scanAndDeleteDoors()
+        doorsConnection = RunService.Heartbeat:Connect(function()
+            if deleteDoorsActive then
+                scanAndDeleteDoors()
+            end
+        end)
+    else
+        doorsBtn.Text = "OFF"
+        doorsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        doorsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        if doorsConnection then
+            pcall(function() doorsConnection:Disconnect() end)
+            doorsConnection = nil
+        end
+        local restored = restoreDoors()
+        if restored > 0 then
+            statusLabel.Text = "Restored " .. restored .. " doors"
+        else
+            statusLabel.Text = "No doors to restore"
+        end
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+doorsBtn.MouseButton1Click:Connect(toggleDoors)
+doorsBtn.TouchTap:Connect(toggleDoors)
+
 -- ========== TAB SWITCHING ==========
 local function switchToMods()
     modsPage.Visible = true
+    graphicsPage.Visible = false
     themePage.Visible = false
     tabMods.TextColor3 = themes[currentTheme].accent
+    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
+end
+
+local function switchToGraphics()
+    modsPage.Visible = false
+    graphicsPage.Visible = true
+    themePage.Visible = false
+    tabGraphics.TextColor3 = themes[currentTheme].accent
+    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
 
 local function switchToTheme()
     modsPage.Visible = false
+    graphicsPage.Visible = false
     themePage.Visible = true
     tabTheme.TextColor3 = themes[currentTheme].accent
     tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
 
 tabMods.MouseButton1Click:Connect(switchToMods)
 tabMods.TouchTap:Connect(switchToMods)
+tabGraphics.MouseButton1Click:Connect(switchToGraphics)
+tabGraphics.TouchTap:Connect(switchToGraphics)
 tabTheme.MouseButton1Click:Connect(switchToTheme)
 tabTheme.TouchTap:Connect(switchToTheme)
 
 modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
 
--- ========== OPEN/CLOSE BUTTON (like Delta executor) ==========
+-- ========== DRAGGABLE OPEN/CLOSE BUTTON ==========
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 50, 0, 50)
 toggleBtn.Position = UDim2.new(0, 10, 1, -65)
-toggleBtn.Text = "▶"
+toggleBtn.Text = "◀"
 toggleBtn.TextSize = 22
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
@@ -523,7 +819,83 @@ toggleStroke.Color = Color3.fromRGB(255, 255, 255)
 toggleStroke.Thickness = 2
 toggleStroke.Transparency = 0.2
 toggleBtn.ZIndex = 999
+toggleBtn.Active = true
+toggleBtn.Draggable = true
 
+-- Button drag data
+local btnDragData = {
+    dragging = false,
+    startPos = nil,
+    btnStart = nil
+}
+
+local function startBtnDrag(input)
+    btnDragData.dragging = true
+    btnDragData.startPos = input.Position    btnDragData.btnStart = toggleBtn.Position
+end
+
+local function updateBtnDrag(input)
+    if not btnDragData.dragging or not btnDragData.startPos then return end
+    local delta = input.Position - btnDragData.startPos
+    toggleBtn.Position = UDim2.new(
+        btnDragData.btnStart.X.Scale,
+        btnDragData.btnStart.X.Offset + delta.X,
+        btnDragData.btnStart.Y.Scale,
+        btnDragData.btnStart.Y.Offset + delta.Y
+    )
+end
+
+local function endBtnDrag()
+    btnDragData.dragging = false
+    btnDragData.startPos = nil
+    btnDragData.btnStart = nil
+end
+
+-- Mobile touch drag for button
+toggleBtn.TouchBegan:Connect(function(input)
+    startBtnDrag(input)
+end)
+toggleBtn.TouchMoved:Connect(function(input)
+    updateBtnDrag(input)
+end)
+toggleBtn.TouchEnded:Connect(function()
+    endBtnDrag()
+end)
+
+-- PC mouse drag for button
+toggleBtn.MouseButton1Down:Connect(function(input)
+    startBtnDrag(input)
+end)
+toggleBtn.MouseMoved:Connect(function(input)
+    updateBtnDrag(input)
+end)
+toggleBtn.MouseButton1Up:Connect(function()
+    endBtnDrag()
+end)
+
+-- Button click (open/close) - separate from drag
+local btnClickStart = nil
+local btnClickEnd = nil
+
+toggleBtn.TouchBegan:Connect(function(input)
+    btnClickStart = tick()
+end)
+
+toggleBtn.TouchEnded:Connect(function()
+    btnClickEnd = tick()
+    if btnClickStart and btnClickEnd - btnClickStart < 0.3 then
+        -- It was a tap, not a drag
+        if isOpen then closeGUI() else openGUI() end
+    end
+    btnClickStart = nil
+    btnClickEnd = nil
+end)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    if isOpen then closeGUI() else openGUI() end
+end)
+
+-- ========== OPEN/CLOSE FUNCTIONS ==========
 local function openGUI()
     isOpen = true
     frame.Visible = true
@@ -540,25 +912,14 @@ local function closeGUI()
     blur.Size = 0
 end
 
-toggleBtn.MouseButton1Click:Connect(function()
-    if isOpen then closeGUI() else openGUI() end
-end)
-
-toggleBtn.TouchTap:Connect(function()
-    if isOpen then closeGUI() else openGUI() end
-end)
-
--- Close button minimizes to toggle button
 closeBtn.MouseButton1Click:Connect(closeGUI)
 closeBtn.TouchTap:Connect(closeGUI)
 
--- ========== DRAG SYSTEM (HOLD TO DRAG) ==========
+-- ========== FRAME DRAG SYSTEM ==========
 local dragData = {
     dragging = false,
     startPos = nil,
-    frameStart = nil,
-    holdTimer = nil,
-    isHolding = false
+    frameStart = nil
 }
 
 local function isOverButton(input)
@@ -601,56 +962,21 @@ local function endDrag()
     dragData.frameStart = nil
 end
 
--- MOBILE: Touch and hold to drag
-local function onTouchBegan(input)
-    if isOverButton(input) then return end
-    -- Start dragging immediately on touch (no hold required)
-    startDrag(input)
-end
+frame.TouchBegan:Connect(startDrag)
+frame.TouchMoved:Connect(updateDrag)
+frame.TouchEnded:Connect(endDrag)
 
-local function onTouchMoved(input)
-    if dragData.dragging then
-        updateDrag(input)
-    end
-end
+frame.MouseButton1Down:Connect(startDrag)
+frame.MouseMoved:Connect(updateDrag)
+frame.MouseButton1Up:Connect(endDrag)
 
-local function onTouchEnded()
-    endDrag()
-end
+titleBar.TouchBegan:Connect(startDrag)
+titleBar.TouchMoved:Connect(updateDrag)
+titleBar.TouchEnded:Connect(endDrag)
 
--- PC: Mouse drag
-local function onMouseDown(input)
-    if isOverButton(input) then return end
-    startDrag(input)
-end
-
-local function onMouseMove(input)
-    if dragData.dragging then
-        updateDrag(input)
-    end
-end
-
-local function onMouseUp()
-    endDrag()
-end
-
--- Connect events for the ENTIRE FRAME (not just title bar)
-frame.TouchBegan:Connect(onTouchBegan)
-frame.TouchMoved:Connect(onTouchMoved)
-frame.TouchEnded:Connect(onTouchEnded)
-
-frame.MouseButton1Down:Connect(onMouseDown)
-frame.MouseMoved:Connect(onMouseMove)
-frame.MouseButton1Up:Connect(onMouseUp)
-
--- Also allow drag from title bar
-titleBar.TouchBegan:Connect(onTouchBegan)
-titleBar.TouchMoved:Connect(onTouchMoved)
-titleBar.TouchEnded:Connect(onTouchEnded)
-
-titleBar.MouseButton1Down:Connect(onMouseDown)
-titleBar.MouseMoved:Connect(onMouseMove)
-titleBar.MouseButton1Up:Connect(onMouseUp)
+titleBar.MouseButton1Down:Connect(startDrag)
+titleBar.MouseMoved:Connect(updateDrag)
+titleBar.MouseButton1Up:Connect(endDrag)
 
 -- ========== HOTKEY ==========
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -664,9 +990,9 @@ end)
 task.wait(0.3)
 frame.Visible = true
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 280, 0, 200)
-frame.Position = UDim2.new(0.5, -140, 0.5, -100)
+frame.Size = UDim2.new(0, 300, 0, 240)
+frame.Position = UDim2.new(0.5, -150, 0.5, -120)
 blur.Size = 3
 toggleBtn.Text = "◀"
 
-print("NZ-IS Mobile Fixed - Touch anywhere to drag, tap toggle button to open/close")
+print("NZ-IS v2 - Toggle button is now draggable!")
