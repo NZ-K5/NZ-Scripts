@@ -106,10 +106,10 @@ stroke.Color = themes.Default.stroke
 stroke.Thickness = 1.5
 stroke.Transparency = 0.6
 
--- ===== MINI SQUARE (fully visible in top-right) =====
+-- ===== MINI SQUARE =====
 local miniFrame = Instance.new("Frame")
 miniFrame.Size = UDim2.new(0, 50, 0, 50)
-miniFrame.Position = UDim2.new(1, -60, 0, 10)  -- Moved left so it's fully visible
+miniFrame.Position = UDim2.new(1, -60, 0, 10)
 miniFrame.BackgroundColor3 = themes.Default.accent
 miniFrame.BackgroundTransparency = 0.15
 miniFrame.ClipsDescendants = true
@@ -797,7 +797,6 @@ minimizeBtn.TouchTap:Connect(function()
     if isMinimized then restoreGUI() else minimizeGUI() end
 end)
 
--- MINI SQUARE TAP TO RESTORE (FIXED - both MouseButton1Click and TouchTap)
 miniFrame.MouseButton1Click:Connect(restoreGUI)
 miniFrame.TouchTap:Connect(restoreGUI)
 
@@ -870,4 +869,4 @@ TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.Easing
 }):Play()
 blur.Size = 3
 
-print("NZ-IS v6 - ULTRA COMPACT LOADED! (Square fixed, fully visible)")
+print("NZ-IS v6 - ULTRA COMPACT LOADED!")
