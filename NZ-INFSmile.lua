@@ -32,6 +32,7 @@ local deleteAntiHackActive = false
 local deleteSpearsActive = false
 local deleteFireLavaActive = false
 local deleteSeismicActive = false
+local antiInfectionActive = false
 
 local deletedInfect = {}
 local deletedKill = {}
@@ -40,11 +41,13 @@ local deletedAntiHack = {}
 local deletedSpears = {}
 local deletedFireLava = {}
 local deletedSeismic = {}
+local duplicatedSadWater = nil
+local originalSadWater = nil
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 230)
-frame.Position = UDim2.new(0.5, -140, 0.5, -115)
+frame.Size = UDim2.new(0, 280, 0, 250)
+frame.Position = UDim2.new(0.5, -140, 0.5, -125)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -100,7 +103,6 @@ titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.BackgroundTransparency = 1
 titleLabel.Parent = titleBar
 
--- Close/Re-Open Button (inside GUI)
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 26, 0, 26)
 closeBtn.Position = UDim2.new(1, -34, 0, 3)
@@ -123,7 +125,7 @@ tabContainer.Parent = frame
 
 local function createTab(name, x)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 120, 1, 0)
+    btn.Size = UDim2.new(0, 100, 1, 0)
     btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 210)
@@ -138,7 +140,7 @@ local function createTab(name, x)
 end
 
 local tabMods = createTab("Mods", 0)
-local tabOthers = createTab("Others", 130)
+local tabOthers = createTab("Others", 110)
 
 -- ===== PAGES =====
 local function createPage()
@@ -146,7 +148,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -74)
     pg.Position = UDim2.new(0, 5, 0, 65)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 310)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 350)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 80)
     pg.Parent = frame
@@ -233,6 +235,10 @@ yOff = yOff + 28
 
 makeLabel("Disable SeismicRockWall", yOff, modsPage, 110)
 local seismicBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Anti-Infection", yOff, modsPage, 110)
+local antiInfectionBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 32
 
 local statusLabel = Instance.new("TextLabel")
@@ -412,6 +418,86 @@ local function scanAndDeleteSeismic()
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." seismic rock walls", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No seismic rock walls found", Color3.fromRGB(0,255,150) end
 end
 
+-- ===== ANTI-INFECTION =====
+local function enableAntiInfection()
+    -- Find SadWater
+    local sadWater = nil
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") and v.Name and string.lower(v.Name):find("sadwater") then
+            sadWater = v
+            break
+        end
+    end
+    
+    if not sadWater then
+        statusLabel.Text = "Error: SadWater not found!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return false
+    end
+    
+    originalSadWater = sadWater
+    
+    -- Duplicate SadWater
+    local newSadWater = sadWater:Clone()
+    newSadWater.Name = "SadWater_AntiInfection"
+    newSadWater.Parent = Workspace
+    
+    -- Make it HUGE (covers entire map)
+    local mapSize = 5000 -- Big enough for most maps
+    newSadWater.Size = Vector3.new(mapSize, mapSize, mapSize)
+    newSadWater.Position = Vector3.new(0, 0, 0)
+    
+    -- Disable shadows so map isn't dark
+    newSadWater.CastShadow = false
+    
+    -- Also disable shadows on any child parts
+    for _, child in pairs(newSadWater:GetDescendants()) do
+        if child:IsA("BasePart") then
+            child.CastShadow = false
+        end
+    end
+    
+    -- Store reference for disabling
+    duplicatedSadWater = newSadWater
+    
+    statusLabel.Text = "Anti-Infection ENABLED!"
+    statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+    return true
+end
+
+local function disableAntiInfection()
+    if duplicatedSadWater then
+        duplicatedSadWater:Destroy()
+        duplicatedSadWater = nil
+    end
+    originalSadWater = nil
+    statusLabel.Text = "Anti-Infection DISABLED"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+end
+
+local function toggleAntiInfection()
+    antiInfectionActive = not antiInfectionActive
+    if antiInfectionActive then
+        antiInfectionBtn.Text = "ON"
+        antiInfectionBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        antiInfectionBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        if not enableAntiInfection() then
+            antiInfectionActive = false
+            antiInfectionBtn.Text = "OFF"
+            antiInfectionBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            antiInfectionBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    else
+        antiInfectionBtn.Text = "OFF"
+        antiInfectionBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        antiInfectionBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        disableAntiInfection()
+    end
+end
+
+antiInfectionBtn.MouseButton1Click:Connect(toggleAntiInfection)
+antiInfectionBtn.TouchTap:Connect(toggleAntiInfection)
+
 -- ===== TOGGLES =====
 local function toggleInfect()
     deleteInfectActive = not deleteInfectActive
@@ -506,6 +592,9 @@ seismicBtn.TouchTap:Connect(toggleSeismic)
 
 -- ===== DESTROY GUI =====
 local function destroyGUI()
+    if duplicatedSadWater then
+        duplicatedSadWater:Destroy()
+    end
     root:Destroy()
     blur:Destroy()
 end
@@ -592,7 +681,7 @@ UserInputService.InputBegan:Connect(function(i, gp) if gp then return end; if i.
 
 -- ===== FORCE VISIBILITY =====
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 280, 0, 230)
+frame.Size = UDim2.new(0, 280, 0, 250)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (No animations)")
+print("NZ-IS v6 - LOADED! (Anti-Infection mod added)")
