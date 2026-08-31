@@ -1,22 +1,29 @@
+-- NZ-IS v6 - STARTERGUI VERSION (MORE STABLE ON MOBILE)
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
-local guiParent = player:WaitForChild("PlayerGui")
 local Camera = Workspace.CurrentCamera
 
+-- Wait for StarterGui to be ready
+repeat task.wait() until StarterGui ~= nil
+
 pcall(function()
-    if guiParent:FindFirstChild("InfectiousRoot") then
-        guiParent.InfectiousRoot:Destroy()
+    if StarterGui:FindFirstChild("InfectiousRoot") then
+        StarterGui.InfectiousRoot:Destroy()
+    end
+    if player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("InfectiousRoot") then
+        player.PlayerGui.InfectiousRoot:Destroy()
     end
 end)
 
 local root = Instance.new("ScreenGui")
 root.Name = "InfectiousRoot"
-root.Parent = guiParent
+root.Parent = StarterGui
 root.ResetOnSpawn = false
 root.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 root.IgnoreGuiInset = true
@@ -603,7 +610,7 @@ local function scanAndDeleteSeismic()
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." seismic rock walls", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No seismic rock walls found", Color3.fromRGB(0,255,150) end
 end
 
--- ===== ESP (FIXED - NO COREGUI ERRORS) =====
+-- ===== ESP =====
 local function getTeamColor(plr)
     if plr.Team then return plr.Team.TeamColor.Color end
     return Color3.fromRGB(255, 255, 255)
@@ -626,13 +633,11 @@ local function createEsp(target)
         espObjects[target] = nil
     end
 
-    -- HIGHLIGHT - FIXED: No AlwaysOnTop to prevent CoreGui errors
     local highlight = Instance.new("Highlight")
     highlight.FillTransparency = 0.5
     highlight.OutlineTransparency = 0.2
     highlight.FillColor = teamColor
     highlight.OutlineColor = teamColor
-    -- REMOVED: highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.Parent = target.Character
 
     local box = Instance.new("Frame")
@@ -673,100 +678,98 @@ local function createEsp(target)
 end
 
 local function updateEsp()
-    pcall(function()
-        if not espActive then
-            for _, d in pairs(espObjects) do
-                pcall(function()
-                    if d.H then d.H:Destroy() end
-                    if d.B then d.B:Destroy() end
-                    if d.N then d.N:Destroy() end
-                    if d.L then d.L:Destroy() end
-                end)
+    if not espActive then
+        for _, d in pairs(espObjects) do
+            pcall(function()
+                if d.H then d.H:Destroy() end
+                if d.B then d.B:Destroy() end
+                if d.N then d.N:Destroy() end
+                if d.L then d.L:Destroy() end
+            end)
+        end
+        espObjects = {}
+        return
+    end
+
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local myPos = char.HumanoidRootPart.Position
+
+    for _, target in pairs(Players:GetPlayers()) do
+        if target == player then
+            if espObjects[player] == nil then
+                local selfLine = Instance.new("Frame")
+                selfLine.Size = UDim2.new(0, 1, 0, 1)
+                selfLine.BackgroundTransparency = 0.4
+                selfLine.BackgroundColor3 = getTeamColor(player)
+                selfLine.Parent = root
+                selfLine.Visible = true
+                selfLine.ZIndex = 999
+                espObjects[player] = {L = selfLine, R = char.HumanoidRootPart, C = char}
             end
-            espObjects = {}
-            return
+            if espObjects[player] and espObjects[player].L and espObjects[player].R then
+                local sp, os = Camera:WorldToViewportPoint(espObjects[player].R.Position)
+                if os then
+                    local sc = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    local dx, dy = sp.X - sc.X, sp.Y - sc.Y
+                    local a = math.atan2(dy, dx)
+                    local len = math.clamp(math.sqrt(dx^2 + dy^2), 20, 300)
+                    espObjects[player].L.Size = UDim2.new(0, len, 0, 2)
+                    espObjects[player].L.Position = UDim2.new(0, sc.X, 0, sc.Y)
+                    espObjects[player].L.Rotation = math.deg(a)
+                    espObjects[player].L.BackgroundTransparency = 0.3
+                    espObjects[player].L.Visible = true
+                end
+            end
+            goto continue
         end
 
-        local char = player.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-        local myPos = char.HumanoidRootPart.Position
-
-        for _, target in pairs(Players:GetPlayers()) do
-            if target == player then
-                if espObjects[player] == nil then
-                    local selfLine = Instance.new("Frame")
-                    selfLine.Size = UDim2.new(0, 1, 0, 1)
-                    selfLine.BackgroundTransparency = 0.4
-                    selfLine.BackgroundColor3 = getTeamColor(player)
-                    selfLine.Parent = root
-                    selfLine.Visible = true
-                    selfLine.ZIndex = 999
-                    espObjects[player] = {L = selfLine, R = char.HumanoidRootPart, C = char}
-                end
-                if espObjects[player] and espObjects[player].L and espObjects[player].R then
-                    local sp, os = Camera:WorldToViewportPoint(espObjects[player].R.Position)
-                    if os then
-                        local sc = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                        local dx, dy = sp.X - sc.X, sp.Y - sc.Y
-                        local a = math.atan2(dy, dx)
-                        local len = math.clamp(math.sqrt(dx^2 + dy^2), 20, 300)
-                        espObjects[player].L.Size = UDim2.new(0, len, 0, 2)
-                        espObjects[player].L.Position = UDim2.new(0, sc.X, 0, sc.Y)
-                        espObjects[player].L.Rotation = math.deg(a)
-                        espObjects[player].L.BackgroundTransparency = 0.3
-                        espObjects[player].L.Visible = true
-                    end
-                end
-                goto continue
+        if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            if not espObjects[target] or espObjects[target].C ~= target.Character then
+                createEsp(target)
             end
 
-            if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                if not espObjects[target] or espObjects[target].C ~= target.Character then
-                    createEsp(target)
-                end
+            local data = espObjects[target]
+            if data and data.R then
+                local targetPos = data.R.Position
+                local dist = (myPos - targetPos).Magnitude
+                local sp, os = Camera:WorldToViewportPoint(targetPos)
 
-                local data = espObjects[target]
-                if data and data.R then
-                    local targetPos = data.R.Position
-                    local dist = (myPos - targetPos).Magnitude
-                    local sp, os = Camera:WorldToViewportPoint(targetPos)
+                if os then
+                    local bs = math.clamp(80 / dist, 20, 80)
+                    data.B.Size = UDim2.new(0, bs, 0, bs * 1.8)
+                    data.B.Position = UDim2.new(0, sp.X - bs/2, 0, sp.Y - bs * 0.9)
+                    data.B.BackgroundTransparency = 0.3
+                    data.B.Visible = true
 
-                    if os then
-                        local bs = math.clamp(80 / dist, 20, 80)
-                        data.B.Size = UDim2.new(0, bs, 0, bs * 1.8)
-                        data.B.Position = UDim2.new(0, sp.X - bs/2, 0, sp.Y - bs * 0.9)
-                        data.B.BackgroundTransparency = 0.3
-                        data.B.Visible = true
+                    data.N.Position = UDim2.new(0, sp.X - 75, 0, sp.Y - bs * 1.1 - 20)
+                    data.N.Visible = true
 
-                        data.N.Position = UDim2.new(0, sp.X - 75, 0, sp.Y - bs * 1.1 - 20)
-                        data.N.Visible = true
+                    data.H.FillTransparency = 0.5
+                    data.H.OutlineTransparency = 0.2
 
-                        data.H.FillTransparency = 0.5
-                        data.H.OutlineTransparency = 0.2
+                    local cx, cy = sp.X, sp.Y + bs * 0.5
+                    local sc = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    local dx, dy = cx - sc.X, cy - sc.Y
+                    local a = math.atan2(dy, dx)
+                    local len = math.clamp(math.sqrt(dx^2 + dy^2), 20, 300)
 
-                        local cx, cy = sp.X, sp.Y + bs * 0.5
-                        local sc = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                        local dx, dy = cx - sc.X, cy - sc.Y
-                        local a = math.atan2(dy, dx)
-                        local len = math.clamp(math.sqrt(dx^2 + dy^2), 20, 300)
-
-                        data.L.Size = UDim2.new(0, len, 0, 2)
-                        data.L.Position = UDim2.new(0, sc.X, 0, sc.Y)
-                        data.L.Rotation = math.deg(a)
-                        data.L.BackgroundTransparency = 0.3
-                        data.L.Visible = true
-                    else
-                        data.B.Visible = false
-                        data.N.Visible = false
-                        data.L.Visible = false
-                        data.H.FillTransparency = 0.5
-                        data.H.OutlineTransparency = 0.2
-                    end
+                    data.L.Size = UDim2.new(0, len, 0, 2)
+                    data.L.Position = UDim2.new(0, sc.X, 0, sc.Y)
+                    data.L.Rotation = math.deg(a)
+                    data.L.BackgroundTransparency = 0.3
+                    data.L.Visible = true
+                else
+                    data.B.Visible = false
+                    data.N.Visible = false
+                    data.L.Visible = false
+                    data.H.FillTransparency = 0.5
+                    data.H.OutlineTransparency = 0.2
                 end
             end
-            ::continue::
         end
-    end)
+        ::continue::
+    end
 end
 
 -- ===== TOGGLES =====
@@ -1054,4 +1057,4 @@ TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.Easing
 }):Play()
 blur.Size = 3
 
-print("NZ-IS v6 - FULLY LOADED! (CoreGui errors fixed)")
+print("NZ-IS v6 - LOADED IN STARTERGUI!")
