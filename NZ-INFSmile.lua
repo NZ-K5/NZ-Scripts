@@ -106,7 +106,7 @@ stroke.Color = themes.Default.stroke
 stroke.Thickness = 1.5
 stroke.Transparency = 0.6
 
--- ===== MINI SQUARE (TEXTBUTTON - 100% CLICKABLE) =====
+-- ===== MINI SQUARE (TEXTBUTTON) =====
 local miniBtn = Instance.new("TextButton")
 miniBtn.Size = UDim2.new(0, 50, 0, 50)
 miniBtn.Position = UDim2.new(1, -60, 0, 10)
@@ -128,6 +128,28 @@ local miniStroke = Instance.new("UIStroke", miniBtn)
 miniStroke.Color = themes.Default.accent
 miniStroke.Thickness = 2
 miniStroke.Transparency = 0.3
+
+-- ===== RE-OPEN BUTTON (DRAGGABLE) =====
+local reopenBtn = Instance.new("TextButton")
+reopenBtn.Size = UDim2.new(0, 50, 0, 50)
+reopenBtn.Position = UDim2.new(0, 10, 1, -65)
+reopenBtn.Text = "▶"
+reopenBtn.TextSize = 22
+reopenBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+reopenBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
+reopenBtn.BackgroundTransparency = 0.2
+reopenBtn.Parent = root
+reopenBtn.Visible = false
+reopenBtn.ZIndex = 999
+reopenBtn.AutoButtonColor = true
+
+local reopenCorner = Instance.new("UICorner", reopenBtn)
+reopenCorner.CornerRadius = UDim.new(1, 0)
+
+local reopenStroke = Instance.new("UIStroke", reopenBtn)
+reopenStroke.Color = Color3.fromRGB(255, 255, 255)
+reopenStroke.Thickness = 2
+reopenStroke.Transparency = 0.2
 
 -- ===== TITLE BAR =====
 local titleBar = Instance.new("Frame")
@@ -160,7 +182,7 @@ minimizeBtn.Parent = titleBar
 local minCorner = Instance.new("UICorner", minimizeBtn)
 minCorner.CornerRadius = UDim.new(0, 5)
 
--- Close/Re-Open Button
+-- Close/Re-Open Button (inside GUI)
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 26, 0, 26)
 closeBtn.Position = UDim2.new(1, -34, 0, 3)
@@ -270,6 +292,7 @@ local function makeThemeButton(name, y, color)
         statusLabel.TextColor3 = t.accent
         miniBtn.BackgroundColor3 = t.accent
         miniStroke.Color = t.accent
+        reopenBtn.BackgroundColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
             if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn then
                 if child.Text == "Mods" or child.Text == "Theme" then
@@ -294,6 +317,7 @@ local function makeThemeButton(name, y, color)
         statusLabel.TextColor3 = t.accent
         miniBtn.BackgroundColor3 = t.accent
         miniStroke.Color = t.accent
+        reopenBtn.BackgroundColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
             if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn then
                 if child.Text == "Mods" or child.Text == "Theme" then
@@ -765,12 +789,13 @@ modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
 tabMods.BackgroundTransparency = 0
 
--- ===== MINIMIZE / RESTORE (FIXED - USING TEXTBUTTON) =====
+-- ===== MINIMIZE / RESTORE =====
 local function minimizeGUI()
     if isMinimized then return end
     isMinimized = true
     frame.Visible = false
     miniBtn.Visible = true
+    reopenBtn.Visible = false
     blur.Size = 0
 end
 
@@ -790,11 +815,9 @@ minimizeBtn.TouchTap:Connect(function()
     if isMinimized then restoreGUI() else minimizeGUI() end
 end)
 
--- TEXTBUTTON = 100% CLICKABLE ON BOTH PC AND MOBILE
 miniBtn.MouseButton1Click:Connect(restoreGUI)
 miniBtn.TouchTap:Connect(restoreGUI)
 
--- Also catch InputBegan as fallback
 miniBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         restoreGUI()
@@ -807,12 +830,14 @@ local function toggleOpenClose()
         isOpen = false
         frame.Visible = false
         miniBtn.Visible = false
+        reopenBtn.Visible = true
         closeBtn.Text = "▶"
         closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         blur.Size = 0
     else
         isOpen = true
         frame.Visible = true
+        reopenBtn.Visible = false
         closeBtn.Text = "X"
         closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
         if not isMinimized then
@@ -824,14 +849,47 @@ end
 closeBtn.MouseButton1Click:Connect(toggleOpenClose)
 closeBtn.TouchTap:Connect(toggleOpenClose)
 
--- ===== DRAG SYSTEM =====
-local dragging, dragInput, dragStart, startPos
+-- Re-open button click to open GUI
+reopenBtn.MouseButton1Click:Connect(function()
+    if not isOpen then
+        isOpen = true
+        frame.Visible = true
+        reopenBtn.Visible = false
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+        if not isMinimized then
+            blur.Size = 3
+        end
+    end
+end)
 
+reopenBtn.TouchTap:Connect(function()
+    if not isOpen then
+        isOpen = true
+        frame.Visible = true
+        reopenBtn.Visible = false
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+        if not isMinimized then
+            blur.Size = 3
+        end
+    end
+end)
+
+-- ===== DRAG SYSTEM (BLOCKS CAMERA MOVEMENT) =====
+local dragging = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
+local isDraggingReopen = false
+
+-- Frame drag
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
         startPos = frame.Position
+        -- Block camera movement
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
@@ -853,6 +911,36 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+-- Re-open button drag
+local reopenDragStart = nil
+local reopenStartPos = nil
+
+reopenBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isDraggingReopen = true
+        reopenDragStart = input.Position
+        reopenStartPos = reopenBtn.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                isDraggingReopen = false
+            end
+        end)
+    end
+end)
+
+reopenBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and isDraggingReopen then
+        local delta = input.Position - reopenDragStart
+        reopenBtn.Position = UDim2.new(reopenStartPos.X.Scale, reopenStartPos.X.Offset + delta.X, reopenStartPos.Y.Scale, reopenStartPos.Y.Offset + delta.Y)
+    end
+end)
+
 -- ===== HOTKEY =====
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -870,4 +958,4 @@ TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.Easing
 }):Play()
 blur.Size = 3
 
-print("NZ-IS v6 - ULTRA COMPACT LOADED! (SQUARE IS A TEXTBUTTON - 100% CLICKABLE)")
+print("NZ-IS v6 - FULLY LOADED! Drag without camera turning, reopen button draggable!")
