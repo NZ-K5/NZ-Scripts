@@ -111,6 +111,7 @@ frame.Parent = root
 frame.Visible = true
 frame.ZIndex = 10
 frame.Active = true
+-- REMOVED DRAGGABILITY FROM FRAME
 
 local corner = Instance.new("UICorner", frame)
 corner.CornerRadius = UDim.new(0, 8)
@@ -120,7 +121,7 @@ stroke.Color = themes.Default.stroke
 stroke.Thickness = 1.5
 stroke.Transparency = 0.6
 
--- ========== TITLE BAR ==========
+-- ========== TITLE BAR (NO X BUTTON) ==========
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 44)
 titleBar.BackgroundTransparency = 0.2
@@ -131,7 +132,7 @@ local titleCorner = Instance.new("UICorner", titleBar)
 titleCorner.CornerRadius = UDim.new(0, 8)
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.6, 0, 1, 0)
+titleLabel.Size = UDim2.new(1, -10, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.Text = "NZ-IS"
 titleLabel.TextColor3 = themes.Default.accent
@@ -140,21 +141,6 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.BackgroundTransparency = 1
 titleLabel.Parent = titleBar
-
--- ========== CLOSE BUTTON ==========
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -36, 0, 7)
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-closeBtn.TextSize = 14
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-closeBtn.BackgroundTransparency = 0.2
-closeBtn.Parent = titleBar
-closeBtn.AutoButtonColor = true
-local closeCorner = Instance.new("UICorner", closeBtn)
-closeCorner.CornerRadius = UDim.new(0, 6)
 
 -- ========== TABS ==========
 local tabContainer = Instance.new("Frame")
@@ -273,14 +259,14 @@ makeLabel("RTX Graphics", gY, graphicsPage, 120)
 local rtxBtn = makeToggle(gY, graphicsPage)
 gY = gY + 28
 
-makeLabel("Future Lighting", gY, graphicsPage, 120)
+makeLabel("Realistic/Future Lighting", gY, graphicsPage, 120)
 local futureBtn = makeToggle(gY, graphicsPage)
 gY = gY + 28
 
 local gDesc = Instance.new("TextLabel")
 gDesc.Size = UDim2.new(1, -10, 0, 30)
 gDesc.Position = UDim2.new(0, 0, 0, gY)
-gDesc.Text = "Future: Realistic shadows & lighting\nRTX: Full visual overhaul"
+gDesc.Text = "Lighting: Enables Future/Realistic tech\nRTX: Full visual overhaul"
 gDesc.TextColor3 = Color3.fromRGB(150, 150, 170)
 gDesc.TextSize = 10
 gDesc.Font = Enum.Font.Gotham
@@ -327,7 +313,7 @@ local function createThemeButton(name, y, color)
         titleLabel.TextColor3 = t.accent
         statusLabel.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= rtxBtn and child ~= futureBtn then
+            if child:IsA("TextButton") and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= rtxBtn and child ~= futureBtn then
                 if child.Text == "Mods" or child.Text == "Graphics" or child.Text == "Theme" then
                     child.TextColor3 = t.accent
                 end
@@ -336,7 +322,6 @@ local function createThemeButton(name, y, color)
                 child.ScrollBarImageColor3 = t.accent
             end
         end
-        closeBtn.BackgroundColor3 = t.button
         
         local function updateToggle(btn, active)
             if active then
@@ -547,7 +532,6 @@ local function createEspForPlayer(target)
     local root = target.Character.HumanoidRootPart
     local teamColor = getTeamColor(target)
     
-    -- Highlight
     local highlight = Instance.new("Highlight")
     highlight.Name = "ESP_Highlight"
     highlight.FillTransparency = 0.6
@@ -557,7 +541,6 @@ local function createEspForPlayer(target)
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.Parent = target.Character
     
-    -- 2D Box (on screen)
     local box = Instance.new("Frame")
     box.Name = "ESP_Box"
     box.Size = UDim2.new(0, 30, 0, 60)
@@ -569,7 +552,6 @@ local function createEspForPlayer(target)
     box.Parent = root
     box.Visible = false
     
-    -- Name label
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Name = "ESP_Name"
     nameLabel.Size = UDim2.new(1, 0, 0, 16)
@@ -583,7 +565,6 @@ local function createEspForPlayer(target)
     nameLabel.TextStrokeTransparency = 0.3
     nameLabel.Parent = box
     
-    -- Line tracer
     local line = Instance.new("Frame")
     line.Name = "ESP_Line"
     line.Size = UDim2.new(0, 1, 0, 1)
@@ -603,7 +584,6 @@ end
 
 local function updateEsp()
     if not teamEspActive then
-        -- Clean up all ESP
         for target, data in pairs(espObjects) do
             if data.Highlight then data.Highlight:Destroy() end
             if data.Box then data.Box:Destroy() end
@@ -631,22 +611,18 @@ local function updateEsp()
                 local distance = (myPos - targetPos).Magnitude
                 local screenPos, onScreen = Camera:WorldToViewportPoint(targetPos)
                 
-                -- Fade when close (distance < 30 studs)
                 local fade = math.clamp((distance - 15) / 30, 0.3, 1)
                 
                 if onScreen and distance < 200 then
-                    -- Update box position
                     local boxSize = math.clamp(80 / distance, 20, 80)
                     data.Box.Size = UDim2.new(0, boxSize, 0, boxSize * 1.8)
                     data.Box.Position = UDim2.new(0, screenPos.X - boxSize/2, 0, screenPos.Y - boxSize * 0.9)
                     data.Box.BackgroundTransparency = 0.3 + (1 - fade) * 0.5
                     data.Box.Visible = true
                     
-                    -- Update highlight transparency
                     data.Highlight.FillTransparency = 0.4 + (1 - fade) * 0.4
                     data.Highlight.OutlineTransparency = 0.2 + (1 - fade) * 0.3
                     
-                    -- Update line tracer
                     local centerX = screenPos.X
                     local centerY = screenPos.Y + boxSize * 0.5
                     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
@@ -686,7 +662,6 @@ local function toggleEsp()
             espConnection = nil
         end
         
-        -- Create ESP for existing players
         for _, target in pairs(Players:GetPlayers()) do
             if target ~= player then
                 createEspForPlayer(target)
@@ -695,7 +670,6 @@ local function toggleEsp()
         
         espConnection = RunService.RenderStepped:Connect(updateEsp)
         
-        -- Connect player added
         Players.PlayerAdded:Connect(function(target)
             task.wait(0.5)
             if teamEspActive then
@@ -715,7 +689,6 @@ local function toggleEsp()
             espConnection = nil
         end
         
-        -- Clean up all ESP
         for target, data in pairs(espObjects) do
             pcall(function()
                 if data.Highlight then data.Highlight:Destroy() end
@@ -734,7 +707,7 @@ end
 espBtn.MouseButton1Click:Connect(toggleEsp)
 espBtn.TouchTap:Connect(toggleEsp)
 
--- ========== FUTURE LIGHTING TOGGLE ==========
+-- ========== LIGHTING TOGGLE (Future/Realistic) ==========
 local function toggleFuture()
     futureActive = not futureActive
     
@@ -742,11 +715,21 @@ local function toggleFuture()
         futureBtn.Text = "ON"
         futureBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         futureBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Future Lighting ON"
+        statusLabel.Text = "Lighting ON"
         statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
         
         originalLighting.Technology = Lighting.Technology
-        Lighting.Technology = Enum.Technology.Future
+        
+        -- Try Future first, fallback to Realistic
+        pcall(function()
+            Lighting.Technology = Enum.Technology.Future
+        end)
+        if Lighting.Technology ~= Enum.Technology.Future then
+            pcall(function()
+                Lighting.Technology = Enum.Technology.Realistic
+            end)
+        end
+        
         Lighting.GlobalShadows = true
         Lighting.ShadowSoftness = 0.5
         
@@ -754,7 +737,7 @@ local function toggleFuture()
         futureBtn.Text = "OFF"
         futureBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         futureBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "Future Lighting OFF"
+        statusLabel.Text = "Lighting OFF"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         
         Lighting.Technology = originalLighting.Technology
@@ -781,7 +764,6 @@ local function toggleRTX()
         statusLabel.Text = "RTX ENABLED"
         statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
         
-        -- Store original settings
         originalLighting.Brightness = Lighting.Brightness
         originalLighting.ClockTime = Lighting.ClockTime
         originalLighting.Ambient = Lighting.Ambient
@@ -794,15 +776,20 @@ local function toggleRTX()
         originalLighting.ShadowSoftness = Lighting.ShadowSoftness
         originalLighting.Technology = Lighting.Technology
         
-        -- ===== RTX SETTINGS =====
-        Lighting.Technology = Enum.Technology.Future
+        -- Try Future first, fallback to Realistic
+        pcall(function()
+            Lighting.Technology = Enum.Technology.Future
+        end)
+        if Lighting.Technology ~= Enum.Technology.Future then
+            pcall(function()
+                Lighting.Technology = Enum.Technology.Realistic
+            end)
+        end
         
-        -- Check if it's day or night based on ClockTime
         local currentTime = Lighting.ClockTime
         local isNight = currentTime < 6 or currentTime > 18
         
         if isNight then
-            -- Night settings
             Lighting.Brightness = 0.4
             Lighting.Ambient = Color3.fromRGB(20, 20, 30)
             Lighting.OutdoorAmbient = Color3.fromRGB(15, 15, 25)
@@ -811,7 +798,6 @@ local function toggleRTX()
             Lighting.ShadowSoftness = 0.8
             statusLabel.Text = "RTX NIGHT MODE"
         else
-            -- Day settings
             Lighting.Brightness = 2.5
             Lighting.Ambient = Color3.fromRGB(80, 85, 95)
             Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 150)
@@ -825,7 +811,6 @@ local function toggleRTX()
         Lighting.EnvironmentSpecularScale = 1.5
         Lighting.GlobalShadows = true
         
-        -- Bloom
         local bloom = Lighting:FindFirstChild("Bloom")
         if not bloom then
             bloom = Instance.new("BloomEffect")
@@ -840,7 +825,6 @@ local function toggleRTX()
             bloom.Threshold = isNight and 0.5 or 0.3
         end
         
-        -- Color Correction
         local cc = Lighting:FindFirstChild("ColorCorrection")
         if not cc then
             cc = Instance.new("ColorCorrectionEffect")
@@ -855,7 +839,6 @@ local function toggleRTX()
             cc.Brightness = isNight and -0.1 or 0.05
         end
         
-        -- Sun Rays (only during day)
         if not isNight then
             local sunRays = Lighting:FindFirstChild("SunRays")
             if not sunRays then
@@ -874,7 +857,6 @@ local function toggleRTX()
             if sunRays then sunRays.Enabled = false end
         end
         
-        -- Depth of Field
         local dof = Lighting:FindFirstChild("DepthOfField")
         if not dof then
             dof = Instance.new("DepthOfFieldEffect")
@@ -904,7 +886,6 @@ local function toggleRTX()
         statusLabel.Text = "RTX DISABLED"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         
-        -- Restore original settings
         Lighting.Brightness = originalLighting.Brightness
         Lighting.ClockTime = originalLighting.ClockTime
         Lighting.Ambient = originalLighting.Ambient
@@ -917,7 +898,6 @@ local function toggleRTX()
         Lighting.ShadowSoftness = originalLighting.ShadowSoftness
         Lighting.Technology = originalLighting.Technology
         
-        -- Remove effects
         local bloom = Lighting:FindFirstChild("Bloom")
         if bloom then bloom:Destroy() end
         local cc = Lighting:FindFirstChild("ColorCorrection")
@@ -1092,89 +1072,126 @@ tabTheme.TouchTap:Connect(switchToTheme)
 modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
 
--- ========== DRAGGABLE OPEN/CLOSE BUTTON ==========
+-- ========== RE-OPEN ARROW BUTTON (FIXED) ==========
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 50, 0, 50)
-toggleBtn.Position = UDim2.new(0, 10, 1, -65)
+toggleBtn.Size = UDim2.new(0, 55, 0, 55)
+toggleBtn.Position = UDim2.new(0, 10, 1, -70)
 toggleBtn.Text = "◀"
-toggleBtn.TextSize = 22
+toggleBtn.TextSize = 24
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
 toggleBtn.Parent = root
 toggleBtn.AutoButtonColor = true
+toggleBtn.ZIndex = 999
+toggleBtn.Active = true
+
 local toggleCorner = Instance.new("UICorner", toggleBtn)
 toggleCorner.CornerRadius = UDim.new(1, 0)
+
 local toggleStroke = Instance.new("UIStroke", toggleBtn)
 toggleStroke.Color = Color3.fromRGB(255, 255, 255)
 toggleStroke.Thickness = 2
 toggleStroke.Transparency = 0.2
-toggleBtn.ZIndex = 999
-toggleBtn.Active = true
 
-local toggleDragFrame = Instance.new("Frame")
-toggleDragFrame.Size = UDim2.new(1.5, 20, 1.5, 20)
-toggleDragFrame.Position = UDim2.new(-0.25, 0, -0.25, 0)
-toggleDragFrame.BackgroundTransparency = 1
-toggleDragFrame.Parent = toggleBtn
-toggleDragFrame.ZIndex = 0
+-- ===== SEPARATE TAP AND HOLD FOR BUTTON =====
+local btnHoldTimer = nil
+local isHolding = false
+local isDragging = false
+local dragStartPos = nil
+local dragBtnStart = nil
+local hasMoved = false
 
-local function onToggleClick()
-    if isOpen then closeGUI() else openGUI() end
+-- TAP = OPEN/CLOSE
+-- HOLD = DRAG
+
+local function handleTap()
+    if not isDragging and not hasMoved then
+        if isOpen then closeGUI() else openGUI() end
+    end
 end
 
-toggleBtn.MouseButton1Click:Connect(onToggleClick)
-toggleBtn.TouchTap:Connect(onToggleClick)
-
-local btnDragData = {
-    dragging = false,
-    startPos = nil,
-    btnStart = nil
-}
-
-toggleDragFrame.TouchBegan:Connect(function(input)
-    btnDragData.dragging = true
-    btnDragData.startPos = input.Position
-    btnDragData.btnStart = toggleBtn.Position
+-- TOUCH EVENTS
+toggleBtn.TouchBegan:Connect(function(input)
+    btnHoldTimer = tick()
+    isHolding = false
+    isDragging = false
+    hasMoved = false
+    dragStartPos = input.Position
+    dragBtnStart = toggleBtn.Position
 end)
 
-toggleDragFrame.TouchMoved:Connect(function(input)
-    if not btnDragData.dragging or not btnDragData.startPos then return end
-    local delta = input.Position - btnDragData.startPos
-    toggleBtn.Position = UDim2.new(
-        btnDragData.btnStart.X.Scale,
-        btnDragData.btnStart.X.Offset + delta.X,
-        btnDragData.btnStart.Y.Scale,
-        btnDragData.btnStart.Y.Offset + delta.Y
-    )
+toggleBtn.TouchMoved:Connect(function(input)
+    if not dragStartPos or not dragBtnStart then return end
+    local delta = input.Position - dragStartPos
+    local distance = math.sqrt(delta.X^2 + delta.Y^2)
+    
+    if distance > 15 then
+        hasMoved = true
+        isDragging = true
+        -- Drag the button
+        toggleBtn.Position = UDim2.new(
+            dragBtnStart.X.Scale,
+            dragBtnStart.X.Offset + delta.X,
+            dragBtnStart.Y.Scale,
+            dragBtnStart.Y.Offset + delta.Y
+        )
+    end
 end)
 
-toggleDragFrame.TouchEnded:Connect(function()
-    btnDragData.dragging = false
-    btnDragData.startPos = nil
-    btnDragData.btnStart = nil
+toggleBtn.TouchEnded:Connect(function()
+    local holdTime = tick() - (btnHoldTimer or tick())
+    btnHoldTimer = nil
+    
+    if not isDragging and not hasMoved and holdTime < 0.5 then
+        -- It was a tap (short press, no movement)
+        handleTap()
+    end
+    
+    isDragging = false
+    hasMoved = false
+    dragStartPos = nil
+    dragBtnStart = nil
 end)
 
-toggleDragFrame.MouseButton1Down:Connect(function(input)
-    btnDragData.dragging = true
-    btnDragData.startPos = input.Position
-    btnDragData.btnStart = toggleBtn.Position
+-- MOUSE EVENTS
+toggleBtn.MouseButton1Down:Connect(function(input)
+    btnHoldTimer = tick()
+    isHolding = false
+    isDragging = false
+    hasMoved = false
+    dragStartPos = input.Position
+    dragBtnStart = toggleBtn.Position
 end)
 
-toggleDragFrame.MouseMoved:Connect(function(input)
-    if not btnDragData.dragging or not btnDragData.startPos then return end
-    local delta = input.Position - btnDragData.startPos
-    toggleBtn.Position = UDim2.new(
-        btnDragData.btnStart.X.Scale,
-        btnDragData.btnStart.X.Offset + delta.X,
-        btnDragData.btnStart.Y.Scale,
-        btnDragData.btnStart.Y.Offset + delta.Y
-    )
+toggleBtn.MouseMoved:Connect(function(input)
+    if not dragStartPos or not dragBtnStart then return end
+    local delta = input.Position - dragStartPos
+    local distance = math.sqrt(delta.X^2 + delta.Y^2)
+    
+    if distance > 5 then
+        hasMoved = true
+        isDragging = true
+        toggleBtn.Position = UDim2.new(
+            dragBtnStart.X.Scale,
+            dragBtnStart.X.Offset + delta.X,
+            dragBtnStart.Y.Scale,
+            dragBtnStart.Y.Offset + delta.Y
+        )
+    end
 end)
 
-toggleDragFrame.MouseButton1Up:Connect(function()
-    btnDragData.dragging = false
-    btnDragData.startPos = nil
-    btnDragData.btnStart = nil
+toggleBtn.MouseButton1Up:Connect(function()
+    local holdTime = tick() - (btnHoldTimer or tick())
+    btnHoldTimer = nil
+    
+    if not isDragging and not hasMoved and holdTime < 0.5 then
+        handleTap()
+    end
+    
+    isDragging = false
+    hasMoved = false
+    dragStartPos = nil
+    dragBtnStart = nil
 end)
 
 -- ========== OPEN/CLOSE FUNCTIONS ==========
@@ -1194,72 +1211,6 @@ local function closeGUI()
     blur.Size = 0
 end
 
-closeBtn.MouseButton1Click:Connect(closeGUI)
-closeBtn.TouchTap:Connect(closeGUI)
-
--- ========== FRAME DRAG SYSTEM ==========
-local dragData = {
-    dragging = false,
-    startPos = nil,
-    frameStart = nil
-}
-
-local function isOverButton(input)
-    local guiService = game:GetService("GuiService")
-    local pos = input.Position
-    local hit = guiService:GetGuiObjectAtPosition(pos.X, pos.Y)
-    if hit then
-        local parent = hit
-        while parent do
-            if parent:IsA("TextButton") or parent:IsA("ImageButton") then
-                return true
-            end
-            parent = parent.Parent
-        end
-    end
-    return false
-end
-
-local function startDrag(input)
-    if isOverButton(input) then return end
-    dragData.dragging = true
-    dragData.startPos = input.Position
-    dragData.frameStart = frame.Position
-end
-
-local function updateDrag(input)
-    if not dragData.dragging or not dragData.startPos then return end
-    local delta = input.Position - dragData.startPos
-    frame.Position = UDim2.new(
-        dragData.frameStart.X.Scale,
-        dragData.frameStart.X.Offset + delta.X,
-        dragData.frameStart.Y.Scale,
-        dragData.frameStart.Y.Offset + delta.Y
-    )
-end
-
-local function endDrag()
-    dragData.dragging = false
-    dragData.startPos = nil
-    dragData.frameStart = nil
-end
-
-frame.TouchBegan:Connect(startDrag)
-frame.TouchMoved:Connect(updateDrag)
-frame.TouchEnded:Connect(endDrag)
-
-frame.MouseButton1Down:Connect(startDrag)
-frame.MouseMoved:Connect(updateDrag)
-frame.MouseButton1Up:Connect(endDrag)
-
-titleBar.TouchBegan:Connect(startDrag)
-titleBar.TouchMoved:Connect(updateDrag)
-titleBar.TouchEnded:Connect(endDrag)
-
-titleBar.MouseButton1Down:Connect(startDrag)
-titleBar.MouseMoved:Connect(updateDrag)
-titleBar.MouseButton1Up:Connect(endDrag)
-
 -- ========== HOTKEY ==========
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -1277,4 +1228,4 @@ frame.Position = UDim2.new(0.5, -160, 0.5, -140)
 blur.Size = 3
 toggleBtn.Text = "◀"
 
-print("NZ-IS v3 - RTX Day/Night aware + TEAM ESP loaded!")
+print("NZ-IS v4 - Fixed arrow button (tap to open/close, hold to drag)!")
