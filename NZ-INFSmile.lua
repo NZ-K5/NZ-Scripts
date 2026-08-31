@@ -89,6 +89,7 @@ local deletedSpears = {}
 local deletedFireLava = {}
 local deletedSeismic = {}
 local espObjects = {}
+local espRebindTimer = nil
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
@@ -744,7 +745,6 @@ local function scanAndDeleteSeismic()
     local found = {}
     local keywords = {"weight", "seismic", "rockwall", "rock_wall", "seismicwall", "weighted"}
     for _, v in pairs(Workspace:GetDescendants()) do
-        -- ONLY MODELS
         if v:IsA("Model") and v.Name then
             local nameLower = string.lower(v.Name)
             for _, kw in pairs(keywords) do
@@ -770,7 +770,8 @@ local function scanAndDeleteSeismic()
     end
 end
 
--- ===== ESP =====
+-- ===== ESP SYSTEM (UPDATED - AUTO-REBIND, NO FADE, NAMETAGS, WALLHACK LINES) =====
+
 local function getTeamColor(plr)
     if plr.Team then return plr.Team.TeamColor.Color end
     return Color3.fromRGB(255, 255, 255)
@@ -782,45 +783,73 @@ local function createEsp(target)
 
     local rootPart = target.Character.HumanoidRootPart
     local teamColor = getTeamColor(target)
+    
+    -- Clean up any existing ESP for this target
+    if espObjects[target] then
+        pcall(function()
+            if espObjects[target].Highlight then espObjects[target].Highlight:Destroy() end
+            if espObjects[target].Box then espObjects[target].Box:Destroy() end
+            if espObjects[target].NameLabel then espObjects[target].NameLabel:Destroy() end
+            if espObjects[target].Line then espObjects[target].Line:Destroy() end
+        end)
+        espObjects[target] = nil
+    end
 
+    -- Highlight (always visible, no fade)
     local highlight = Instance.new("Highlight")
-    highlight.FillTransparency = 0.6
-    highlight.OutlineTransparency = 0.3
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0.2
     highlight.FillColor = teamColor
     highlight.OutlineColor = teamColor
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.Parent = target.Character
 
+    -- 2D Box
     local box = Instance.new("Frame")
     box.Size = UDim2.new(0, 30, 0, 60)
     box.Position = UDim2.new(0.5, -15, 0.5, -30)
-    box.BackgroundTransparency = 0.5
+    box.BackgroundTransparency = 0.4
     box.BackgroundColor3 = teamColor
     box.BorderSizePixel = 2
     box.BorderColor3 = teamColor
-    box.Parent = rootPart
-    box.Visible = false
+    box.BackgroundTransparency = 0.3
+    box.Parent = root
+    box.Visible = true
+    box.ZIndex = 999
 
+    -- Nametag (team-colored, visible through walls)
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0, 16)
-    nameLabel.Position = UDim2.new(0, 0, 0, -18)
+    nameLabel.Size = UDim2.new(0, 150, 0, 20)
+    nameLabel.Position = UDim2.new(0.5, -75, 0.5, -50)
     nameLabel.Text = target.Name
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.TextSize = 10
+    nameLabel.TextColor3 = teamColor
+    nameLabel.TextSize = 14
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.BackgroundTransparency = 1
     nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    nameLabel.TextStrokeTransparency = 0.3
-    nameLabel.Parent = box
+    nameLabel.TextStrokeTransparency = 0.2
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Center
+    nameLabel.Parent = root
+    nameLabel.Visible = true
+    nameLabel.ZIndex = 999
 
+    -- Line tracer (wallhack - always visible)
     local line = Instance.new("Frame")
     line.Size = UDim2.new(0, 1, 0, 1)
-    line.BackgroundTransparency = 0.6
+    line.BackgroundTransparency = 0.4
     line.BackgroundColor3 = teamColor
-    line.Parent = rootPart
-    line.Visible = false
+    line.Parent = root
+    line.Visible = true
+    line.ZIndex = 999
 
-    espObjects[target] = {Highlight = highlight, Box = box, Name = nameLabel, Line = line, Root = rootPart}
+    espObjects[target] = {
+        Highlight = highlight,
+        Box = box,
+        NameLabel = nameLabel,
+        Line = line,
+        Root = rootPart,
+        Character = target.Character
+    }
 end
 
 local function updateEsp()
@@ -829,6 +858,7 @@ local function updateEsp()
             pcall(function()
                 if data.Highlight then data.Highlight:Destroy() end
                 if data.Box then data.Box:Destroy() end
+                if data.NameLabel then data.NameLabel:Destroy() end
                 if data.Line then data.Line:Destroy() end
             end)
         end
@@ -839,190 +869,103 @@ local function updateEsp()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local myPos = char.HumanoidRootPart.Position
+    local myRoot = char.HumanoidRootPart
 
     for _, target in pairs(Players:GetPlayers()) do
-        if target ~= player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            if not espObjects[target] then createEsp(target) end
+        if target == player then
+            -- Draw line tracer for yourself too (follows your body)
+            if espObjects[player] == nil then
+                -- Create a self-esp entry for line tracking
+                local selfLine = Instance.new("Frame")
+                selfLine.Size = UDim2.new(0, 1, 0, 1)
+                selfLine.BackgroundTransparency = 0.4
+                selfLine.BackgroundColor3 = getTeamColor(player)
+                selfLine.Parent = root
+                selfLine.Visible = true
+                selfLine.ZIndex = 999
+                espObjects[player] = {
+                    Line = selfLine,
+                    Root = myRoot,
+                    Character = char
+                }
+            end
+            
+            -- Update self line tracer (from bottom-center to your position)
+            if espObjects[player] and espObjects[player].Line and myRoot then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(myRoot.Position)
+                if onScreen then
+                    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    local dx = screenPos.X - screenCenter.X
+                    local dy = screenPos.Y - screenCenter.Y
+                    local angle = math.atan2(dy, dx)
+                    local length = math.clamp(math.sqrt(dx^2 + dy^2), 20, 300)
+                    
+                    espObjects[player].Line.Size = UDim2.new(0, length, 0, 2)
+                    espObjects[player].Line.Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
+                    espObjects[player].Line.Rotation = math.deg(angle)
+                    espObjects[player].Line.BackgroundTransparency = 0.3
+                    espObjects[player].Line.Visible = true
+                end
+            end
+            goto continue
+        end
+        
+        if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            -- Check if target needs ESP creation or recreation
+            if not espObjects[target] or espObjects[target].Character ~= target.Character then
+                createEsp(target)
+            end
+            
             local data = espObjects[target]
             if data and data.Root then
                 local targetPos = data.Root.Position
                 local distance = (myPos - targetPos).Magnitude
                 local screenPos, onScreen = Camera:WorldToViewportPoint(targetPos)
-                local fade = math.clamp((distance - 15) / 30, 0.3, 1)
-
-                if onScreen and distance < 200 then
+                
+                if onScreen then
+                    -- Update 2D Box
                     local boxSize = math.clamp(80 / distance, 20, 80)
                     data.Box.Size = UDim2.new(0, boxSize, 0, boxSize * 1.8)
                     data.Box.Position = UDim2.new(0, screenPos.X - boxSize/2, 0, screenPos.Y - boxSize * 0.9)
-                    data.Box.BackgroundTransparency = 0.3 + (1 - fade) * 0.5
+                    data.Box.BackgroundTransparency = 0.3
                     data.Box.Visible = true
-
-                    data.Highlight.FillTransparency = 0.4 + (1 - fade) * 0.4
-                    data.Highlight.OutlineTransparency = 0.2 + (1 - fade) * 0.3
-
+                    
+                    -- Update Nametag (above head)
+                    data.NameLabel.Position = UDim2.new(0, screenPos.X - 75, 0, screenPos.Y - boxSize * 1.1 - 20)
+                    data.NameLabel.Visible = true
+                    
+                    -- Update Highlight (always visible, no fade)
+                    data.Highlight.FillTransparency = 0.5
+                    data.Highlight.OutlineTransparency = 0.2
+                    
+                    -- Update Line Tracer (from bottom-center to player)
                     local centerX = screenPos.X
                     local centerY = screenPos.Y + boxSize * 0.5
-                    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                     local dx = centerX - screenCenter.X
                     local dy = centerY - screenCenter.Y
                     local angle = math.atan2(dy, dx)
                     local length = math.clamp(math.sqrt(dx^2 + dy^2), 20, 300)
-
-                    data.Line.Size = UDim2.new(0, length, 0, 1)
+                    
+                    data.Line.Size = UDim2.new(0, length, 0, 2)
                     data.Line.Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
                     data.Line.Rotation = math.deg(angle)
-                    data.Line.BackgroundTransparency = 0.4 + (1 - fade) * 0.3
+                    data.Line.BackgroundTransparency = 0.3
                     data.Line.Visible = true
                 else
+                    -- Off-screen but still visible through walls (wallhack)
                     data.Box.Visible = false
+                    data.NameLabel.Visible = false
                     data.Line.Visible = false
-                    data.Highlight.FillTransparency = 0.7
+                    data.Highlight.FillTransparency = 0.5
+                    data.Highlight.OutlineTransparency = 0.2
                 end
             end
         end
+        
+        ::continue::
     end
 end
-
--- ===== TOGGLES (SINGLE SCAN) =====
-local function toggleInfect()
-    deleteInfectActive = not deleteInfectActive
-    if deleteInfectActive then
-        infectBtn.Text = "ON"
-        infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        scanAndDeleteInfect()
-    else
-        infectBtn.Text = "OFF"
-        infectBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        restoreInfect()
-    end
-end
-
-infectBtn.MouseButton1Click:Connect(toggleInfect)
-infectBtn.TouchTap:Connect(toggleInfect)
-
-local function toggleKill()
-    deleteKillActive = not deleteKillActive
-    if deleteKillActive then
-        killBtn.Text = "ON"
-        killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        scanAndDeleteKill()
-    else
-        killBtn.Text = "OFF"
-        killBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        restoreKill()
-    end
-end
-
-killBtn.MouseButton1Click:Connect(toggleKill)
-killBtn.TouchTap:Connect(toggleKill)
-
-local function toggleDoors()
-    deleteDoorsActive = not deleteDoorsActive
-    if deleteDoorsActive then
-        doorsBtn.Text = "ON"
-        doorsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        doorsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        scanAndDeleteDoors()
-    else
-        doorsBtn.Text = "OFF"
-        doorsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        doorsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        restoreDoors()
-    end
-end
-
-doorsBtn.MouseButton1Click:Connect(toggleDoors)
-doorsBtn.TouchTap:Connect(toggleDoors)
-
-local function toggleAntiHack()
-    deleteAntiHackActive = not deleteAntiHackActive
-    if deleteAntiHackActive then
-        antiHackBtn.Text = "ON"
-        antiHackBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        antiHackBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        scanAndDeleteAntiHack()
-    else
-        antiHackBtn.Text = "OFF"
-        antiHackBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        antiHackBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        restoreAntiHack()
-    end
-end
-
-antiHackBtn.MouseButton1Click:Connect(toggleAntiHack)
-antiHackBtn.TouchTap:Connect(toggleAntiHack)
-
-local function toggleSpears()
-    deleteSpearsActive = not deleteSpearsActive
-    if deleteSpearsActive then
-        spearsBtn.Text = "ON"
-        spearsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        spearsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        scanAndDeleteSpears()
-    else
-        spearsBtn.Text = "OFF"
-        spearsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        spearsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        restoreSpears()
-    end
-end
-
-spearsBtn.MouseButton1Click:Connect(toggleSpears)
-spearsBtn.TouchTap:Connect(toggleSpears)
-
-local function toggleFireLava()
-    deleteFireLavaActive = not deleteFireLavaActive
-    if deleteFireLavaActive then
-        fireLavaBtn.Text = "ON"
-        fireLavaBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        fireLavaBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        scanAndDeleteFireLava()
-    else
-        fireLavaBtn.Text = "OFF"
-        fireLavaBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        fireLavaBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        restoreFireLava()
-    end
-end
-
-fireLavaBtn.MouseButton1Click:Connect(toggleFireLava)
-fireLavaBtn.TouchTap:Connect(toggleFireLava)
-
-local function toggleSeismic()
-    deleteSeismicActive = not deleteSeismicActive
-    if deleteSeismicActive then
-        seismicBtn.Text = "ON"
-        seismicBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        seismicBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        scanAndDeleteSeismic()
-    else
-        seismicBtn.Text = "OFF"
-        seismicBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        seismicBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        restoreSeismic()
-    end
-end
-
-seismicBtn.MouseButton1Click:Connect(toggleSeismic)
-seismicBtn.TouchTap:Connect(toggleSeismic)
 
 local function toggleEsp()
     espActive = not espActive
@@ -1030,14 +973,32 @@ local function toggleEsp()
         espBtn.Text = "ON"
         espBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         espBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "ESP ENABLED"
+        statusLabel.Text = "ESP ENABLED (Auto-rebind)"
         statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
 
         if espConnection then pcall(function() espConnection:Disconnect() end); espConnection = nil end
+        if espRebindTimer then pcall(function() espRebindTimer:Disconnect() end); espRebindTimer = nil end
+        
+        -- Initial ESP creation
         for _, target in pairs(Players:GetPlayers()) do
             if target ~= player then createEsp(target) end
         end
+        
         espConnection = RunService.RenderStepped:Connect(updateEsp)
+        
+        -- Auto-rebind every 3 seconds to catch new players and respawns
+        espRebindTimer = RunService.Heartbeat:Connect(function()
+            if espActive then
+                for _, target in pairs(Players:GetPlayers()) do
+                    if target ~= player then
+                        -- Check if target needs ESP recreation
+                        if not espObjects[target] or espObjects[target].Character ~= target.Character then
+                            createEsp(target)
+                        end
+                    end
+                end
+            end
+        end)
 
         Players.PlayerAdded:Connect(function(target)
             task.wait(0.5)
@@ -1049,6 +1010,7 @@ local function toggleEsp()
                 pcall(function()
                     if espObjects[target].Highlight then espObjects[target].Highlight:Destroy() end
                     if espObjects[target].Box then espObjects[target].Box:Destroy() end
+                    if espObjects[target].NameLabel then espObjects[target].NameLabel:Destroy() end
                     if espObjects[target].Line then espObjects[target].Line:Destroy() end
                 end)
                 espObjects[target] = nil
@@ -1062,10 +1024,13 @@ local function toggleEsp()
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 
         if espConnection then pcall(function() espConnection:Disconnect() end); espConnection = nil end
+        if espRebindTimer then pcall(function() espRebindTimer:Disconnect() end); espRebindTimer = nil end
+        
         for _, data in pairs(espObjects) do
             pcall(function()
                 if data.Highlight then data.Highlight:Destroy() end
                 if data.Box then data.Box:Destroy() end
+                if data.NameLabel then data.NameLabel:Destroy() end
                 if data.Line then data.Line:Destroy() end
             end)
         end
@@ -1082,10 +1047,12 @@ espBtn.TouchTap:Connect(toggleEsp)
 -- ===== DESTROY GUI BUTTON =====
 local function destroyGUI()
     if espConnection then pcall(function() espConnection:Disconnect() end); espConnection = nil end
+    if espRebindTimer then pcall(function() espRebindTimer:Disconnect() end); espRebindTimer = nil end
     for _, data in pairs(espObjects) do
         pcall(function()
             if data.Highlight then data.Highlight:Destroy() end
             if data.Box then data.Box:Destroy() end
+            if data.NameLabel then data.NameLabel:Destroy() end
             if data.Line then data.Line:Destroy() end
         end)
     end
@@ -1322,4 +1289,4 @@ TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.Easing
 }):Play()
 blur.Size = 3
 
-print("NZ-IS v6 - FULLY LOADED! (Disable SeismicRockWall added - MODELS ONLY)")
+print("NZ-IS v6 - FULLY LOADED! (ESP auto-rebind, no fade, nametags, wallhack lines)")
