@@ -1,1430 +1,394 @@
--- LOADER FOR NZ-INFSmile.lua (Mobile-friendly chunked loading)
-local scriptChunks = {
-    [1] = [[
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
-local Workspace = game:GetService("Workspace")
-local player = Players.LocalPlayer
-local guiParent = player:WaitForChild("PlayerGui")
-local Camera = Workspace.CurrentCamera
-
-pcall(function()
-    if guiParent:FindFirstChild("InfectiousRoot") then
-        guiParent.InfectiousRoot:Destroy()
+-- NZ-IS v6 - MOBILE WORKING (COMPRESSED)
+local P, U, T, R, L, W = game:GetService("Players"), game:GetService("UserInputService"), game:GetService("TweenService"), game:GetService("RunService"), game:GetService("Lighting"), game:GetService("Workspace")
+local pl, gp, C = P.LocalPlayer, pl:WaitForChild("PlayerGui"), W.CurrentCamera
+pcall(function() if gp:FindFirstChild("InfectiousRoot") then gp.InfectiousRoot:Destroy() end end)
+local rt = Instance.new("ScreenGui"); rt.Name, rt.Parent, rt.ResetOnSpawn, rt.ZIndexBehavior, rt.IgnoreGuiInset = "InfectiousRoot", gp, false, Enum.ZIndexBehavior.Sibling, true
+local bl = Instance.new("BlurEffect", L); bl.Size = 3
+local th = {D={bg=Color3.fromRGB(18,18,22),ac=Color3.fromRGB(255,50,80),tx=Color3.fromRGB(220,220,230),bt=Color3.fromRGB(30,30,35),st=Color3.fromRGB(255,50,80)},C={bg=Color3.fromRGB(20,10,12),ac=Color3.fromRGB(255,30,50),tx=Color3.fromRGB(230,200,200),bt=Color3.fromRGB(35,20,22),st=Color3.fromRGB(200,30,50)},Cy={bg=Color3.fromRGB(8,10,20),ac=Color3.fromRGB(0,200,255),tx=Color3.fromRGB(180,230,255),bt=Color3.fromRGB(15,25,40),st=Color3.fromRGB(0,180,255)},A={bg=Color3.fromRGB(18,14,8),ac=Color3.fromRGB(255,180,0),tx=Color3.fromRGB(240,220,180),bt=Color3.fromRGB(30,25,15),st=Color3.fromRGB(200,150,0)},V={bg=Color3.fromRGB(16,10,22),ac=Color3.fromRGB(180,80,255),tx=Color3.fromRGB(220,200,240),bt=Color3.fromRGB(28,18,35),st=Color3.fromRGB(150,50,220)}}
+local ct, io, im = "D", true, false
+local dIA, dKA, dDA, rA, fA, tA, sA, iJA, nA, fA2 = false, false, false, false, false, false, false, false, false, false
+local wv, jv = 16, 50
+local iC, kC, dC, eC, fC, nC, iB = nil, nil, nil, nil, nil, nil, nil
+local dI, dK, dD, eO = {}, {}, {}, {}
+local fV, fG = nil, nil
+local fUH, fDH = false, false
+local oL = {Brightness=L.Brightness,ClockTime=L.ClockTime,Ambient=L.Ambient,OutdoorAmbient=L.OutdoorAmbient,ColorShift_Top=L.ColorShift_Top,ColorShift_Bottom=L.ColorShift_Bottom,EnvironmentDiffuseScale=L.EnvironmentDiffuseScale,EnvironmentSpecularScale=L.EnvironmentSpecularScale,GlobalShadows=L.GlobalShadows,ShadowSoftness=L.ShadowSoftness,Technology=L.Technology}
+local fr = Instance.new("Frame"); fr.Size, fr.Position, fr.BackgroundColor3, fr.BackgroundTransparency, fr.ClipsDescendants, fr.Parent, fr.Visible, fr.ZIndex, fr.Active = UDim2.new(0,360,0,340), UDim2.new(0.5,-180,0.5,-170), th.D.bg, 0.08, true, rt, true, 10, true
+Instance.new("UICorner", fr).CornerRadius = UDim.new(0,8)
+local st = Instance.new("UIStroke", fr); st.Color, st.Thickness, st.Transparency = th.D.st, 1.5, 0.6
+local tb = Instance.new("Frame"); tb.Size, tb.BackgroundTransparency, tb.BackgroundColor3, tb.Parent, tb.Active = UDim2.new(1,0,0,44), 0.2, Color3.fromRGB(20,20,25), fr, true
+Instance.new("UICorner", tb).CornerRadius = UDim.new(0,8)
+local tl = Instance.new("TextLabel"); tl.Size, tl.Position, tl.Text, tl.TextColor3, tl.TextSize, tl.Font, tl.TextXAlignment, tl.BackgroundTransparency, tl.Parent = UDim2.new(0.5,0,1,0), UDim2.new(0,10,0,0), "NZ-IS", th.D.ac, 14, Enum.Font.GothamBold, Enum.TextXAlignment.Left, 1, tb
+local mn = Instance.new("TextButton"); mn.Size, mn.Position, mn.Text, mn.TextColor3, mn.TextSize, mn.Font, mn.BackgroundColor3, mn.BackgroundTransparency, mn.Parent, mn.AutoButtonColor = UDim2.new(0,30,0,30), UDim2.new(1,-68,0,7), "─", Color3.fromRGB(200,200,210), 18, Enum.Font.GothamBold, Color3.fromRGB(40,40,45), 0.2, tb, true
+Instance.new("UICorner", mn).CornerRadius = UDim.new(0,6)
+local cl = Instance.new("TextButton"); cl.Size, cl.Position, cl.Text, cl.TextColor3, cl.TextSize, cl.Font, cl.BackgroundColor3, cl.BackgroundTransparency, cl.Parent, cl.AutoButtonColor = UDim2.new(0,30,0,30), UDim2.new(1,-36,0,7), "✕", Color3.fromRGB(200,200,210), 14, Enum.Font.GothamBold, Color3.fromRGB(40,40,45), 0.2, tb, true
+Instance.new("UICorner", cl).CornerRadius = UDim.new(0,6)
+local mf = Instance.new("Frame"); mf.Size, mf.Position, mf.BackgroundColor3, mf.BackgroundTransparency, mf.ClipsDescendants, mf.Parent, mf.Visible, mf.ZIndex, mf.Active = UDim2.new(0,55,0,55), UDim2.new(1,-65,0,10), th.D.ac, 0.1, true, rt, false, 999, true
+Instance.new("UICorner", mf).CornerRadius = UDim.new(0,12)
+local ms = Instance.new("UIStroke", mf); ms.Color, ms.Thickness, ms.Transparency = th.D.ac, 2, 0.3
+local ml = Instance.new("TextLabel"); ml.Size, ml.Text, ml.TextColor3, ml.TextSize, ml.Font, ml.BackgroundTransparency, ml.Parent = UDim2.new(1,0,1,0), "NZ", Color3.fromRGB(255,255,255), 14, Enum.Font.GothamBold, 1, mf
+local sb = Instance.new("TextButton"); sb.Size, sb.Position, sb.Text, sb.TextSize, sb.TextColor3, sb.BackgroundColor3, sb.Parent, sb.Visible, sb.ZIndex, sb.Active = UDim2.new(0,55,0,55), UDim2.new(0,10,1,-70), "🔄", 26, Color3.fromRGB(255,255,255), Color3.fromRGB(255,50,80), rt, false, 999, true
+Instance.new("UICorner", sb).CornerRadius = UDim.new(1,0); Instance.new("UIStroke", sb).Color = Color3.fromRGB(255,255,255)
+sb.MouseButton1Click:Connect(function() print("SF") end); sb.TouchTap:Connect(function() print("SF") end)
+local fU = Instance.new("TextButton"); fU.Size, fU.Position, fU.Text, fU.TextSize, fU.TextColor3, fU.BackgroundColor3, fU.BackgroundTransparency, fU.Parent, fU.Visible, fU.ZIndex = UDim2.new(0,70,0,70), UDim2.new(1,-85,0.5,-85), "▲", 30, Color3.fromRGB(255,255,255), Color3.fromRGB(255,50,80), 0.5, rt, false, 999
+Instance.new("UICorner", fU).CornerRadius = UDim.new(1,0)
+local fD = Instance.new("TextButton"); fD.Size, fD.Position, fD.Text, fD.TextSize, fD.TextColor3, fD.BackgroundColor3, fD.BackgroundTransparency, fD.Parent, fD.Visible, fD.ZIndex = UDim2.new(0,70,0,70), UDim2.new(1,-85,0.5,-5), "▼", 30, Color3.fromRGB(255,255,255), Color3.fromRGB(255,50,80), 0.5, rt, false, 999
+Instance.new("UICorner", fD).CornerRadius = UDim.new(1,0)
+fU.TouchBegan:Connect(function() fUH = true end); fU.TouchEnded:Connect(function() fUH = false end); fU.MouseButton1Down:Connect(function() fUH = true end); fU.MouseButton1Up:Connect(function() fUH = false end)
+fD.TouchBegan:Connect(function() fDH = true end); fD.TouchEnded:Connect(function() fDH = false end); fD.MouseButton1Down:Connect(function() fDH = true end); fD.MouseButton1Up:Connect(function() fDH = false end)
+local tc = Instance.new("Frame"); tc.Size, tc.Position, tc.BackgroundTransparency, tc.Parent = UDim2.new(1,-10,0,28), UDim2.new(0,5,0,48), 1, fr
+local function ct2(n, x)
+    local b = Instance.new("TextButton"); b.Size, b.Position, b.Text, b.TextColor3, b.TextSize, b.Font, b.BackgroundColor3, b.BackgroundTransparency, b.Parent, b.AutoButtonColor = UDim2.new(0,65,1,0), UDim2.new(0,x,0,0), n, Color3.fromRGB(200,200,210), 10, Enum.Font.GothamBold, Color3.fromRGB(30,30,35), 0.3, tc, true
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,5); return b
+end
+local tm, tp, tg, tth, to = ct2("Mods",0), ct2("Player",70), ct2("Graphics",140), ct2("Theme",210), ct2("Others",280)
+local function cp()
+    local p = Instance.new("ScrollingFrame"); p.Size, p.Position, p.BackgroundTransparency, p.CanvasSize, p.ScrollBarThickness, p.ScrollBarImageColor3, p.Parent, p.Visible = UDim2.new(1,-10,1,-84), UDim2.new(0,5,0,80), 1, UDim2.new(0,0,0,550), 3, th.D.ac, fr, false; return p
+end
+local mp, pp, gp2, tp2, op = cp(), cp(), cp(), cp(), cp()
+local function ml2(t, y, p, w)
+    w = w or 100; local l = Instance.new("TextLabel"); l.Size, l.Position, l.Text, l.TextColor3, l.TextSize, l.Font, l.BackgroundTransparency, l.TextXAlignment, l.Parent = UDim2.new(0,w,0,22), UDim2.new(0,0,0,y), t, th.D.tx, 11, Enum.Font.Gotham, 1, Enum.TextXAlignment.Left, p; return l
+end
+local function mt(y, p)
+    local b = Instance.new("TextButton"); b.Size, b.Position, b.Text, b.TextColor3, b.TextSize, b.Font, b.BackgroundColor3, b.Parent, b.AutoButtonColor = UDim2.new(0,60,0,22), UDim2.new(0,180,0,y), "OFF", Color3.fromRGB(255,100,100), 10, Enum.Font.GothamBold, Color3.fromRGB(40,20,20), p, true
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,4); return b
+end
+local function ms2(t, y, p, mn2, mx, d, cb)
+    local l = Instance.new("TextLabel"); l.Size, l.Position, l.Text, l.TextColor3, l.TextSize, l.Font, l.BackgroundTransparency, l.TextXAlignment, l.Parent = UDim2.new(0,120,0,22), UDim2.new(0,0,0,y), t, th.D.tx, 11, Enum.Font.Gotham, 1, Enum.TextXAlignment.Left, p
+    local vl = Instance.new("TextLabel"); vl.Size, vl.Position, vl.Text, vl.TextColor3, vl.TextSize, vl.Font, vl.BackgroundTransparency, vl.TextXAlignment, vl.Parent = UDim2.new(0,40,0,22), UDim2.new(0,125,0,y), tostring(d), th.D.ac, 11, Enum.Font.GothamBold, 1, Enum.TextXAlignment.Center, p
+    local s = Instance.new("Frame"); s.Size, s.Position, s.BackgroundColor3, s.Parent = UDim2.new(0,120,0,8), UDim2.new(0,170,0,y+7), Color3.fromRGB(40,40,50), p
+    Instance.new("UICorner", s).CornerRadius = UDim.new(0,4)
+    local f = Instance.new("Frame"); f.Size, f.BackgroundColor3, f.Parent = UDim2.new((d-mn2)/(mx-mn2),0,1,0), th.D.ac, s
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0,4)
+    local cv = d
+    local function us(i)
+        local pos = i.Position.X - s.AbsolutePosition.X; local w2 = s.AbsoluteSize.X
+        local pct = math.clamp(pos/w2,0,1); local nv = math.floor((mn2+(mx-mn2)*pct)*10)/10
+        if nv < mn2 then nv = mn2 end; if nv > mx then nv = mx end
+        cv = nv; f.Size = UDim2.new(pct,0,1,0); vl.Text = tostring(nv); if cb then cb(nv) end
     end
-end)
-
-local root = Instance.new("ScreenGui")
-root.Name = "InfectiousRoot"
-root.Parent = guiParent
-root.ResetOnSpawn = false
-root.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-root.IgnoreGuiInset = true
-
-local blur = Instance.new("BlurEffect", Lighting)
-blur.Size = 3
-
-local themes = {
-    Default = {
-        background = Color3.fromRGB(18, 18, 22),
-        accent = Color3.fromRGB(255, 50, 80),
-        text = Color3.fromRGB(220, 220, 230),
-        button = Color3.fromRGB(30, 30, 35),
-        stroke = Color3.fromRGB(255, 50, 80),
-        danger = Color3.fromRGB(255, 20, 50)
-    },
-    Crimson = {
-        background = Color3.fromRGB(20, 10, 12),
-        accent = Color3.fromRGB(255, 30, 50),
-        text = Color3.fromRGB(230, 200, 200),
-        button = Color3.fromRGB(35, 20, 22),
-        stroke = Color3.fromRGB(200, 30, 50),
-        danger = Color3.fromRGB(255, 10, 30)
-    },
-    Cyber = {
-        background = Color3.fromRGB(8, 10, 20),
-        accent = Color3.fromRGB(0, 200, 255),
-        text = Color3.fromRGB(180, 230, 255),
-        button = Color3.fromRGB(15, 25, 40),
-        stroke = Color3.fromRGB(0, 180, 255),
-        danger = Color3.fromRGB(255, 50, 100)
-    },
-    Amber = {
-        background = Color3.fromRGB(18, 14, 8),
-        accent = Color3.fromRGB(255, 180, 0),
-        text = Color3.fromRGB(240, 220, 180),
-        button = Color3.fromRGB(30, 25, 15),
-        stroke = Color3.fromRGB(200, 150, 0),
-        danger = Color3.fromRGB(255, 100, 0)
-    },
-    Violet = {
-        background = Color3.fromRGB(16, 10, 22),
-        accent = Color3.fromRGB(180, 80, 255),
-        text = Color3.fromRGB(220, 200, 240),
-        button = Color3.fromRGB(28, 18, 35),
-        stroke = Color3.fromRGB(150, 50, 220),
-        danger = Color3.fromRGB(220, 50, 150)
-    }
-}
-
-local currentTheme = "Default"
-local isOpen = true
-local isMinimized = false
-local deleteInfectActive = false
-local deleteKillActive = false
-local deleteDoorsActive = false
-local rtxActive = false
-local futureActive = false
-local teamEspActive = false
-local shitflockActive = false
-local infJumpActive = false
-local noclipActive = false
-local flyActive = false
-local walkspeedValue = 16
-local jumppowerValue = 50
-
-local infectConnection = nil
-local killConnection = nil
-local doorsConnection = nil
-local espConnection = nil
-local flyConnection = nil
-local noclipConnection = nil
-local espObjects = {}
-local flyBodyVelocity = nil
-local flyBodyGyro = nil
-local infJumpBind = nil
-
-local deletedInfect = {}
-local deletedKill = {}
-local deletedDoors = {}
-
-local originalLighting = {
-    Brightness = Lighting.Brightness,
-    ClockTime = Lighting.ClockTime,
-    Ambient = Lighting.Ambient,
-    OutdoorAmbient = Lighting.OutdoorAmbient,
-    ColorShift_Top = Lighting.ColorShift_Top,
-    ColorShift_Bottom = Lighting.ColorShift_Bottom,
-    EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
-    EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
-    GlobalShadows = Lighting.GlobalShadows,
-    ShadowSoftness = Lighting.ShadowSoftness,
-    Technology = Lighting.Technology
-}
-
--- ========== MAIN GUI FRAME ==========
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 360, 0, 340)
-frame.Position = UDim2.new(0.5, -180, 0.5, -170)
-frame.BackgroundColor3 = themes.Default.background
-frame.BackgroundTransparency = 0.08
-frame.ClipsDescendants = true
-frame.Parent = root
-frame.Visible = true
-frame.ZIndex = 10
-frame.Active = true
-
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 8)
-
-local stroke = Instance.new("UIStroke", frame)
-stroke.Color = themes.Default.stroke
-stroke.Thickness = 1.5
-stroke.Transparency = 0.6
-
--- ========== TITLE BAR ==========
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 44)
-titleBar.BackgroundTransparency = 0.2
-titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-titleBar.Parent = frame
-titleBar.Active = true
-
-local titleCorner = Instance.new("UICorner", titleBar)
-titleCorner.CornerRadius = UDim.new(0, 8)
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.5, 0, 1, 0)
-titleLabel.Position = UDim2.new(0, 10, 0, 0)
-titleLabel.Text = "NZ-IS"
-titleLabel.TextColor3 = themes.Default.accent
-titleLabel.TextSize = 14
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.BackgroundTransparency = 1
-titleLabel.Parent = titleBar
-
--- ========== MINIMIZE BUTTON ==========
-local minBtn = Instance.new("TextButton")
-minBtn.Size = UDim2.new(0, 30, 0, 30)
-minBtn.Position = UDim2.new(1, -68, 0, 7)
-minBtn.Text = "─"
-minBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-minBtn.TextSize = 18
-minBtn.Font = Enum.Font.GothamBold
-minBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-minBtn.BackgroundTransparency = 0.2
-minBtn.Parent = titleBar
-minBtn.AutoButtonColor = true
-local minCorner = Instance.new("UICorner", minBtn)
-minCorner.CornerRadius = UDim.new(0, 6)
-
--- ========== CLOSE/OPEN BUTTON ==========
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -36, 0, 7)
-closeBtn.Text = "✕"
-closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-closeBtn.TextSize = 14
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-closeBtn.BackgroundTransparency = 0.2
-closeBtn.Parent = titleBar
-closeBtn.AutoButtonColor = true
-local closeCorner = Instance.new("UICorner", closeBtn)
-closeCorner.CornerRadius = UDim.new(0, 6)
-
--- ========== MINIMIZED SQUARE ==========
-local miniFrame = Instance.new("Frame")
-miniFrame.Size = UDim2.new(0, 55, 0, 55)
-miniFrame.Position = UDim2.new(1, -65, 0, 10)
-miniFrame.BackgroundColor3 = themes.Default.accent
-miniFrame.BackgroundTransparency = 0.1
-miniFrame.ClipsDescendants = true
-miniFrame.Parent = root
-miniFrame.Visible = false
-miniFrame.ZIndex = 999
-miniFrame.Active = true
-
-local miniCorner = Instance.new("UICorner", miniFrame)
-miniCorner.CornerRadius = UDim.new(0, 12)
-
-local miniStroke = Instance.new("UIStroke", miniFrame)
-miniStroke.Color = themes.Default.accent
-miniStroke.Thickness = 2
-miniStroke.Transparency = 0.3
-
-local miniLabel = Instance.new("TextLabel")
-miniLabel.Size = UDim2.new(1, 0, 1, 0)
-miniLabel.Text = "NZ"
-miniLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-miniLabel.TextSize = 14
-miniLabel.Font = Enum.Font.GothamBold
-miniLabel.BackgroundTransparency = 1
-miniLabel.Parent = miniFrame
-]],
-    [2] = [[
--- ========== SHITFLOCK BUTTON ==========
-local shitflockBtn = Instance.new("TextButton")
-shitflockBtn.Size = UDim2.new(0, 55, 0, 55)
-shitflockBtn.Position = UDim2.new(0, 10, 1, -70)
-shitflockBtn.Text = "🔄"
-shitflockBtn.TextSize = 26
-shitflockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-shitflockBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
-shitflockBtn.Parent = root
-shitflockBtn.Visible = false
-shitflockBtn.ZIndex = 999
-shitflockBtn.Active = true
-
-local shitflockCorner = Instance.new("UICorner", shitflockBtn)
-shitflockCorner.CornerRadius = UDim.new(1, 0)
-local shitflockStroke = Instance.new("UIStroke", shitflockBtn)
-shitflockStroke.Color = Color3.fromRGB(255, 255, 255)
-shitflockStroke.Thickness = 2
-shitflockStroke.Transparency = 0.2
-
-shitflockBtn.MouseButton1Click:Connect(function()
-    print("Shitflock button pressed!")
-end)
-shitflockBtn.TouchTap:Connect(function()
-    print("Shitflock button pressed!")
-end)
-
--- ========== FLY MOBILE CONTROLS ==========
-local flyUpBtn = Instance.new("TextButton")
-flyUpBtn.Size = UDim2.new(0, 70, 0, 70)
-flyUpBtn.Position = UDim2.new(1, -85, 0.5, -85)
-flyUpBtn.Text = "▲"
-flyUpBtn.TextSize = 30
-flyUpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-flyUpBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
-flyUpBtn.BackgroundTransparency = 0.5
-flyUpBtn.Parent = root
-flyUpBtn.Visible = false
-flyUpBtn.ZIndex = 999
-local flyUpCorner = Instance.new("UICorner", flyUpBtn)
-flyUpCorner.CornerRadius = UDim.new(1, 0)
-
-local flyDownBtn = Instance.new("TextButton")
-flyDownBtn.Size = UDim2.new(0, 70, 0, 70)
-flyDownBtn.Position = UDim2.new(1, -85, 0.5, -5)
-flyDownBtn.Text = "▼"
-flyDownBtn.TextSize = 30
-flyDownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-flyDownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
-flyDownBtn.BackgroundTransparency = 0.5
-flyDownBtn.Parent = root
-flyDownBtn.Visible = false
-flyDownBtn.ZIndex = 999
-local flyDownCorner = Instance.new("UICorner", flyDownBtn)
-flyDownCorner.CornerRadius = UDim.new(1, 0)
-
-local flyUpHeld = false
-local flyDownHeld = false
-
-flyUpBtn.TouchBegan:Connect(function() flyUpHeld = true end)
-flyUpBtn.TouchEnded:Connect(function() flyUpHeld = false end)
-flyUpBtn.MouseButton1Down:Connect(function() flyUpHeld = true end)
-flyUpBtn.MouseButton1Up:Connect(function() flyUpHeld = false end)
-
-flyDownBtn.TouchBegan:Connect(function() flyDownHeld = true end)
-flyDownBtn.TouchEnded:Connect(function() flyDownHeld = false end)
-flyDownBtn.MouseButton1Down:Connect(function() flyDownHeld = true end)
-flyDownBtn.MouseButton1Up:Connect(function() flyDownHeld = false end)
-
--- ========== TABS ==========
-local tabContainer = Instance.new("Frame")
-tabContainer.Size = UDim2.new(1, -10, 0, 28)
-tabContainer.Position = UDim2.new(0, 5, 0, 48)
-tabContainer.BackgroundTransparency = 1
-tabContainer.Parent = frame
-
-local function createTab(name, x)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 65, 1, 0)
-    btn.Position = UDim2.new(0, x, 0, 0)
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(200, 200, 210)
-    btn.TextSize = 10
-    btn.Font = Enum.Font.GothamBold
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    btn.BackgroundTransparency = 0.3
-    btn.Parent = tabContainer
-    btn.AutoButtonColor = true
-    local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 5)
-    return btn
+    s.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then us(i) end end)
+    s.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then us(i) end end)
+    return {Slider=s,Fill=f,ValueLabel=vl,GetValue=function() return cv end}
 end
-
-local tabMods = createTab("Mods", 0)
-local tabPlayer = createTab("Player", 70)
-local tabGraphics = createTab("Graphics", 140)
-local tabTheme = createTab("Theme", 210)
-local tabOthers = createTab("Others", 280)
-
--- ========== PAGES ==========
-local function createPage()
-    local pg = Instance.new("ScrollingFrame")
-    pg.Size = UDim2.new(1, -10, 1, -84)
-    pg.Position = UDim2.new(0, 5, 0, 80)
-    pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 550)
-    pg.ScrollBarThickness = 3
-    pg.ScrollBarImageColor3 = themes.Default.accent
-    pg.Parent = frame
-    pg.Visible = false
-    return pg
+local function mb(t, y, p, c)
+    c = c or Color3.fromRGB(60,30,30); local b = Instance.new("TextButton"); b.Size, b.Position, b.Text, b.TextColor3, b.TextSize, b.Font, b.BackgroundColor3, b.Parent, b.AutoButtonColor = UDim2.new(0,150,0,32), UDim2.new(0.5,-75,0,y), t, Color3.fromRGB(255,255,255), 13, Enum.Font.GothamBold, c, p, true
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6); return b
 end
-
-local modsPage = createPage()
-local playerPage = createPage()
-local graphicsPage = createPage()
-local themePage = createPage()
-local othersPage = createPage()
-
-local function makeLabel(text, y, parent, w)
-    w = w or 100
-    local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(0, w, 0, 22)
-    l.Position = UDim2.new(0, 0, 0, y)
-    l.Text = text
-    l.TextColor3 = themes.Default.text
-    l.TextSize = 11
-    l.Font = Enum.Font.Gotham
-    l.BackgroundTransparency = 1
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    l.Parent = parent
-    return l
-end
-
-local function makeToggle(y, parent)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 60, 0, 22)
-    btn.Position = UDim2.new(0, 180, 0, y)
-    btn.Text = "OFF"
-    btn.TextColor3 = Color3.fromRGB(255, 100, 100)
-    btn.TextSize = 10
-    btn.Font = Enum.Font.GothamBold
-    btn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-    btn.Parent = parent
-    btn.AutoButtonColor = true
-    local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 4)
-    return btn
-end
-
-local function makeSlider(text, y, parent, minVal, maxVal, defaultVal, callback)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 120, 0, 22)
-    label.Position = UDim2.new(0, 0, 0, y)
-    label.Text = text
-    label.TextColor3 = themes.Default.text
-    label.TextSize = 11
-    label.Font = Enum.Font.Gotham
-    label.BackgroundTransparency = 1
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = parent
-    
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Size = UDim2.new(0, 40, 0, 22)
-    valueLabel.Position = UDim2.new(0, 125, 0, y)
-    valueLabel.Text = tostring(defaultVal)
-    valueLabel.TextColor3 = themes.Default.accent
-    valueLabel.TextSize = 11
-    valueLabel.Font = Enum.Font.GothamBold
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.TextXAlignment = Enum.TextXAlignment.Center
-    valueLabel.Parent = parent
-    
-    local slider = Instance.new("Frame")
-    slider.Size = UDim2.new(0, 120, 0, 8)
-    slider.Position = UDim2.new(0, 170, 0, y + 7)
-    slider.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    slider.Parent = parent
-    local sliderCorner = Instance.new("UICorner", slider)
-    sliderCorner.CornerRadius = UDim.new(0, 4)
-    
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new((defaultVal - minVal) / (maxVal - minVal), 0, 1, 0)
-    fill.BackgroundColor3 = themes.Default.accent
-    fill.Parent = slider
-    local fillCorner = Instance.new("UICorner", fill)
-    fillCorner.CornerRadius = UDim.new(0, 4)
-    
-    local currentVal = defaultVal
-    
-    local function updateSlider(input)
-        local pos = input.Position.X - slider.AbsolutePosition.X
-        local width = slider.AbsoluteSize.X
-        local percent = math.clamp(pos / width, 0, 1)
-        local newVal = math.floor((minVal + (maxVal - minVal) * percent) * 10) / 10
-        if newVal < minVal then newVal = minVal end
-        if newVal > maxVal then newVal = maxVal end
-        currentVal = newVal
-        fill.Size = UDim2.new(percent, 0, 1, 0)
-        valueLabel.Text = tostring(newVal)
-        if callback then callback(newVal) end
-    end
-    
-    slider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            updateSlider(input)
-        end
-    end)
-    
-    slider.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            updateSlider(input)
-        end
-    end)
-    
-    return {Slider = slider, Fill = fill, ValueLabel = valueLabel, GetValue = function() return currentVal end}
-end
-
-local function makeButton(text, y, parent, color)
-    color = color or Color3.fromRGB(60, 30, 30)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 150, 0, 32)
-    btn.Position = UDim2.new(0.5, -75, 0, y)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 13
-    btn.Font = Enum.Font.GothamBold
-    btn.BackgroundColor3 = color
-    btn.Parent = parent
-    btn.AutoButtonColor = true
-    local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 6)
-    return btn
-end
-]],
-    [3] = [[
--- ========== MODS PAGE ==========
 local yOff = 4
-
-makeLabel("Delete Infected", yOff, modsPage, 120)
-local infectBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 28
-
-makeLabel("Disable Kill Parts", yOff, modsPage, 120)
-local killBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 28
-
-makeLabel("Disable Doors/Gates", yOff, modsPage, 120)
-local doorsBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 28
-
-makeLabel("TEAM ESP", yOff, modsPage, 120)
-local espBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 32
-
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -10, 0, 22)
-statusLabel.Position = UDim2.new(0, 0, 0, yOff)
-statusLabel.Text = "Ready"
-statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-statusLabel.TextSize = 11
-statusLabel.Font = Enum.Font.GothamBold
-statusLabel.BackgroundTransparency = 1
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.Parent = modsPage
-yOff = yOff + 28
-
-modsPage.CanvasSize = UDim2.new(0, 0, 0, yOff + 10)
-
--- ========== PLAYER PAGE ==========
+ml2("Delete Infected", yOff, mp, 120); local iB2 = mt(yOff, mp); yOff = yOff + 28
+ml2("Disable Kill Parts", yOff, mp, 120); local kB = mt(yOff, mp); yOff = yOff + 28
+ml2("Disable Doors/Gates", yOff, mp, 120); local dB = mt(yOff, mp); yOff = yOff + 28
+ml2("TEAM ESP", yOff, mp, 120); local eB = mt(yOff, mp); yOff = yOff + 32
+local sL = Instance.new("TextLabel"); sL.Size, sL.Position, sL.Text, sL.TextColor3, sL.TextSize, sL.Font, sL.BackgroundTransparency, sL.TextXAlignment, sL.Parent = UDim2.new(1,-10,0,22), UDim2.new(0,0,0,yOff), "Ready", Color3.fromRGB(0,255,150), 11, Enum.Font.GothamBold, 1, Enum.TextXAlignment.Left, mp
+yOff = yOff + 28; mp.CanvasSize = UDim2.new(0,0,0,yOff+10)
 local pY = 4
-
-makeLabel("Enable Shitflock", pY, playerPage, 120)
-local shitflockToggle = makeToggle(pY, playerPage)
-pY = pY + 28
-
-local wsSlider = makeSlider("WalkSpeed", pY, playerPage, 10, 100, 16, function(val)
-    walkspeedValue = val
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = val
-    end
-end)
+ml2("Enable Shitflock", pY, pp, 120); local sT = mt(pY, pp); pY = pY + 28
+ms2("WalkSpeed", pY, pp, 10, 100, 16, function(v) wv = v; if pl.Character and pl.Character:FindFirstChild("Humanoid") then pl.Character.Humanoid.WalkSpeed = v end end)
 pY = pY + 36
-
-local jpSlider = makeSlider("JumpPower", pY, playerPage, 20, 200, 50, function(val)
-    jumppowerValue = val
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.JumpPower = val
-    end
-end)
+ms2("JumpPower", pY, pp, 20, 200, 50, function(v) jv = v; if pl.Character and pl.Character:FindFirstChild("Humanoid") then pl.Character.Humanoid.JumpPower = v end end)
 pY = pY + 36
-
-makeLabel("Inf Jump", pY, playerPage, 120)
-local infJumpBtn = makeToggle(pY, playerPage)
-pY = pY + 28
-
-makeLabel("Noclip", pY, playerPage, 120)
-local noclipBtn = makeToggle(pY, playerPage)
-pY = pY + 28
-
-makeLabel("Fly", pY, playerPage, 120)
-local flyBtn = makeToggle(pY, playerPage)
-pY = pY + 28
-
-local playerDesc = Instance.new("TextLabel")
-playerDesc.Size = UDim2.new(1, -10, 0, 30)
-playerDesc.Position = UDim2.new(0, 0, 0, pY)
-playerDesc.Text = "Fly: ▲ ▼ buttons appear on the right side"
-playerDesc.TextColor3 = Color3.fromRGB(150, 150, 170)
-playerDesc.TextSize = 10
-playerDesc.Font = Enum.Font.Gotham
-playerDesc.BackgroundTransparency = 1
-playerDesc.TextXAlignment = Enum.TextXAlignment.Left
-playerDesc.Parent = playerPage
-pY = pY + 40
-
-playerPage.CanvasSize = UDim2.new(0, 0, 0, pY + 10)
-
--- ========== GRAPHICS PAGE ==========
+ml2("Inf Jump", pY, pp, 120); local iJB = mt(pY, pp); pY = pY + 28
+ml2("Noclip", pY, pp, 120); local nB = mt(pY, pp); pY = pY + 28
+ml2("Fly", pY, pp, 120); local fB = mt(pY, pp); pY = pY + 28
+local pD = Instance.new("TextLabel"); pD.Size, pD.Position, pD.Text, pD.TextColor3, pD.TextSize, pD.Font, pD.BackgroundTransparency, pD.TextXAlignment, pD.Parent = UDim2.new(1,-10,0,30), UDim2.new(0,0,0,pY), "Fly: ▲ ▼ buttons appear on the right side", Color3.fromRGB(150,150,170), 10, Enum.Font.Gotham, 1, Enum.TextXAlignment.Left, pp
+pY = pY + 40; pp.CanvasSize = UDim2.new(0,0,0,pY+10)
 local gY = 4
-
-makeLabel("RTX Graphics", gY, graphicsPage, 120)
-local rtxBtn = makeToggle(gY, graphicsPage)
-gY = gY + 28
-
-makeLabel("Realistic/Future Lighting", gY, graphicsPage, 120)
-local futureBtn = makeToggle(gY, graphicsPage)
-gY = gY + 28
-
-local gDesc = Instance.new("TextLabel")
-gDesc.Size = UDim2.new(1, -10, 0, 30)
-gDesc.Position = UDim2.new(0, 0, 0, gY)
-gDesc.Text = "Lighting: Enables Future/Realistic tech\nRTX: Full visual overhaul"
-gDesc.TextColor3 = Color3.fromRGB(150, 150, 170)
-gDesc.TextSize = 10
-gDesc.Font = Enum.Font.Gotham
-gDesc.BackgroundTransparency = 1
-gDesc.TextXAlignment = Enum.TextXAlignment.Left
-gDesc.Parent = graphicsPage
-gY = gY + 40
-
-graphicsPage.CanvasSize = UDim2.new(0, 0, 0, gY + 10)
-
--- ========== THEME PAGE ==========
-local themeY = 4
-local themeLabel = Instance.new("TextLabel")
-themeLabel.Size = UDim2.new(1, -10, 0, 22)
-themeLabel.Position = UDim2.new(0, 0, 0, themeY)
-themeLabel.Text = "THEMES"
-themeLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
-themeLabel.TextSize = 11
-themeLabel.Font = Enum.Font.GothamBold
-themeLabel.BackgroundTransparency = 1
-themeLabel.TextXAlignment = Enum.TextXAlignment.Left
-themeLabel.Parent = themePage
-themeY = themeY + 28
-
-local function createThemeButton(name, y, color)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 120, 0, 28)
-    btn.Position = UDim2.new(0, 0, 0, y)
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 12
-    btn.Font = Enum.Font.GothamBold
-    btn.BackgroundColor3 = color or Color3.fromRGB(30, 30, 50)
-    btn.Parent = themePage
-    btn.AutoButtonColor = true
-    local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 5)
-
-    local function applyTheme()
-        currentTheme = name
-        local t = themes[name]
-        frame.BackgroundColor3 = t.background
-        stroke.Color = t.stroke
-        titleLabel.TextColor3 = t.accent
-        statusLabel.TextColor3 = t.accent
-        miniFrame.BackgroundColor3 = t.accent
-        miniStroke.Color = t.accent
-        minBtn.TextColor3 = t.accent
-        closeBtn.TextColor3 = t.accent
-        shitflockBtn.BackgroundColor3 = t.accent
-        flyUpBtn.BackgroundColor3 = t.accent
-        flyDownBtn.BackgroundColor3 = t.accent
-        for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= rtxBtn and child ~= futureBtn and child ~= minBtn and child ~= closeBtn and child ~= shitflockToggle and child ~= infJumpBtn and child ~= noclipBtn and child ~= flyBtn then
-                if child.Text == "Mods" or child.Text == "Player" or child.Text == "Graphics" or child.Text == "Theme" or child.Text == "Others" then
-                    child.TextColor3 = t.accent
-                end
+ml2("RTX Graphics", gY, gp2, 120); local rB = mt(gY, gp2); gY = gY + 28
+ml2("Realistic/Future Lighting", gY, gp2, 120); local fB2 = mt(gY, gp2); gY = gY + 28
+local gD = Instance.new("TextLabel"); gD.Size, gD.Position, gD.Text, gD.TextColor3, gD.TextSize, gD.Font, gD.BackgroundTransparency, gD.TextXAlignment, gD.Parent = UDim2.new(1,-10,0,30), UDim2.new(0,0,0,gY), "Lighting: Enables Future/Realistic tech\nRTX: Full visual overhaul", Color3.fromRGB(150,150,170), 10, Enum.Font.Gotham, 1, Enum.TextXAlignment.Left, gp2
+gY = gY + 40; gp2.CanvasSize = UDim2.new(0,0,0,gY+10)
+local tY = 4
+local tL = Instance.new("TextLabel"); tL.Size, tL.Position, tL.Text, tL.TextColor3, tL.TextSize, tL.Font, tL.BackgroundTransparency, tL.TextXAlignment, tL.Parent = UDim2.new(1,-10,0,22), UDim2.new(0,0,0,tY), "THEMES", Color3.fromRGB(180,180,220), 11, Enum.Font.GothamBold, 1, Enum.TextXAlignment.Left, tp2
+tY = tY + 28
+local function ctb(n, y, c)
+    local b = Instance.new("TextButton"); b.Size, b.Position, b.Text, b.TextColor3, b.TextSize, b.Font, b.BackgroundColor3, b.Parent, b.AutoButtonColor = UDim2.new(0,120,0,28), UDim2.new(0,0,0,y), n, Color3.fromRGB(255,255,255), 12, Enum.Font.GothamBold, c or Color3.fromRGB(30,30,50), tp2, true
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,5)
+    local function ap()
+        ct = n; local t = th[n]; fr.BackgroundColor3, st.Color, tl.TextColor3, sL.TextColor3, mf.BackgroundColor3, ms.Color, mn.TextColor3, cl.TextColor3, sb.BackgroundColor3, fU.BackgroundColor3, fD.BackgroundColor3 = t.bg, t.st, t.ac, t.ac, t.ac, t.ac, t.ac, t.ac, t.ac, t.ac, t.ac
+        for _, ch in pairs(fr:GetDescendants()) do
+            if ch:IsA("TextButton") and ch ~= iB2 and ch ~= kB and ch ~= dB and ch ~= eB and ch ~= rB and ch ~= fB2 and ch ~= mn and ch ~= cl and ch ~= sT and ch ~= iJB and ch ~= nB and ch ~= fB then
+                if ch.Text == "Mods" or ch.Text == "Player" or ch.Text == "Graphics" or ch.Text == "Theme" or ch.Text == "Others" then ch.TextColor3 = t.ac end
             end
-            if child:IsA("ScrollingFrame") then
-                child.ScrollBarImageColor3 = t.accent
-            end
+            if ch:IsA("ScrollingFrame") then ch.ScrollBarImageColor3 = t.ac end
         end
-        
-        local function updateToggle(btn, active)
-            if active then
-                btn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-                btn.TextColor3 = Color3.fromRGB(100, 255, 100)
-            else
-                btn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-                btn.TextColor3 = Color3.fromRGB(255, 100, 100)
-            end
-        end
-        updateToggle(infectBtn, deleteInfectActive)
-        updateToggle(killBtn, deleteKillActive)
-        updateToggle(doorsBtn, deleteDoorsActive)
-        updateToggle(espBtn, teamEspActive)
-        updateToggle(rtxBtn, rtxActive)
-        updateToggle(futureBtn, futureActive)
-        updateToggle(shitflockToggle, shitflockActive)
-        updateToggle(infJumpBtn, infJumpActive)
-        updateToggle(noclipBtn, noclipActive)
-        updateToggle(flyBtn, flyActive)
+        local function ut(b, a) if a then b.BackgroundColor3, b.TextColor3 = Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100) else b.BackgroundColor3, b.TextColor3 = Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100) end end
+        ut(iB2, dIA); ut(kB, dKA); ut(dB, dDA); ut(eB, tA); ut(rB, rA); ut(fB2, fA); ut(sT, sA); ut(iJB, iJA); ut(nB, nA); ut(fB, fA2)
     end
-
-    btn.MouseButton1Click:Connect(applyTheme)
-    btn.TouchTap:Connect(applyTheme)
-    return btn
+    b.MouseButton1Click:Connect(ap); b.TouchTap:Connect(ap); return b
 end
-
-local themeColors = {
-    {name = "Default", color = Color3.fromRGB(30, 20, 25)},
-    {name = "Crimson", color = Color3.fromRGB(35, 15, 20)},
-    {name = "Cyber", color = Color3.fromRGB(10, 15, 40)},
-    {name = "Amber", color = Color3.fromRGB(35, 25, 15)},
-    {name = "Violet", color = Color3.fromRGB(25, 15, 40)}
-}
-
-for _, t in ipairs(themeColors) do
-    createThemeButton(t.name, themeY, t.color)
-    themeY = themeY + 33
-end
-
--- ========== OTHERS PAGE ==========
+local tC = {{n="Default",c=Color3.fromRGB(30,20,25)},{n="Crimson",c=Color3.fromRGB(35,15,20)},{n="Cyber",c=Color3.fromRGB(10,15,40)},{n="Amber",c=Color3.fromRGB(35,25,15)},{n="Violet",c=Color3.fromRGB(25,15,40)}}
+for _, t in pairs(tC) do ctb(t.n, tY, t.c); tY = tY + 33 end
 local oY = 10
-
-local destroyBtn = makeButton("Destroy GUI", oY, othersPage, Color3.fromRGB(80, 20, 20))
-oY = oY + 40
-
-local creditsLabel = Instance.new("TextLabel")
-creditsLabel.Size = UDim2.new(1, -10, 0, 20)
-creditsLabel.Position = UDim2.new(0, 0, 0, oY)
-creditsLabel.Text = "NZ-IS v6"
-creditsLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
-creditsLabel.TextSize = 10
-creditsLabel.Font = Enum.Font.Gotham
-creditsLabel.BackgroundTransparency = 1
-creditsLabel.TextXAlignment = Enum.TextXAlignment.Center
-creditsLabel.Parent = othersPage
-oY = oY + 30
-
-othersPage.CanvasSize = UDim2.new(0, 0, 0, oY + 10)
-]],
-    [4] = [[
--- ========== SHITFLOCK TOGGLE ==========
-local function toggleShitflock()
-    shitflockActive = not shitflockActive
-    if shitflockActive then
-        shitflockToggle.Text = "ON"
-        shitflockToggle.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        shitflockToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        shitflockBtn.Visible = true
-        statusLabel.Text = "Shitflock ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-    else
-        shitflockToggle.Text = "OFF"
-        shitflockToggle.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        shitflockToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        shitflockBtn.Visible = false
-        statusLabel.Text = "Shitflock DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
+local dBt = mb("Destroy GUI", oY, op, Color3.fromRGB(80,20,20)); oY = oY + 40
+local cL = Instance.new("TextLabel"); cL.Size, cL.Position, cL.Text, cL.TextColor3, cL.TextSize, cL.Font, cL.BackgroundTransparency, cL.TextXAlignment, cL.Parent = UDim2.new(1,-10,0,20), UDim2.new(0,0,0,oY), "NZ-IS v6", Color3.fromRGB(100,100,120), 10, Enum.Font.Gotham, 1, Enum.TextXAlignment.Center, op
+oY = oY + 30; op.CanvasSize = UDim2.new(0,0,0,oY+10)
+local function tS()
+    sA = not sA
+    if sA then sT.Text, sT.BackgroundColor3, sT.TextColor3, sb.Visible, sL.Text, sL.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), true, "Shitflock ENABLED", Color3.fromRGB(0,200,255)
+    else sT.Text, sT.BackgroundColor3, sT.TextColor3, sb.Visible, sL.Text, sL.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100), false, "Shitflock DISABLED", Color3.fromRGB(255,100,100); task.wait(0.5); sL.Text, sL.TextColor3 = "Ready", Color3.fromRGB(0,255,150) end
 end
-
-shitflockToggle.MouseButton1Click:Connect(toggleShitflock)
-shitflockToggle.TouchTap:Connect(toggleShitflock)
-
--- ========== PLAYER MOD FUNCTIONS ==========
-
--- Inf Jump
-local function setupInfJump()
-    if infJumpBind then
-        pcall(function() infJumpBind:Disconnect() end)
-        infJumpBind = nil
-    end
-    
-    local char = player.Character
-    if not char then return end
-    local hum = char:FindFirstChild("Humanoid")
-    if not hum then return end
-    
-    local jumpCount = 0
-    local maxJumps = 999
-    
-    infJumpBind = hum.StateChanged:Connect(function(oldState, newState)
-        if not infJumpActive then return end
-        if newState == Enum.HumanoidStateType.Jumping then
-            jumpCount = jumpCount + 1
-        end
-        if newState == Enum.HumanoidStateType.Landed then
-            jumpCount = 0
-        end
-        if newState == Enum.HumanoidStateType.Freefall and jumpCount > 0 then
-            task.wait(0.05)
-            if infJumpActive and hum and hum.Parent then
-                hum:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end
+sT.MouseButton1Click:Connect(tS); sT.TouchTap:Connect(tS)
+local function sIJ()
+    if iB then pcall(function() iB:Disconnect() end); iB = nil end
+    local c = pl.Character; if not c then return end; local h = c:FindFirstChild("Humanoid"); if not h then return end
+    local jc = 0
+    iB = h.StateChanged:Connect(function(os, ns)
+        if not iJA then return end
+        if ns == Enum.HumanoidStateType.Jumping then jc = jc + 1 end
+        if ns == Enum.HumanoidStateType.Landed then jc = 0 end
+        if ns == Enum.HumanoidStateType.Freefall and jc > 0 then task.wait(0.05); if iJA and h and h.Parent then h:ChangeState(Enum.HumanoidStateType.Jumping) end end
     end)
 end
-
-local function toggleInfJump()
-    infJumpActive = not infJumpActive
-    if infJumpActive then
-        infJumpBtn.Text = "ON"
-        infJumpBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        infJumpBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Inf Jump ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        setupInfJump()
-    else
-        infJumpBtn.Text = "OFF"
-        infJumpBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        infJumpBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "Inf Jump DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        if infJumpBind then
-            pcall(function() infJumpBind:Disconnect() end)
-            infJumpBind = nil
-        end
-        task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
+local function tIJ()
+    iJA = not iJA
+    if iJA then iJB.Text, iJB.BackgroundColor3, iJB.TextColor3, sL.Text, sL.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Inf Jump ENABLED", Color3.fromRGB(0,200,255); sIJ()
+    else iJB.Text, iJB.BackgroundColor3, iJB.TextColor3, sL.Text, sL.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100), "Inf Jump DISABLED", Color3.fromRGB(255,100,100); if iB then pcall(function() iB:Disconnect() end); iB = nil end; task.wait(0.5); sL.Text, sL.TextColor3 = "Ready", Color3.fromRGB(0,255,150) end
 end
-
-infJumpBtn.MouseButton1Click:Connect(toggleInfJump)
-infJumpBtn.TouchTap:Connect(toggleInfJump)
-
--- Noclip
-local function setupNoclip()
-    if noclipConnection then
-        pcall(function() noclipConnection:Disconnect() end)
-        noclipConnection = nil
-    end
-    
-    if not noclipActive then return end
-    
-    noclipConnection = RunService.Stepped:Connect(function()
-        if noclipActive and player.Character then
-            for _, part in pairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end
+iJB.MouseButton1Click:Connect(tIJ); iJB.TouchTap:Connect(tIJ)
+local function sN()
+    if nC then pcall(function() nC:Disconnect() end); nC = nil end
+    if not nA then return end
+    nC = R.Stepped:Connect(function() if nA and pl.Character then for _, p in pairs(pl.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end end)
+end
+local function tN()
+    nA = not nA
+    if nA then nB.Text, nB.BackgroundColor3, nB.TextColor3, sL.Text, sL.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Noclip ENABLED", Color3.fromRGB(0,200,255); sN()
+    else nB.Text, nB.BackgroundColor3, nB.TextColor3, sL.Text, sL.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100), "Noclip DISABLED", Color3.fromRGB(255,100,100); if nC then pcall(function() nC:Disconnect() end); nC = nil end; if pl.Character then for _, p in pairs(pl.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = true end end end; task.wait(0.5); sL.Text, sL.TextColor3 = "Ready", Color3.fromRGB(0,255,150) end
+end
+nB.MouseButton1Click:Connect(tN); nB.TouchTap:Connect(tN)
+local function sF()
+    if fC then pcall(function() fC:Disconnect() end); fC = nil end
+    if not fA2 then return end
+    fC = R.Heartbeat:Connect(function()
+        if not fA2 then return end
+        local c = pl.Character; if not c or not c:FindFirstChild("HumanoidRootPart") then return end
+        local rp = c.HumanoidRootPart; local h = c:FindFirstChild("Humanoid")
+        if not fV or fV.Parent == nil then fV = Instance.new("BodyVelocity"); fV.MaxForce = Vector3.new(1e9,1e9,1e9); fV.Parent = rp end
+        if not fG or fG.Parent == nil then fG = Instance.new("BodyGyro"); fG.MaxTorque = Vector3.new(1e9,1e9,1e9); fG.CFrame = rp.CFrame; fG.Parent = rp end
+        local md = Vector3.new(); local f = C.CFrame.LookVector; local r = C.CFrame.RightVector
+        if U:IsKeyDown(Enum.KeyCode.W) then md = md + f end; if U:IsKeyDown(Enum.KeyCode.S) then md = md - f end; if U:IsKeyDown(Enum.KeyCode.A) then md = md - r end; if U:IsKeyDown(Enum.KeyCode.D) then md = md + r end
+        if fUH then md = md + Vector3.new(0,1,0) end; if fDH then md = md + Vector3.new(0,-1,0) end
+        if U:IsKeyDown(Enum.KeyCode.Space) then md = md + Vector3.new(0,1,0) end; if U:IsKeyDown(Enum.KeyCode.LeftShift) then md = md + Vector3.new(0,-1,0) end
+        if md.Magnitude > 0 then md = md.Unit * 50 end
+        fV.Velocity = md; fG.CFrame = CFrame.new(rp.Position, rp.Position + f * 10)
+        if h then h.PlatformStand = true; h.AutoRotate = false end
     end)
 end
-
-local function toggleNoclip()
-    noclipActive = not noclipActive
-    if noclipActive then
-        noclipBtn.Text = "ON"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        noclipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Noclip ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        setupNoclip()
-    else
-        noclipBtn.Text = "OFF"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "Noclip DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        if noclipConnection then
-            pcall(function() noclipConnection:Disconnect() end)
-            noclipConnection = nil
-        end
-        if player.Character then
-            for _, part in pairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
-            end
-        end
-        task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
+local function tF()
+    fA2 = not fA2
+    if fA2 then fB.Text, fB.BackgroundColor3, fB.TextColor3, sL.Text, sL.TextColor3, fU.Visible, fD.Visible = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Fly ENABLED", Color3.fromRGB(0,200,255), true, true; sF()
+    else fB.Text, fB.BackgroundColor3, fB.TextColor3, sL.Text, sL.TextColor3, fU.Visible, fD.Visible, fUH, fDH = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100), "Fly DISABLED", Color3.fromRGB(255,100,100), false, false, false, false; if fC then pcall(function() fC:Disconnect() end); fC = nil end; if fV then pcall(function() fV:Destroy() end); fV = nil end; if fG then pcall(function() fG:Destroy() end); fG = nil end; local c = pl.Character; if c and c:FindFirstChild("Humanoid") then c.Humanoid.PlatformStand = false; c.Humanoid.AutoRotate = true end; task.wait(0.5); sL.Text, sL.TextColor3 = "Ready", Color3.fromRGB(0,255,150) end
 end
-
-noclipBtn.MouseButton1Click:Connect(toggleNoclip)
-noclipBtn.TouchTap:Connect(toggleNoclip)
-
--- Fly
-local function setupFly()
-    if flyConnection then
-        pcall(function() flyConnection:Disconnect() end)
-        flyConnection = nil
-    end
-    
-    if not flyActive then return end
-    
-    flyConnection = RunService.Heartbeat:Connect(function()
-        if not flyActive then return end
-        local char = player.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-        
-        local rootPart = char.HumanoidRootPart
-        local hum = char:FindFirstChild("Humanoid")
-        
-        if not flyBodyVelocity or flyBodyVelocity.Parent == nil then
-            flyBodyVelocity = Instance.new("BodyVelocity")
-            flyBodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-            flyBodyVelocity.Parent = rootPart
-        end
-        
-        if not flyBodyGyro or flyBodyGyro.Parent == nil then
-            flyBodyGyro = Instance.new("BodyGyro")
-            flyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-            flyBodyGyro.CFrame = rootPart.CFrame
-            flyBodyGyro.Parent = rootPart
-        end
-        
-        local moveDirection = Vector3.new()
-        local forward = Camera.CFrame.LookVector
-        local right = Camera.CFrame.RightVector
-        
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + forward end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - forward end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - right end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + right end
-        
-        if flyUpHeld then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
-        if flyDownHeld then moveDirection = moveDirection + Vector3.new(0, -1, 0) end
-        
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            moveDirection = moveDirection + Vector3.new(0, 1, 0)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-            moveDirection = moveDirection + Vector3.new(0, -1, 0)
-        end
-        
-        if moveDirection.Magnitude > 0 then
-            moveDirection = moveDirection.Unit * 50
-        end
-        
-        flyBodyVelocity.Velocity = moveDirection
-        flyBodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + forward * 10)
-        
-        if hum then
-            hum.PlatformStand = true
-            hum.AutoRotate = false
-        end
-    end)
-end
-
-local function toggleFly()
-    flyActive = not flyActive
-    if flyActive then
-        flyBtn.Text = "ON"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        flyBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Fly ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        flyUpBtn.Visible = true
-        flyDownBtn.Visible = true
-        setupFly()
-    else
-        flyBtn.Text = "OFF"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        flyBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "Fly DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        flyUpBtn.Visible = false
-        flyDownBtn.Visible = false
-        flyUpHeld = false
-        flyDownHeld = false
-        if flyConnection then
-            pcall(function() flyConnection:Disconnect() end)
-            flyConnection = nil
-        end
-        if flyBodyVelocity then
-            pcall(function() flyBodyVelocity:Destroy() end)
-            flyBodyVelocity = nil
-        end
-        if flyBodyGyro then
-            pcall(function() flyBodyGyro:Destroy() end)
-            flyBodyGyro = nil
-        end
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.PlatformStand = false
-            char.Humanoid.AutoRotate = true
-        end
-        task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
-end
-
-flyBtn.MouseButton1Click:Connect(toggleFly)
-flyBtn.TouchTap:Connect(toggleFly)
-
--- ========== CHARACTER ADDED REBIND ==========
-local function onCharacterAdded(char)
+fB.MouseButton1Click:Connect(tF); fB.TouchTap:Connect(tF)
+local function onCA(c)
     task.wait(0.3)
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = walkspeedValue
-        player.Character.Humanoid.JumpPower = jumppowerValue
-    end
-    if infJumpActive then setupInfJump() end
-    if noclipActive then setupNoclip() end
-    if flyActive then setupFly() end
+    if pl.Character and pl.Character:FindFirstChild("Humanoid") then pl.Character.Humanoid.WalkSpeed = wv; pl.Character.Humanoid.JumpPower = jv end
+    if iJA then sIJ() end; if nA then sN() end; if fA2 then sF() end
 end
-
-player.CharacterAdded:Connect(onCharacterAdded)
-]],
-    [5] = [[
--- ========== DESTROY FUNCTION ==========
-local function destroyGUI()
-    if infectConnection then pcall(function() infectConnection:Disconnect() end) end
-    if killConnection then pcall(function() killConnection:Disconnect() end) end
-    if doorsConnection then pcall(function() doorsConnection:Disconnect() end) end
-    if espConnection then pcall(function() espConnection:Disconnect() end) end
-    if noclipConnection then pcall(function() noclipConnection:Disconnect() end) end
-    if flyConnection then pcall(function() flyConnection:Disconnect() end) end
-    if infJumpBind then pcall(function() infJumpBind:Disconnect() end) end
-    if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end) end
-    if flyBodyGyro then pcall(function() flyBodyGyro:Destroy() end) end
-    for _, data in pairs(espObjects) do
-        pcall(function()
-            if data.Highlight then data.Highlight:Destroy() end
-            if data.Box then data.Box:Destroy() end
-            if data.Line then data.Line:Destroy() end
-        end)
-    end
-    espObjects = {}
-    root:Destroy()
-    blur:Destroy()
+pl.CharacterAdded:Connect(onCA)
+local function dG()
+    if iC then pcall(function() iC:Disconnect() end) end; if kC then pcall(function() kC:Disconnect() end) end; if dC then pcall(function() dC:Disconnect() end) end; if eC then pcall(function() eC:Disconnect() end) end; if nC then pcall(function() nC:Disconnect() end) end; if fC then pcall(function() fC:Disconnect() end) end; if iB then pcall(function() iB:Disconnect() end) end; if fV then pcall(function() fV:Destroy() end) end; if fG then pcall(function() fG:Destroy() end) end
+    for _, d in pairs(eO) do pcall(function() if d.Highlight then d.Highlight:Destroy() end; if d.Box then d.Box:Destroy() end; if d.Line then d.Line:Destroy() end end) end
+    eO = {}; rt:Destroy(); bl:Destroy()
 end
-
-destroyBtn.MouseButton1Click:Connect(destroyGUI)
-destroyBtn.TouchTap:Connect(destroyGUI)
-
--- ========== CORE FUNCTIONS ==========
-local function restoreInfect()
-    local count = 0
-    local items = {}
-    for _, item in pairs(deletedInfect) do
-        if item and not item.Parent then table.insert(items, item) end
-    end
-    for _, item in pairs(items) do
-        pcall(function() item.Parent = workspace; count = count + 1 end)
-    end
-    deletedInfect = {}
-    if count > 0 then
-        statusLabel.Text = "Restored " .. count .. " infect"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
-    return count
+dBt.MouseButton1Click:Connect(dG); dBt.TouchTap:Connect(dG)
+local function rI()
+    local c = 0; local it = {}; for _, itm in pairs(dI) do if itm and not itm.Parent then table.insert(it, itm) end end
+    for _, itm in pairs(it) do pcall(function() itm.Parent = W; c = c + 1 end) end; dI = {}; if c > 0 then sL.Text, sL.TextColor3 = "Restored " .. c .. " infect", Color3.fromRGB(0,255,150) end; return c
 end
-
-local function restoreKill()
-    local count = 0
-    local items = {}
-    for _, item in pairs(deletedKill) do
-        if item and not item.Parent then table.insert(items, item) end
-    end
-    for _, item in pairs(items) do
-        pcall(function() item.Parent = workspace; count = count + 1 end)
-    end
-    deletedKill = {}
-    if count > 0 then
-        statusLabel.Text = "Restored " .. count .. " kill"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
-    return count
+local function rK()
+    local c = 0; local it = {}; for _, itm in pairs(dK) do if itm and not itm.Parent then table.insert(it, itm) end end
+    for _, itm in pairs(it) do pcall(function() itm.Parent = W; c = c + 1 end) end; dK = {}; if c > 0 then sL.Text, sL.TextColor3 = "Restored " .. c .. " kill", Color3.fromRGB(0,255,150) end; return c
 end
-
-local function restoreDoors()
-    local count = 0
-    local items = {}
-    for _, item in pairs(deletedDoors) do
-        if item and not item.Parent then table.insert(items, item) end
-    end
-    for _, item in pairs(items) do
-        pcall(function() item.Parent = workspace; count = count + 1 end)
-    end
-    deletedDoors = {}
-    if count > 0 then
-        statusLabel.Text = "Restored " .. count .. " doors"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
-    return count
+local function rD()
+    local c = 0; local it = {}; for _, itm in pairs(dD) do if itm and not itm.Parent then table.insert(it, itm) end end
+    for _, itm in pairs(it) do pcall(function() itm.Parent = W; c = c + 1 end) end; dD = {}; if c > 0 then sL.Text, sL.TextColor3 = "Restored " .. c .. " doors", Color3.fromRGB(0,255,150) end; return c
 end
-
-local function scanAndDeleteInfect()
-    if not deleteInfectActive then restoreInfect(); return end
-    local found = {}
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            if v.Name and string.lower(v.Name):find("infect") then table.insert(found, v) end
-        end
-    end
-    for _, v in pairs(found) do
-        if v and v.Parent then table.insert(deletedInfect, v); pcall(function() v.Parent = nil end) end
-    end
-    if #found > 0 then
-        statusLabel.Text = "Del " .. #found .. " inf"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    elseif deleteInfectActive then
-        statusLabel.Text = "No infect found"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
+local function sDI()
+    if not dIA then rI(); return end
+    local f = {}; for _, v in pairs(W:GetDescendants()) do if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then if v.Name and string.lower(v.Name):find("infect") then table.insert(f, v) end end end
+    for _, v in pairs(f) do if v and v.Parent then table.insert(dI, v); pcall(function() v.Parent = nil end) end end
+    if #f > 0 then sL.Text, sL.TextColor3 = "Del " .. #f .. " inf", Color3.fromRGB(255,200,50) elseif dIA then sL.Text, sL.TextColor3 = "No infect found", Color3.fromRGB(0,255,150) end
 end
-
-local function scanAndDeleteKill()
-    if not deleteKillActive then restoreKill(); return end
-    local found = {}
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            if v.Name and string.lower(v.Name):find("kill") then table.insert(found, v) end
-        end
-    end
-    for _, v in pairs(found) do
-        if v and v.Parent then table.insert(deletedKill, v); pcall(function() v.Parent = nil end) end
-    end
-    if #found > 0 then
-        statusLabel.Text = "Del " .. #found .. " kill"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    elseif deleteKillActive then
-        statusLabel.Text = "No kill found"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
+local function sDK()
+    if not dKA then rK(); return end
+    local f = {}; for _, v in pairs(W:GetDescendants()) do if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then if v.Name and string.lower(v.Name):find("kill") then table.insert(f, v) end end end
+    for _, v in pairs(f) do if v and v.Parent then table.insert(dK, v); pcall(function() v.Parent = nil end) end end
+    if #f > 0 then sL.Text, sL.TextColor3 = "Del " .. #f .. " kill", Color3.fromRGB(255,200,50) elseif dKA then sL.Text, sL.TextColor3 = "No kill found", Color3.fromRGB(0,255,150) end
 end
-
-local function scanAndDeleteDoors()
-    if not deleteDoorsActive then restoreDoors(); return end
-    local found, keywords = {}, {"door", "gate", "portal", "doorway", "entrance", "exit"}
-    for _, v in pairs(workspace:GetDescendants()) do
+local function sDD()
+    if not dDA then rD(); return end
+    local f, kw = {}, {"door","gate","portal","doorway","entrance","exit"}
+    for _, v in pairs(W:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
-            local nameLower = string.lower(v.Name)
-            for _, kw in pairs(keywords) do
-                if nameLower:find(kw) then table.insert(found, v); break end
-            end
+            local nl = string.lower(v.Name); for _, k in pairs(kw) do if nl:find(k) then table.insert(f, v); break end end
         end
     end
-    for _, v in pairs(found) do
-        if v and v.Parent then table.insert(deletedDoors, v); pcall(function() v.Parent = nil end) end
-    end
-    if #found > 0 then
-        statusLabel.Text = "Del " .. #found .. " doors"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    elseif deleteDoorsActive then
-        statusLabel.Text = "No doors found"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
+    for _, v in pairs(f) do if v and v.Parent then table.insert(dD, v); pcall(function() v.Parent = nil end) end end
+    if #f > 0 then sL.Text, sL.TextColor3 = "Del " .. #f .. " doors", Color3.fromRGB(255,200,50) elseif dDA then sL.Text, sL.TextColor3 = "No doors found", Color3.fromRGB(0,255,150) end
 end
-
--- ========== ESP SYSTEM ==========
-local function getTeamColor(plr)
-    if plr.Team then return plr.Team.TeamColor.Color end
-    return Color3.fromRGB(255, 255, 255)
+local function gTC(p2) if p2.Team then return p2.Team.TeamColor.Color end; return Color3.fromRGB(255,255,255) end
+local function cE(tg)
+    if tg == pl then return end; if not tg.Character or not tg.Character:FindFirstChild("HumanoidRootPart") then return end
+    local rp = tg.Character.HumanoidRootPart; local tc = gTC(tg)
+    local h = Instance.new("Highlight"); h.Name, h.FillTransparency, h.OutlineTransparency, h.FillColor, h.OutlineColor, h.DepthMode, h.Parent = "ESP_Highlight", 0.6, 0.3, tc, tc, Enum.HighlightDepthMode.AlwaysOnTop, tg.Character
+    local b = Instance.new("Frame"); b.Name, b.Size, b.Position, b.BackgroundTransparency, b.BackgroundColor3, b.BorderSizePixel, b.BorderColor3, b.Parent, b.Visible = "ESP_Box", UDim2.new(0,30,0,60), UDim2.new(0.5,-15,0.5,-30), 0.5, tc, 2, tc, rp, false
+    local nl = Instance.new("TextLabel"); nl.Name, nl.Size, nl.Position, nl.Text, nl.TextColor3, nl.TextSize, nl.Font, nl.BackgroundTransparency, nl.TextStrokeColor3, nl.TextStrokeTransparency, nl.Parent = "ESP_Name", UDim2.new(1,0,0,16), UDim2.new(0,0,0,-18), tg.Name, Color3.fromRGB(255,255,255), 10, Enum.Font.GothamBold, 1, Color3.fromRGB(0,0,0), 0.3, b
+    local l = Instance.new("Frame"); l.Name, l.Size, l.BackgroundTransparency, l.BackgroundColor3, l.Parent, l.Visible = "ESP_Line", UDim2.new(0,1,0,1), 0.6, tc, rp, false
+    eO[tg] = {Highlight=h, Box=b, Name=nl, Line=l, Root=rp}
 end
-
-local function createEspForPlayer(target)
-    if target == player then return end
-    if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    local root = target.Character.HumanoidRootPart
-    local teamColor = getTeamColor(target)
-    
-    local highlight = Instance.new("Highlight")
-    highlight.Name, highlight.FillTransparency, highlight.OutlineTransparency, highlight.FillColor, highlight.OutlineColor, highlight.DepthMode, highlight.Parent = "ESP_Highlight", 0.6, 0.3, teamColor, teamColor, Enum.HighlightDepthMode.AlwaysOnTop, target.Character
-    
-    local box = Instance.new("Frame")
-    box.Name, box.Size, box.Position, box.BackgroundTransparency, box.BackgroundColor3, box.BorderSizePixel, box.BorderColor3, box.Parent, box.Visible = "ESP_Box", UDim2.new(0,30,0,60), UDim2.new(0.5,-15,0.5,-30), 0.5, teamColor, 2, teamColor, root, false
-    
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Name, nameLabel.Size, nameLabel.Position, nameLabel.Text, nameLabel.TextColor3, nameLabel.TextSize, nameLabel.Font, nameLabel.BackgroundTransparency, nameLabel.TextStrokeColor3, nameLabel.TextStrokeTransparency, nameLabel.Parent = "ESP_Name", UDim2.new(1,0,0,16), UDim2.new(0,0,0,-18), target.Name, Color3.fromRGB(255,255,255), 10, Enum.Font.GothamBold, 1, Color3.fromRGB(0,0,0), 0.3, box
-    
-    local line = Instance.new("Frame")
-    line.Name, line.Size, line.BackgroundTransparency, line.BackgroundColor3, line.Parent, line.Visible = "ESP_Line", UDim2.new(0,1,0,1), 0.6, teamColor, root, false
-    
-    espObjects[target] = {Highlight = highlight, Box = box, Name = nameLabel, Line = line, Root = root}
-end
-
-local function updateEsp()
-    if not teamEspActive then
-        for _, data in pairs(espObjects) do
-            if data.Highlight then data.Highlight:Destroy() end
-            if data.Box then data.Box:Destroy() end
-            if data.Line then data.Line:Destroy() end
-        end
-        espObjects = {}
-        return
-    end
-    
-    local character = player.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    local myPos = character.HumanoidRootPart.Position
-    
-    for _, target in pairs(Players:GetPlayers()) do
-        if target ~= player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            if not espObjects[target] then createEspForPlayer(target) end
-            local data = espObjects[target]
-            if data and data.Root then
-                local targetPos = data.Root.Position
-                local distance = (myPos - targetPos).Magnitude
-                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPos)
-                local fade = math.clamp((distance - 15) / 30, 0.3, 1)
-                if onScreen and distance < 200 then
-                    local boxSize = math.clamp(80 / distance, 20, 80)
-                    data.Box.Size, data.Box.Position, data.Box.BackgroundTransparency, data.Box.Visible = UDim2.new(0,boxSize,0,boxSize*1.8), UDim2.new(0,screenPos.X-boxSize/2,0,screenPos.Y-boxSize*0.9), 0.3 + (1-fade)*0.5, true
-                    data.Highlight.FillTransparency, data.Highlight.OutlineTransparency = 0.4 + (1-fade)*0.4, 0.2 + (1-fade)*0.3
-                    local centerX, centerY = screenPos.X, screenPos.Y + boxSize*0.5
-                    local screenCenter = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-                    local dx, dy = centerX - screenCenter.X, centerY - screenCenter.Y
-                    local angle, length = math.atan2(dy, dx), math.clamp(math.sqrt(dx^2+dy^2), 20, 300)
-                    data.Line.Size, data.Line.Position, data.Line.Rotation, data.Line.BackgroundTransparency, data.Line.Visible = UDim2.new(0,length,0,1), UDim2.new(0,screenCenter.X,0,screenCenter.Y), math.deg(angle), 0.4 + (1-fade)*0.3, true
-                else
-                    data.Box.Visible, data.Line.Visible, data.Highlight.FillTransparency = false, false, 0.7
-                end
+local function uE()
+    if not tA then for _, d in pairs(eO) do if d.Highlight then d.Highlight:Destroy() end; if d.Box then d.Box:Destroy() end; if d.Line then d.Line:Destroy() end end; eO = {}; return end
+    local c = pl.Character; if not c or not c:FindFirstChild("HumanoidRootPart") then return end; local mp2 = c.HumanoidRootPart.Position
+    for _, tg in pairs(P:GetPlayers()) do
+        if tg ~= pl and tg.Character and tg.Character:FindFirstChild("HumanoidRootPart") then
+            if not eO[tg] then cE(tg) end
+            local d = eO[tg]; if d and d.Root then
+                local tp = d.Root.Position; local dist = (mp2 - tp).Magnitude; local sp, os = C:WorldToViewportPoint(tp)
+                local fd = math.clamp((dist-15)/30, 0.3, 1)
+                if os and dist < 200 then
+                    local bs = math.clamp(80/dist, 20, 80); d.Box.Size, d.Box.Position, d.Box.BackgroundTransparency, d.Box.Visible = UDim2.new(0,bs,0,bs*1.8), UDim2.new(0,sp.X-bs/2,0,sp.Y-bs*0.9), 0.3+(1-fd)*0.5, true
+                    d.Highlight.FillTransparency, d.Highlight.OutlineTransparency = 0.4+(1-fd)*0.4, 0.2+(1-fd)*0.3
+                    local cx, cy = sp.X, sp.Y + bs*0.5; local sc = Vector2.new(C.ViewportSize.X/2, C.ViewportSize.Y/2); local dx, dy = cx - sc.X, cy - sc.Y; local a = math.atan2(dy, dx); local len = math.clamp(math.sqrt(dx^2+dy^2), 20, 300)
+                    d.Line.Size, d.Line.Position, d.Line.Rotation, d.Line.BackgroundTransparency, d.Line.Visible = UDim2.new(0,len,0,1), UDim2.new(0,sc.X,0,sc.Y), math.deg(a), 0.4+(1-fd)*0.3, true
+                else d.Box.Visible, d.Line.Visible, d.Highlight.FillTransparency = false, false, 0.7 end
             end
         end
     end
 end
-
-local function toggleEsp()
-    teamEspActive = not teamEspActive
-    if teamEspActive then
-        espBtn.Text, espBtn.BackgroundColor3, espBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
-        statusLabel.Text, statusLabel.TextColor3 = "ESP ENABLED", Color3.fromRGB(0,200,255)
-        if espConnection then pcall(function() espConnection:Disconnect() end) end
-        for _, target in pairs(Players:GetPlayers()) do
-            if target ~= player then createEspForPlayer(target) end
-        end
-        espConnection = RunService.RenderStepped:Connect(updateEsp)
-        Players.PlayerAdded:Connect(function(target) task.wait(0.5); if teamEspActive then createEspForPlayer(target) end end)
-        Players.PlayerRemoving:Connect(function(target)
-            if espObjects[target] then
-                pcall(function()
-                    if espObjects[target].Highlight then espObjects[target].Highlight:Destroy() end
-                    if espObjects[target].Box then espObjects[target].Box:Destroy() end
-                    if espObjects[target].Line then espObjects[target].Line:Destroy() end
-                end)
-                espObjects[target] = nil
-            end
-        end)
-    else
-        espBtn.Text, espBtn.BackgroundColor3, espBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        statusLabel.Text, statusLabel.TextColor3 = "ESP DISABLED", Color3.fromRGB(255,100,100)
-        if espConnection then pcall(function() espConnection:Disconnect() end) end
-        for _, data in pairs(espObjects) do
-            if data.Highlight then data.Highlight:Destroy() end
-            if data.Box then data.Box:Destroy() end
-            if data.Line then data.Line:Destroy() end
-        end
-        espObjects = {}
-        task.wait(0.5)
-        statusLabel.Text, statusLabel.TextColor3 = "Ready", Color3.fromRGB(0,255,150)
+local function tE()
+    tA = not tA
+    if tA then eB.Text, eB.BackgroundColor3, eB.TextColor3, sL.Text, sL.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "ESP ENABLED", Color3.fromRGB(0,200,255)
+        if eC then pcall(function() eC:Disconnect() end) end
+        for _, tg in pairs(P:GetPlayers()) do if tg ~= pl then cE(tg) end end
+        eC = R.RenderStepped:Connect(uE)
+        P.PlayerAdded:Connect(function(tg) task.wait(0.5); if tA then cE(tg) end end)
+        P.PlayerRemoving:Connect(function(tg) if eO[tg] then pcall(function() if eO[tg].Highlight then eO[tg].Highlight:Destroy() end; if eO[tg].Box then eO[tg].Box:Destroy() end; if eO[tg].Line then eO[tg].Line:Destroy() end end); eO[tg] = nil end end)
+    else eB.Text, eB.BackgroundColor3, eB.TextColor3, sL.Text, sL.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100), "ESP DISABLED", Color3.fromRGB(255,100,100)
+        if eC then pcall(function() eC:Disconnect() end) end
+        for _, d in pairs(eO) do if d.Highlight then d.Highlight:Destroy() end; if d.Box then d.Box:Destroy() end; if d.Line then d.Line:Destroy() end end
+        eO = {}; task.wait(0.5); sL.Text, sL.TextColor3 = "Ready", Color3.fromRGB(0,255,150)
     end
 end
-
-espBtn.MouseButton1Click:Connect(toggleEsp)
-espBtn.TouchTap:Connect(toggleEsp)
-]],
-    [6] = [[
--- ========== LIGHTING TOGGLE ==========
-local function toggleFuture()
-    futureActive = not futureActive
-    if futureActive then
-        futureBtn.Text, futureBtn.BackgroundColor3, futureBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
-        statusLabel.Text, statusLabel.TextColor3 = "Lighting ON", Color3.fromRGB(0,200,255)
-        originalLighting.Technology = Lighting.Technology
-        pcall(function() Lighting.Technology = Enum.Technology.Future end)
-        if Lighting.Technology ~= Enum.Technology.Future then pcall(function() Lighting.Technology = Enum.Technology.Realistic end) end
-        Lighting.GlobalShadows, Lighting.ShadowSoftness = true, 0.5
-    else
-        futureBtn.Text, futureBtn.BackgroundColor3, futureBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        statusLabel.Text, statusLabel.TextColor3 = "Lighting OFF", Color3.fromRGB(255,100,100)
-        Lighting.Technology, Lighting.GlobalShadows, Lighting.ShadowSoftness = originalLighting.Technology, originalLighting.GlobalShadows, originalLighting.ShadowSoftness
-        task.wait(0.5)
-        statusLabel.Text, statusLabel.TextColor3 = "Ready", Color3.fromRGB(0,255,150)
+eB.MouseButton1Click:Connect(tE); eB.TouchTap:Connect(tE)
+local function tF3()
+    fA = not fA
+    if fA then fB2.Text, fB2.BackgroundColor3, fB2.TextColor3, sL.Text, sL.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Lighting ON", Color3.fromRGB(0,200,255)
+        oL.Technology = L.Technology
+        pcall(function() L.Technology = Enum.Technology.Future end)
+        if L.Technology ~= Enum.Technology.Future then pcall(function() L.Technology = Enum.Technology.Realistic end) end
+        L.GlobalShadows, L.ShadowSoftness = true, 0.5
+    else fB2.Text, fB2.BackgroundColor3, fB2.TextColor3, sL.Text, sL.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100), "Lighting OFF", Color3.fromRGB(255,100,100)
+        L.Technology, L.GlobalShadows, L.ShadowSoftness = oL.Technology, oL.GlobalShadows, oL.ShadowSoftness
+        task.wait(0.5); sL.Text, sL.TextColor3 = "Ready", Color3.fromRGB(0,255,150)
     end
 end
-futureBtn.MouseButton1Click:Connect(toggleFuture)
-futureBtn.TouchTap:Connect(toggleFuture)
-
--- ========== RTX FUNCTION ==========
-local function toggleRTX()
-    rtxActive = not rtxActive
-    if rtxActive then
-        rtxBtn.Text, rtxBtn.BackgroundColor3, rtxBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
-        statusLabel.Text, statusLabel.TextColor3 = "RTX ENABLED", Color3.fromRGB(0,200,255)
-        originalLighting.Brightness, originalLighting.ClockTime, originalLighting.Ambient, originalLighting.OutdoorAmbient, originalLighting.ColorShift_Top, originalLighting.ColorShift_Bottom, originalLighting.EnvironmentDiffuseScale, originalLighting.EnvironmentSpecularScale, originalLighting.GlobalShadows, originalLighting.ShadowSoftness, originalLighting.Technology = Lighting.Brightness, Lighting.ClockTime, Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.ColorShift_Top, Lighting.ColorShift_Bottom, Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale, Lighting.GlobalShadows, Lighting.ShadowSoftness, Lighting.Technology
-        pcall(function() Lighting.Technology = Enum.Technology.Future end)
-        if Lighting.Technology ~= Enum.Technology.Future then pcall(function() Lighting.Technology = Enum.Technology.Realistic end) end
-        local isNight = Lighting.ClockTime < 6 or Lighting.ClockTime > 18
-        if isNight then
-            Lighting.Brightness, Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.ColorShift_Top, Lighting.ColorShift_Bottom, Lighting.ShadowSoftness, statusLabel.Text = 0.4, Color3.fromRGB(20,20,30), Color3.fromRGB(15,15,25), Color3.fromRGB(10,15,30), Color3.fromRGB(5,5,15), 0.8, "RTX NIGHT MODE"
-        else
-            Lighting.Brightness, Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.ColorShift_Top, Lighting.ColorShift_Bottom, Lighting.ShadowSoftness, statusLabel.Text = 2.5, Color3.fromRGB(80,85,95), Color3.fromRGB(120,130,150), Color3.fromRGB(180,200,255), Color3.fromRGB(100,80,120), 0.5, "RTX DAY MODE"
-        end
-        Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale, Lighting.GlobalShadows = 1.5, 1.5, true
-        local bloom = Lighting:FindFirstChild("Bloom")
-        if not bloom then bloom = Instance.new("BloomEffect", Lighting); bloom.Name = "Bloom" end
-        bloom.Intensity, bloom.Size, bloom.Threshold = isNight and 0.15 or 0.5, isNight and 1 or 2, isNight and 0.5 or 0.3
-        local cc = Lighting:FindFirstChild("ColorCorrection")
-        if not cc then cc = Instance.new("ColorCorrectionEffect", Lighting); cc.Name = "ColorCorrection" end
-        cc.Saturation, cc.Contrast, cc.Brightness = isNight and 0.8 or 1.1, isNight and 0.9 or 1.1, isNight and -0.1 or 0.05
-        local sunRays = Lighting:FindFirstChild("SunRays")
-        if not isNight then
-            if not sunRays then sunRays = Instance.new("SunRaysEffect", Lighting); sunRays.Name = "SunRays" end
-            sunRays.Intensity, sunRays.Spread, sunRays.Enabled = 0.15, 0.5, true
-        elseif sunRays then sunRays.Enabled = false end
-        local dof = Lighting:FindFirstChild("DepthOfField")
-        if not dof then dof = Instance.new("DepthOfFieldEffect", Lighting); dof.Name = "DepthOfField" end
-        dof.FarIntensity, dof.FarBlurSize, dof.NearIntensity, dof.NearBlurSize, dof.FocusDistance, dof.InFocusRadius = isNight and 0.1 or 0.3, isNight and 1 or 2, 0, 0, isNight and 30 or 50, isNight and 20 or 30
-        statusLabel.TextColor3 = isNight and Color3.fromRGB(100,150,255) or Color3.fromRGB(0,200,255)
-    else
-        rtxBtn.Text, rtxBtn.BackgroundColor3, rtxBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        statusLabel.Text, statusLabel.TextColor3 = "RTX DISABLED", Color3.fromRGB(255,100,100)
-        Lighting.Brightness, Lighting.ClockTime, Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.ColorShift_Top, Lighting.ColorShift_Bottom, Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale, Lighting.GlobalShadows, Lighting.ShadowSoftness, Lighting.Technology = originalLighting.Brightness, originalLighting.ClockTime, originalLighting.Ambient, originalLighting.OutdoorAmbient, originalLighting.ColorShift_Top, originalLighting.ColorShift_Bottom, originalLighting.EnvironmentDiffuseScale, originalLighting.EnvironmentSpecularScale, originalLighting.GlobalShadows, originalLighting.ShadowSoftness, originalLighting.Technology
-        local bloom = Lighting:FindFirstChild("Bloom"); if bloom then bloom:Destroy() end
-        local cc = Lighting:FindFirstChild("ColorCorrection"); if cc then cc:Destroy() end
-        local sunRays = Lighting:FindFirstChild("SunRays"); if sunRays then sunRays:Destroy() end
-        local dof = Lighting:FindFirstChild("DepthOfField"); if dof then dof:Destroy() end
-        task.wait(0.5)
-        statusLabel.Text, statusLabel.TextColor3 = "Ready", Color3.fromRGB(0,255,150)
+fB2.MouseButton1Click:Connect(tF3); fB2.TouchTap:Connect(tF3)
+local function tR()
+    rA = not rA
+    if rA then rB.Text, rB.BackgroundColor3, rB.TextColor3, sL.Text, sL.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "RTX ENABLED", Color3.fromRGB(0,200,255)
+        oL.Brightness, oL.ClockTime, oL.Ambient, oL.OutdoorAmbient, oL.ColorShift_Top, oL.ColorShift_Bottom, oL.EnvironmentDiffuseScale, oL.EnvironmentSpecularScale, oL.GlobalShadows, oL.ShadowSoftness, oL.Technology = L.Brightness, L.ClockTime, L.Ambient, L.OutdoorAmbient, L.ColorShift_Top, L.ColorShift_Bottom, L.EnvironmentDiffuseScale, L.EnvironmentSpecularScale, L.GlobalShadows, L.ShadowSoftness, L.Technology
+        pcall(function() L.Technology = Enum.Technology.Future end)
+        if L.Technology ~= Enum.Technology.Future then pcall(function() L.Technology = Enum.Technology.Realistic end) end
+        local isN = L.ClockTime < 6 or L.ClockTime > 18
+        if isN then L.Brightness, L.Ambient, L.OutdoorAmbient, L.ColorShift_Top, L.ColorShift_Bottom, L.ShadowSoftness, sL.Text = 0.4, Color3.fromRGB(20,20,30), Color3.fromRGB(15,15,25), Color3.fromRGB(10,15,30), Color3.fromRGB(5,5,15), 0.8, "RTX NIGHT MODE"
+        else L.Brightness, L.Ambient, L.OutdoorAmbient, L.ColorShift_Top, L.ColorShift_Bottom, L.ShadowSoftness, sL.Text = 2.5, Color3.fromRGB(80,85,95), Color3.fromRGB(120,130,150), Color3.fromRGB(180,200,255), Color3.fromRGB(100,80,120), 0.5, "RTX DAY MODE" end
+        L.EnvironmentDiffuseScale, L.EnvironmentSpecularScale, L.GlobalShadows = 1.5, 1.5, true
+        local bm = L:FindFirstChild("Bloom"); if not bm then bm = Instance.new("BloomEffect", L); bm.Name = "Bloom" end; bm.Intensity, bm.Size, bm.Threshold = isN and 0.15 or 0.5, isN and 1 or 2, isN and 0.5 or 0.3
+        local cc = L:FindFirstChild("ColorCorrection"); if not cc then cc = Instance.new("ColorCorrectionEffect", L); cc.Name = "ColorCorrection" end; cc.Saturation, cc.Contrast, cc.Brightness = isN and 0.8 or 1.1, isN and 0.9 or 1.1, isN and -0.1 or 0.05
+        local sr = L:FindFirstChild("SunRays"); if not isN then if not sr then sr = Instance.new("SunRaysEffect", L); sr.Name = "SunRays" end; sr.Intensity, sr.Spread, sr.Enabled = 0.15, 0.5, true elseif sr then sr.Enabled = false end
+        local df = L:FindFirstChild("DepthOfField"); if not df then df = Instance.new("DepthOfFieldEffect", L); df.Name = "DepthOfField" end; df.FarIntensity, df.FarBlurSize, df.NearIntensity, df.NearBlurSize, df.FocusDistance, df.InFocusRadius = isN and 0.1 or 0.3, isN and 1 or 2, 0, 0, isN and 30 or 50, isN and 20 or 30
+        sL.TextColor3 = isN and Color3.fromRGB(100,150,255) or Color3.fromRGB(0,200,255)
+    else rB.Text, rB.BackgroundColor3, rB.TextColor3, sL.Text, sL.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100), "RTX DISABLED", Color3.fromRGB(255,100,100)
+        L.Brightness, L.ClockTime, L.Ambient, L.OutdoorAmbient, L.ColorShift_Top, L.ColorShift_Bottom, L.EnvironmentDiffuseScale, L.EnvironmentSpecularScale, L.GlobalShadows, L.ShadowSoftness, L.Technology = oL.Brightness, oL.ClockTime, oL.Ambient, oL.OutdoorAmbient, oL.ColorShift_Top, oL.ColorShift_Bottom, oL.EnvironmentDiffuseScale, oL.EnvironmentSpecularScale, oL.GlobalShadows, oL.ShadowSoftness, oL.Technology
+        local bm = L:FindFirstChild("Bloom"); if bm then bm:Destroy() end; local cc = L:FindFirstChild("ColorCorrection"); if cc then cc:Destroy() end; local sr = L:FindFirstChild("SunRays"); if sr then sr:Destroy() end; local df = L:FindFirstChild("DepthOfField"); if df then df:Destroy() end
+        task.wait(0.5); sL.Text, sL.TextColor3 = "Ready", Color3.fromRGB(0,255,150)
     end
 end
-rtxBtn.MouseButton1Click:Connect(toggleRTX)
-rtxBtn.TouchTap:Connect(toggleRTX)
-
--- ========== TOGGLES ==========
-local function toggleInfect()
-    deleteInfectActive = not deleteInfectActive
-    if deleteInfectActive then
-        infectBtn.Text, infectBtn.BackgroundColor3, infectBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
-        statusLabel.Text, statusLabel.TextColor3 = "Scanning infect...", Color3.fromRGB(0,255,100)
-        if infectConnection then pcall(function() infectConnection:Disconnect() end); infectConnection = nil end
-        scanAndDeleteInfect()
-        infectConnection = RunService.Heartbeat:Connect(function() if deleteInfectActive then scanAndDeleteInfect() end end)
-    else
-        infectBtn.Text, infectBtn.BackgroundColor3, infectBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        if infectConnection then pcall(function() infectConnection:Disconnect() end); infectConnection = nil end
-        local restored = restoreInfect()
-        statusLabel.Text = restored > 0 and "Restored " .. restored .. " infect" or "No infect to restore"
-        statusLabel.TextColor3 = Color3.fromRGB(0,255,150)
+rB.MouseButton1Click:Connect(tR); rB.TouchTap:Connect(tR)
+local function tI()
+    dIA = not dIA
+    if dIA then iB2.Text, iB2.BackgroundColor3, iB2.TextColor3, sL.Text, sL.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning infect...", Color3.fromRGB(0,255,100)
+        if iC then pcall(function() iC:Disconnect() end); iC = nil end
+        sDI(); iC = R.Heartbeat:Connect(function() if dIA then sDI() end end)
+    else iB2.Text, iB2.BackgroundColor3, iB2.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        if iC then pcall(function() iC:Disconnect() end); iC = nil end
+        local r = rI(); sL.Text = r > 0 and "Restored " .. r .. " infect" or "No infect to restore"; sL.TextColor3 = Color3.fromRGB(0,255,150)
     end
 end
-infectBtn.MouseButton1Click:Connect(toggleInfect)
-infectBtn.TouchTap:Connect(toggleInfect)
-
-local function toggleKill()
-    deleteKillActive = not deleteKillActive
-    if deleteKillActive then
-        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
-        statusLabel.Text, statusLabel.TextColor3 = "Scanning kill...", Color3.fromRGB(0,255,100)
-        if killConnection then pcall(function() killConnection:Disconnect() end); killConnection = nil end
-        scanAndDeleteKill()
-        killConnection = RunService.Heartbeat:Connect(function() if deleteKillActive then scanAndDeleteKill() end end)
-    else
-        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        if killConnection then pcall(function() killConnection:Disconnect() end); killConnection = nil end
-        local restored = restoreKill()
-        statusLabel.Text = restored > 0 and "Restored " .. restored .. " kill" or "No kill to restore"
-        statusLabel.TextColor3 = Color3.fromRGB(0,255,150)
+iB2.MouseButton1Click:Connect(tI); iB2.TouchTap:Connect(tI)
+local function tK()
+    dKA = not dKA
+    if dKA then kB.Text, kB.BackgroundColor3, kB.TextColor3, sL.Text, sL.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning kill...", Color3.fromRGB(0,255,100)
+        if kC then pcall(function() kC:Disconnect() end); kC = nil end
+        sDK(); kC = R.Heartbeat:Connect(function() if dKA then sDK() end end)
+    else kB.Text, kB.BackgroundColor3, kB.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        if kC then pcall(function() kC:Disconnect() end); kC = nil end
+        local r = rK(); sL.Text = r > 0 and "Restored " .. r .. " kill" or "No kill to restore"; sL.TextColor3 = Color3.fromRGB(0,255,150)
     end
 end
-killBtn.MouseButton1Click:Connect(toggleKill)
-killBtn.TouchTap:Connect(toggleKill)
-
-local function toggleDoors()
-    deleteDoorsActive = not deleteDoorsActive
-    if deleteDoorsActive then
-        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
-        statusLabel.Text, statusLabel.TextColor3 = "Scanning doors...", Color3.fromRGB(0,255,100)
-        if doorsConnection then pcall(function() doorsConnection:Disconnect() end); doorsConnection = nil end
-        scanAndDeleteDoors()
-        doorsConnection = RunService.Heartbeat:Connect(function() if deleteDoorsActive then scanAndDeleteDoors() end end)
-    else
-        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        if doorsConnection then pcall(function() doorsConnection:Disconnect() end); doorsConnection = nil end
-        local restored = restoreDoors()
-        statusLabel.Text = restored > 0 and "Restored " .. restored .. " doors" or "No doors to restore"
-        statusLabel.TextColor3 = Color3.fromRGB(0,255,150)
+kB.MouseButton1Click:Connect(tK); kB.TouchTap:Connect(tK)
+local function tD()
+    dDA = not dDA
+    if dDA then dB.Text, dB.BackgroundColor3, dB.TextColor3, sL.Text, sL.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning doors...", Color3.fromRGB(0,255,100)
+        if dC then pcall(function() dC:Disconnect() end); dC = nil end
+        sDD(); dC = R.Heartbeat:Connect(function() if dDA then sDD() end end)
+    else dB.Text, dB.BackgroundColor3, dB.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        if dC then pcall(function() dC:Disconnect() end); dC = nil end
+        local r = rD(); sL.Text = r > 0 and "Restored " .. r .. " doors" or "No doors to restore"; sL.TextColor3 = Color3.fromRGB(0,255,150)
     end
 end
-doorsBtn.MouseButton1Click:Connect(toggleDoors)
-doorsBtn.TouchTap:Connect(toggleDoors)
-]],
-    [7] = [[
--- ========== TAB SWITCHING ==========
-local function switchToMods()
-    modsPage.Visible, playerPage.Visible, graphicsPage.Visible, themePage.Visible, othersPage.Visible = true, false, false, false, false
-    tabMods.TextColor3, tabPlayer.TextColor3, tabGraphics.TextColor3, tabTheme.TextColor3, tabOthers.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
+dB.MouseButton1Click:Connect(tD); dB.TouchTap:Connect(tD)
+local function swM()
+    mp.Visible, pp.Visible, gp2.Visible, tp2.Visible, op.Visible = true, false, false, false, false
+    tm.TextColor3, tp.TextColor3, tg.TextColor3, tth.TextColor3, to.TextColor3 = th[ct].ac, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
 end
-local function switchToPlayer()
-    modsPage.Visible, playerPage.Visible, graphicsPage.Visible, themePage.Visible, othersPage.Visible = false, true, false, false, false
-    tabPlayer.TextColor3, tabMods.TextColor3, tabGraphics.TextColor3, tabTheme.TextColor3, tabOthers.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
+local function swP()
+    mp.Visible, pp.Visible, gp2.Visible, tp2.Visible, op.Visible = false, true, false, false, false
+    tp.TextColor3, tm.TextColor3, tg.TextColor3, tth.TextColor3, to.TextColor3 = th[ct].ac, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
 end
-local function switchToGraphics()
-    modsPage.Visible, playerPage.Visible, graphicsPage.Visible, themePage.Visible, othersPage.Visible = false, false, true, false, false
-    tabGraphics.TextColor3, tabMods.TextColor3, tabPlayer.TextColor3, tabTheme.TextColor3, tabOthers.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
+local function swG()
+    mp.Visible, pp.Visible, gp2.Visible, tp2.Visible, op.Visible = false, false, true, false, false
+    tg.TextColor3, tm.TextColor3, tp.TextColor3, tth.TextColor3, to.TextColor3 = th[ct].ac, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
 end
-local function switchToTheme()
-    modsPage.Visible, playerPage.Visible, graphicsPage.Visible, themePage.Visible, othersPage.Visible = false, false, false, true, false
-    tabTheme.TextColor3, tabMods.TextColor3, tabPlayer.TextColor3, tabGraphics.TextColor3, tabOthers.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
+local function swT()
+    mp.Visible, pp.Visible, gp2.Visible, tp2.Visible, op.Visible = false, false, false, true, false
+    tth.TextColor3, tm.TextColor3, tp.TextColor3, tg.TextColor3, to.TextColor3 = th[ct].ac, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
 end
-local function switchToOthers()
-    modsPage.Visible, playerPage.Visible, graphicsPage.Visible, themePage.Visible, othersPage.Visible = false, false, false, false, true
-    tabOthers.TextColor3, tabMods.TextColor3, tabPlayer.TextColor3, tabGraphics.TextColor3, tabTheme.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
+local function swO()
+    mp.Visible, pp.Visible, gp2.Visible, tp2.Visible, op.Visible = false, false, false, false, true
+    to.TextColor3, tm.TextColor3, tp.TextColor3, tg.TextColor3, tth.TextColor3 = th[ct].ac, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
 end
-tabMods.MouseButton1Click:Connect(switchToMods)
-tabMods.TouchTap:Connect(switchToMods)
-tabPlayer.MouseButton1Click:Connect(switchToPlayer)
-tabPlayer.TouchTap:Connect(switchToPlayer)
-tabGraphics.MouseButton1Click:Connect(switchToGraphics)
-tabGraphics.TouchTap:Connect(switchToGraphics)
-tabTheme.MouseButton1Click:Connect(switchToTheme)
-tabTheme.TouchTap:Connect(switchToTheme)
-tabOthers.MouseButton1Click:Connect(switchToOthers)
-tabOthers.TouchTap:Connect(switchToOthers)
-
-modsPage.Visible, tabMods.TextColor3 = true, themes.Default.accent
-
--- ========== MINIMIZE FUNCTIONS ==========
-local function minimizeGUI()
-    if isMinimized then return end
-    isMinimized = true
-    frame.Visible, miniFrame.Visible, blur.Size = false, true, 0
+tm.MouseButton1Click:Connect(swM); tm.TouchTap:Connect(swM)
+tp.MouseButton1Click:Connect(swP); tp.TouchTap:Connect(swP)
+tg.MouseButton1Click:Connect(swG); tg.TouchTap:Connect(swG)
+tth.MouseButton1Click:Connect(swT); tth.TouchTap:Connect(swT)
+to.MouseButton1Click:Connect(swO); to.TouchTap:Connect(swO)
+mp.Visible, tm.TextColor3 = true, th.D.ac
+local function mng()
+    if im then return end; im = true; fr.Visible, mf.Visible, bl.Size = false, true, 0
 end
-local function unminimizeGUI()
-    if not isMinimized then return end
-    isMinimized = false
-    frame.Visible, miniFrame.Visible, blur.Size = true, false, 3
+local function umng()
+    if not im then return end; im = false; fr.Visible, mf.Visible, bl.Size = true, false, 3
 end
-minBtn.MouseButton1Click:Connect(minimizeGUI)
-minBtn.TouchTap:Connect(minimizeGUI)
-miniFrame.MouseButton1Click:Connect(unminimizeGUI)
-miniFrame.TouchTap:Connect(unminimizeGUI)
-
-closeBtn.MouseButton1Click:Connect(function()
-    if isOpen then
-        isOpen, frame.Visible, miniFrame.Visible, closeBtn.Text, closeBtn.TextColor3, blur.Size = false, false, false, "▶", Color3.fromRGB(100,255,100), 0
-    else
-        isOpen, frame.Visible, closeBtn.Text, closeBtn.TextColor3 = true, true, "✕", themes[currentTheme].accent
-        if not isMinimized then blur.Size = 3 end
+mn.MouseButton1Click:Connect(mng); mn.TouchTap:Connect(mng)
+mf.MouseButton1Click:Connect(umng); mf.TouchTap:Connect(umng)
+cl.MouseButton1Click:Connect(function()
+    if io then io, fr.Visible, mf.Visible, cl.Text, cl.TextColor3, bl.Size = false, false, false, "▶", Color3.fromRGB(100,255,100), 0
+    else io, fr.Visible, cl.Text, cl.TextColor3 = true, true, "✕", th[ct].ac; if not im then bl.Size = 3 end end
+end)
+cl.TouchTap:Connect(function()
+    if io then io, fr.Visible, mf.Visible, cl.Text, cl.TextColor3, bl.Size = false, false, false, "▶", Color3.fromRGB(100,255,100), 0
+    else io, fr.Visible, cl.Text, cl.TextColor3 = true, true, "✕", th[ct].ac; if not im then bl.Size = 3 end end
+end)
+U.InputBegan:Connect(function(i, gp2)
+    if gp2 then return end
+    if i.KeyCode == Enum.KeyCode.Insert then
+        if io then io, fr.Visible, mf.Visible, cl.Text, cl.TextColor3, bl.Size = false, false, false, "▶", Color3.fromRGB(100,255,100), 0
+        else io, fr.Visible, cl.Text, cl.TextColor3 = true, true, "✕", th[ct].ac; if not im then bl.Size = 3 end end
     end
 end)
-closeBtn.TouchTap:Connect(function()
-    if isOpen then
-        isOpen, frame.Visible, miniFrame.Visible, closeBtn.Text, closeBtn.TextColor3, blur.Size = false, false, false, "▶", Color3.fromRGB(100,255,100), 0
-    else
-        isOpen, frame.Visible, closeBtn.Text, closeBtn.TextColor3 = true, true, "✕", themes[currentTheme].accent
-        if not isMinimized then blur.Size = 3 end
-    end
-end)
-
--- ========== HOTKEY ==========
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.Insert then
-        if isOpen then
-            isOpen, frame.Visible, miniFrame.Visible, closeBtn.Text, closeBtn.TextColor3, blur.Size = false, false, false, "▶", Color3.fromRGB(100,255,100), 0
-        else
-            isOpen, frame.Visible, closeBtn.Text, closeBtn.TextColor3 = true, true, "✕", themes[currentTheme].accent
-            if not isMinimized then blur.Size = 3 end
-        end
-    end
-end)
-
--- ========== FORCE VISIBILITY ==========
 task.wait(0.3)
-frame.Visible, frame.BackgroundTransparency, frame.Size, frame.Position = true, 0.08, UDim2.new(0,360,0,340), UDim2.new(0.5,-180,0.5,-170)
-blur.Size, miniFrame.Visible, closeBtn.Text, shitflockBtn.Visible, flyUpBtn.Visible, flyDownBtn.Visible = 3, false, "✕", false, false, false
-
-print("NZ-IS v6 - Fully loaded!")
-]]
-}
-
--- Execute all chunks
-local fullScript = ""
-for i = 1, #scriptChunks do
-    fullScript = fullScript .. scriptChunks[i]
-end
-
--- Load and execute
-local func, err = loadstring(fullScript)
-if func then
-    func()
-else
-    warn("Failed to load script: " .. tostring(err))
-    -- Fallback: try executing chunks individually
-    for i, chunk in pairs(scriptChunks) do
-        local f, e = loadstring(chunk)
-        if f then
-            pcall(f)
-        else
-            warn("Chunk " .. i .. " failed: " .. tostring(e))
-        end
-    end
-end
+fr.Visible, fr.BackgroundTransparency, fr.Size, fr.Position, bl.Size, mf.Visible, cl.Text, sb.Visible, fU.Visible, fD.Visible = true, 0.08, UDim2.new(0,360,0,340), UDim2.new(0.5,-180,0.5,-170), 3, false, "✕", false, false, false
+print("NZ-IS v6 - LOADED!")
