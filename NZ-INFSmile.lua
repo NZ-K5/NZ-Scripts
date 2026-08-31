@@ -19,7 +19,7 @@ root.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 root.IgnoreGuiInset = true
 
 local blur = Instance.new("BlurEffect", game:GetService("Lighting"))
-blur.Size = 4
+blur.Size = 3
 
 local themes = {
     Default = {
@@ -73,10 +73,10 @@ local killConnection = nil
 local deletedInfect = {}
 local deletedKill = {}
 
--- SMALLER FRAME
+-- EVEN SMALLER FRAME
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 340, 0, 260)
-frame.Position = UDim2.new(0.5, -170, 0.5, -130)
+frame.Size = UDim2.new(0, 280, 0, 200)
+frame.Position = UDim2.new(0.5, -140, 0.5, -100)
 frame.BackgroundColor3 = themes.Default.background
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -85,7 +85,7 @@ frame.Visible = true
 frame.ZIndex = 10
 
 local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 10)
+corner.CornerRadius = UDim.new(0, 8)
 
 local stroke = Instance.new("UIStroke", frame)
 stroke.Color = themes.Default.stroke
@@ -98,30 +98,34 @@ grad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15))
 })
 
--- SMALLER TITLE BAR
+-- BIGGER TITLE BAR FOR EASIER DRAGGING
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 36)
-titleBar.BackgroundTransparency = 1
+titleBar.Size = UDim2.new(1, 0, 0, 44)
+titleBar.BackgroundTransparency = 0.2
+titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 titleBar.Parent = frame
 
+local titleCorner = Instance.new("UICorner", titleBar)
+titleCorner.CornerRadius = UDim.new(0, 8)
+
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.6, 0, 1, 0)
+titleLabel.Size = UDim2.new(0.5, 0, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.Text = "NZ-IS"
 titleLabel.TextColor3 = themes.Default.accent
-titleLabel.TextSize = 15
+titleLabel.TextSize = 14
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.BackgroundTransparency = 1
 titleLabel.Parent = titleBar
 
--- SMALLER BUTTONS
+-- SMALL BUTTONS
 local minimizeBtn = Instance.new("TextButton")
-minimizeBtn.Size = UDim2.new(0, 32, 0, 32)
-minimizeBtn.Position = UDim2.new(1, -70, 0, 2)
+minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+minimizeBtn.Position = UDim2.new(1, -68, 0, 7)
 minimizeBtn.Text = "-"
 minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-minimizeBtn.TextSize = 18
+minimizeBtn.TextSize = 16
 minimizeBtn.Font = Enum.Font.GothamBold
 minimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 minimizeBtn.BackgroundTransparency = 0.2
@@ -129,21 +133,12 @@ minimizeBtn.Parent = titleBar
 local minCorner = Instance.new("UICorner", minimizeBtn)
 minCorner.CornerRadius = UDim.new(0, 6)
 
-minimizeBtn.MouseEnter:Connect(function()
-    minimizeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-    minimizeBtn.TextColor3 = Color3.fromRGB(255, 50, 80)
-end)
-minimizeBtn.MouseLeave:Connect(function()
-    minimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-end)
-
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 32, 0, 32)
-closeBtn.Position = UDim2.new(1, -36, 0, 2)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -36, 0, 7)
 closeBtn.Text = "X"
 closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-closeBtn.TextSize = 16
+closeBtn.TextSize = 14
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 closeBtn.BackgroundTransparency = 0.2
@@ -151,22 +146,13 @@ closeBtn.Parent = titleBar
 local closeCorner = Instance.new("UICorner", closeBtn)
 closeCorner.CornerRadius = UDim.new(0, 6)
 
-closeBtn.MouseEnter:Connect(function()
-    closeBtn.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
-    closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-end)
-closeBtn.MouseLeave:Connect(function()
-    closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-end)
-
 closeBtn.MouseButton1Click:Connect(function()
     local confirm = Instance.new("TextButton")
-    confirm.Size = UDim2.new(0, 120, 0, 30)
-    confirm.Position = UDim2.new(0.5, -60, 0.5, -15)
+    confirm.Size = UDim2.new(0, 100, 0, 28)
+    confirm.Position = UDim2.new(0.5, -50, 0.5, -14)
     confirm.Text = "Close?"
     confirm.TextColor3 = Color3.fromRGB(255, 255, 255)
-    confirm.TextSize = 13
+    confirm.TextSize = 12
     confirm.Font = Enum.Font.GothamBold
     confirm.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
     confirm.Parent = frame
@@ -190,44 +176,44 @@ closeBtn.MouseButton1Click:Connect(function()
 
     confirm.MouseButton1Click:Connect(destroyAll)
     confirm.TouchTap:Connect(destroyAll)
-    task.wait(2.5)
+    task.wait(2)
     confirm:Destroy()
 end)
 
--- SMALLER TABS
+-- TABS
 local tabContainer = Instance.new("Frame")
-tabContainer.Size = UDim2.new(1, -14, 0, 28)
-tabContainer.Position = UDim2.new(0, 7, 0, 40)
+tabContainer.Size = UDim2.new(1, -10, 0, 26)
+tabContainer.Position = UDim2.new(0, 5, 0, 48)
 tabContainer.BackgroundTransparency = 1
 tabContainer.Parent = frame
 
 local function createTab(name, x)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 140, 1, 0)
+    btn.Size = UDim2.new(0, 120, 1, 0)
     btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 210)
-    btn.TextSize = 12
+    btn.TextSize = 11
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     btn.BackgroundTransparency = 0.3
     btn.Parent = tabContainer
     local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 6)
+    c.CornerRadius = UDim.new(0, 5)
     return btn
 end
 
 local tabMods = createTab("Mods", 0)
-local tabTheme = createTab("Theme", 150)
+local tabTheme = createTab("Theme", 130)
 
--- SMALLER PAGES
+-- PAGES
 local function createPage()
     local pg = Instance.new("ScrollingFrame")
-    pg.Size = UDim2.new(1, -14, 1, -80)
-    pg.Position = UDim2.new(0, 7, 0, 72)
+    pg.Size = UDim2.new(1, -10, 1, -82)
+    pg.Position = UDim2.new(0, 5, 0, 78)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 200)
-    pg.ScrollBarThickness = 4
+    pg.CanvasSize = UDim2.new(0, 0, 0, 160)
+    pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = themes.Default.accent
     pg.Parent = frame
     pg.Visible = false
@@ -238,13 +224,13 @@ local modsPage = createPage()
 local themePage = createPage()
 
 local function makeLabel(text, y, parent, w)
-    w = w or 120
+    w = w or 100
     local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(0, w, 0, 26)
+    l.Size = UDim2.new(0, w, 0, 22)
     l.Position = UDim2.new(0, 0, 0, y)
     l.Text = text
     l.TextColor3 = themes.Default.text
-    l.TextSize = 12
+    l.TextSize = 11
     l.Font = Enum.Font.Gotham
     l.BackgroundTransparency = 1
     l.TextXAlignment = Enum.TextXAlignment.Left
@@ -254,11 +240,11 @@ end
 
 local function makeToggle(y, parent)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 70, 0, 26)
-    btn.Position = UDim2.new(0, 170, 0, y)
+    btn.Size = UDim2.new(0, 60, 0, 22)
+    btn.Position = UDim2.new(0, 150, 0, y)
     btn.Text = "OFF"
     btn.TextColor3 = Color3.fromRGB(255, 100, 100)
-    btn.TextSize = 11
+    btn.TextSize = 10
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
     btn.Parent = parent
@@ -267,63 +253,56 @@ local function makeToggle(y, parent)
     return btn
 end
 
-local yOff = 6
+local yOff = 4
 
-makeLabel("Delete Infected", yOff, modsPage, 130)
+makeLabel("Delete Infected", yOff, modsPage, 110)
 local infectBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 34
+yOff = yOff + 28
 
-makeLabel("Disable Kill Parts", yOff, modsPage, 130)
+makeLabel("Disable Kill", yOff, modsPage, 110)
 local killBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 40
+yOff = yOff + 32
 
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -14, 0, 26)
+statusLabel.Size = UDim2.new(1, -10, 0, 22)
 statusLabel.Position = UDim2.new(0, 0, 0, yOff)
 statusLabel.Text = "Ready"
 statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-statusLabel.TextSize = 12
+statusLabel.TextSize = 11
 statusLabel.Font = Enum.Font.GothamBold
 statusLabel.BackgroundTransparency = 1
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = modsPage
-yOff = yOff + 32
+yOff = yOff + 28
 
 modsPage.CanvasSize = UDim2.new(0, 0, 0, yOff + 10)
 
--- SMALLER THEME PAGE
-local themeY = 6
+-- THEME PAGE
+local themeY = 4
 local themeLabel = Instance.new("TextLabel")
-themeLabel.Size = UDim2.new(1, -14, 0, 26)
+themeLabel.Size = UDim2.new(1, -10, 0, 22)
 themeLabel.Position = UDim2.new(0, 0, 0, themeY)
 themeLabel.Text = "THEMES"
 themeLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
-themeLabel.TextSize = 13
+themeLabel.TextSize = 11
 themeLabel.Font = Enum.Font.GothamBold
 themeLabel.BackgroundTransparency = 1
 themeLabel.TextXAlignment = Enum.TextXAlignment.Left
 themeLabel.Parent = themePage
-themeY = themeY + 34
+themeY = themeY + 28
 
 local function createThemeButton(name, y, color)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 140, 0, 32)
+    btn.Size = UDim2.new(0, 120, 0, 28)
     btn.Position = UDim2.new(0, 0, 0, y)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 13
+    btn.TextSize = 12
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = color or Color3.fromRGB(30, 30, 50)
     btn.Parent = themePage
     local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 6)
-
-    btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0}):Play()
-    end)
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.2}):Play()
-    end)
+    c.CornerRadius = UDim.new(0, 5)
 
     local function applyTheme()
         currentTheme = name
@@ -376,10 +355,10 @@ local themeColors = {
 
 for _, t in ipairs(themeColors) do
     createThemeButton(t.name, themeY, t.color)
-    themeY = themeY + 38
+    themeY = themeY + 33
 end
 
--- FUNCTIONS (same logic, just compact)
+-- FUNCTIONS
 local function restoreInfect()
     for _, item in pairs(deletedInfect) do
         if item and item.Parent then
@@ -418,7 +397,7 @@ local function scanAndDeleteInfect()
         end
     end
     if #found > 0 then
-        statusLabel.Text = "Deleted " .. #found .. " infected"
+        statusLabel.Text = "Del " .. #found .. " inf"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
 end
@@ -443,7 +422,7 @@ local function scanAndDeleteKill()
         end
     end
     if #found > 0 then
-        statusLabel.Text = "Deleted " .. #found .. " kill"
+        statusLabel.Text = "Del " .. #found .. " kill"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
 end
@@ -454,7 +433,7 @@ local function toggleInfect()
         infectBtn.Text = "ON"
         infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
+        statusLabel.Text = "Scan..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         if infectConnection then
             pcall(function() infectConnection:Disconnect() end)
@@ -489,7 +468,7 @@ local function toggleKill()
         killBtn.Text = "ON"
         killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
+        statusLabel.Text = "Scan..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         if killConnection then
             pcall(function() killConnection:Disconnect() end)
@@ -547,23 +526,23 @@ tabMods.BackgroundTransparency = 0
 -- MINIMIZE / MAXIMIZE
 local function minimizeGUI()
     isMinimized = true
-    frame.Size = UDim2.new(0, 140, 0, 36)
-    frame.Position = UDim2.new(0.5, -70, 0.5, -18)
+    frame.Size = UDim2.new(0, 120, 0, 44)
+    frame.Position = UDim2.new(0.5, -60, 0.5, -22)
     tabContainer.Visible = false
     modsPage.Visible = false
     themePage.Visible = false
     closeBtn.Visible = true
     minimizeBtn.Text = "+"
     minimizeBtn.TextColor3 = Color3.fromRGB(255, 50, 80)
-    titleLabel.Text = "NZ-IS"
+    titleLabel.Text = "NZ"
     titleLabel.TextSize = 14
     blur.Size = 0
 end
 
 local function maximizeGUI()
     isMinimized = false
-    frame.Size = UDim2.new(0, 340, 0, 260)
-    frame.Position = UDim2.new(0.5, -170, 0.5, -130)
+    frame.Size = UDim2.new(0, 280, 0, 200)
+    frame.Position = UDim2.new(0.5, -140, 0.5, -100)
     tabContainer.Visible = true
     modsPage.Visible = true
     themePage.Visible = false
@@ -571,8 +550,8 @@ local function maximizeGUI()
     minimizeBtn.Text = "-"
     minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
     titleLabel.Text = "NZ-IS"
-    titleLabel.TextSize = 15
-    blur.Size = 4
+    titleLabel.TextSize = 14
+    blur.Size = 3
     tabMods.TextColor3 = themes[currentTheme].accent
     tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
@@ -584,12 +563,12 @@ minimizeBtn.TouchTap:Connect(function()
     if isMinimized then maximizeGUI() else minimizeGUI() end
 end)
 
--- FLOATING OPEN BUTTON (smaller)
+-- FLOATING OPEN BUTTON
 local openBtn = Instance.new("TextButton")
-openBtn.Size = UDim2.new(0, 50, 0, 50)
-openBtn.Position = UDim2.new(0, 10, 1, -65)
+openBtn.Size = UDim2.new(0, 44, 0, 44)
+openBtn.Position = UDim2.new(0, 8, 1, -55)
 openBtn.Text = "⚙"
-openBtn.TextSize = 24
+openBtn.TextSize = 20
 openBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 openBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
 openBtn.Parent = root
@@ -627,12 +606,35 @@ maximizeGUI = function()
     openBtn.Visible = false
 end
 
--- DRAG SYSTEM (compact)
+-- ===================== DRAG FIX =====================
+-- ENTIRE FRAME IS DRAGGABLE (not just title bar)
+-- But buttons still work because we check if they clicked a button
+
 local dragging = false
 local dragStart = nil
 local startPos = nil
+local dragInput = nil
+
+local function isOverButton(input)
+    -- Check if touch/mouse is over any clickable element
+    local guiService = game:GetService("GuiService")
+    local pos = input.Position
+    local hit = guiService:GetGuiObjectAtPosition(pos.X, pos.Y)
+    if hit then
+        -- Check if it's a button or inside one
+        local parent = hit
+        while parent do
+            if parent:IsA("TextButton") or parent:IsA("ImageButton") then
+                return true
+            end
+            parent = parent.Parent
+        end
+    end
+    return false
+end
 
 local function startDrag(input)
+    if isOverButton(input) then return end
     dragging = true
     dragStart = input.Position
     startPos = frame.Position
@@ -655,13 +657,14 @@ local function endDrag()
     dragStart = nil
 end
 
-titleBar.InputBegan:Connect(function(input)
+-- MOUSE DRAG - ENTIRE FRAME
+frame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         startDrag(input)
     end
 end)
 
-titleBar.InputChanged:Connect(function(input)
+frame.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement then
         dragInput = input
     end
@@ -679,21 +682,41 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
-titleBar.TouchBegan:Connect(startDrag)
-titleBar.TouchMoved:Connect(updateDrag)
-titleBar.TouchEnded:Connect(endDrag)
-
+-- TOUCH DRAG - ENTIRE FRAME
 frame.TouchBegan:Connect(function(input)
-    local hit = game:GetService("GuiService"):GetGuiObjectAtPosition(input.Position.X, input.Position.Y)
-    if hit and (hit:IsA("TextButton") or hit:IsA("ImageButton")) then
-        return
-    end
+    if isOverButton(input) then return end
     startDrag(input)
 end)
+
 frame.TouchMoved:Connect(function(input)
-    if dragging then updateDrag(input) end
+    if dragging then
+        updateDrag(input)
+    end
 end)
-frame.TouchEnded:Connect(endDrag)
+
+frame.TouchEnded:Connect(function()
+    endDrag()
+end)
+
+-- Also keep title bar drag as backup (with same button check)
+titleBar.TouchBegan:Connect(function(input)
+    if isOverButton(input) then return end
+    startDrag(input)
+end)
+titleBar.TouchMoved:Connect(function(input)
+    if dragging then
+        updateDrag(input)
+    end
+end)
+titleBar.TouchEnded:Connect(function()
+    endDrag()
+end)
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        startDrag(input)
+    end
+end)
 
 -- HOTKEY
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -707,8 +730,8 @@ end)
 task.wait(0.3)
 frame.Visible = true
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 340, 0, 260)
-frame.Position = UDim2.new(0.5, -170, 0.5, -130)
-blur.Size = 4
+frame.Size = UDim2.new(0, 280, 0, 200)
+frame.Position = UDim2.new(0.5, -140, 0.5, -100)
+blur.Size = 3
 
-print("NZ-IS Compact loaded on mobile!")
+print("NZ-IS Ultra-Compact loaded - drag anywhere on the frame!")
