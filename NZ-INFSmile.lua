@@ -3,8 +3,10 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 local guiParent = player:WaitForChild("PlayerGui")
+local Camera = Workspace.CurrentCamera
 
 pcall(function()
     if guiParent:FindFirstChild("InfectiousRoot") then
@@ -71,16 +73,19 @@ local deleteInfectActive = false
 local deleteKillActive = false
 local deleteDoorsActive = false
 local rtxActive = false
+local futureActive = false
+local teamEspActive = false
 
 local infectConnection = nil
 local killConnection = nil
 local doorsConnection = nil
+local espConnection = nil
+local espObjects = {}
 
 local deletedInfect = {}
 local deletedKill = {}
 local deletedDoors = {}
 
--- Store original lighting settings for RTX restore
 local originalLighting = {
     Brightness = Lighting.Brightness,
     ClockTime = Lighting.ClockTime,
@@ -97,8 +102,8 @@ local originalLighting = {
 
 -- ========== MAIN GUI FRAME ==========
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 240)
-frame.Position = UDim2.new(0.5, -150, 0.5, -120)
+frame.Size = UDim2.new(0, 320, 0, 280)
+frame.Position = UDim2.new(0.5, -160, 0.5, -140)
 frame.BackgroundColor3 = themes.Default.background
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -147,6 +152,7 @@ closeBtn.Font = Enum.Font.GothamBold
 closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 closeBtn.BackgroundTransparency = 0.2
 closeBtn.Parent = titleBar
+closeBtn.AutoButtonColor = true
 local closeCorner = Instance.new("UICorner", closeBtn)
 closeCorner.CornerRadius = UDim.new(0, 6)
 
@@ -159,7 +165,7 @@ tabContainer.Parent = frame
 
 local function createTab(name, x)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 90, 1, 0)
+    btn.Size = UDim2.new(0, 95, 1, 0)
     btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 210)
@@ -168,14 +174,15 @@ local function createTab(name, x)
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     btn.BackgroundTransparency = 0.3
     btn.Parent = tabContainer
+    btn.AutoButtonColor = true
     local c = Instance.new("UICorner", btn)
     c.CornerRadius = UDim.new(0, 5)
     return btn
 end
 
 local tabMods = createTab("Mods", 0)
-local tabGraphics = createTab("Graphics", 95)
-local tabTheme = createTab("Theme", 190)
+local tabGraphics = createTab("Graphics", 100)
+local tabTheme = createTab("Theme", 200)
 
 -- ========== PAGES ==========
 local function createPage()
@@ -183,7 +190,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -82)
     pg.Position = UDim2.new(0, 5, 0, 78)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 260)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 350)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = themes.Default.accent
     pg.Parent = frame
@@ -213,13 +220,14 @@ end
 local function makeToggle(y, parent)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 60, 0, 22)
-    btn.Position = UDim2.new(0, 170, 0, y)
+    btn.Position = UDim2.new(0, 180, 0, y)
     btn.Text = "OFF"
     btn.TextColor3 = Color3.fromRGB(255, 100, 100)
     btn.TextSize = 10
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
     btn.Parent = parent
+    btn.AutoButtonColor = true
     local c = Instance.new("UICorner", btn)
     c.CornerRadius = UDim.new(0, 4)
     return btn
@@ -238,6 +246,10 @@ yOff = yOff + 28
 
 makeLabel("Disable Doors/Gates", yOff, modsPage, 120)
 local doorsBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("TEAM ESP", yOff, modsPage, 120)
+local espBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 32
 
 local statusLabel = Instance.new("TextLabel")
@@ -261,16 +273,20 @@ makeLabel("RTX Graphics", gY, graphicsPage, 120)
 local rtxBtn = makeToggle(gY, graphicsPage)
 gY = gY + 28
 
-local rtxDesc = Instance.new("TextLabel")
-rtxDesc.Size = UDim2.new(1, -10, 0, 30)
-rtxDesc.Position = UDim2.new(0, 0, 0, gY)
-rtxDesc.Text = "Enables realistic lighting,\nshadows, bloom & more"
-rtxDesc.TextColor3 = Color3.fromRGB(150, 150, 170)
-rtxDesc.TextSize = 10
-rtxDesc.Font = Enum.Font.Gotham
-rtxDesc.BackgroundTransparency = 1
-rtxDesc.TextXAlignment = Enum.TextXAlignment.Left
-rtxDesc.Parent = graphicsPage
+makeLabel("Future Lighting", gY, graphicsPage, 120)
+local futureBtn = makeToggle(gY, graphicsPage)
+gY = gY + 28
+
+local gDesc = Instance.new("TextLabel")
+gDesc.Size = UDim2.new(1, -10, 0, 30)
+gDesc.Position = UDim2.new(0, 0, 0, gY)
+gDesc.Text = "Future: Realistic shadows & lighting\nRTX: Full visual overhaul"
+gDesc.TextColor3 = Color3.fromRGB(150, 150, 170)
+gDesc.TextSize = 10
+gDesc.Font = Enum.Font.Gotham
+gDesc.BackgroundTransparency = 1
+gDesc.TextXAlignment = Enum.TextXAlignment.Left
+gDesc.Parent = graphicsPage
 gY = gY + 40
 
 graphicsPage.CanvasSize = UDim2.new(0, 0, 0, gY + 10)
@@ -299,6 +315,7 @@ local function createThemeButton(name, y, color)
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = color or Color3.fromRGB(30, 30, 50)
     btn.Parent = themePage
+    btn.AutoButtonColor = true
     local c = Instance.new("UICorner", btn)
     c.CornerRadius = UDim.new(0, 5)
 
@@ -310,7 +327,7 @@ local function createThemeButton(name, y, color)
         titleLabel.TextColor3 = t.accent
         statusLabel.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= rtxBtn then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= rtxBtn and child ~= futureBtn then
                 if child.Text == "Mods" or child.Text == "Graphics" or child.Text == "Theme" then
                     child.TextColor3 = t.accent
                 end
@@ -333,7 +350,9 @@ local function createThemeButton(name, y, color)
         updateToggle(infectBtn, deleteInfectActive)
         updateToggle(killBtn, deleteKillActive)
         updateToggle(doorsBtn, deleteDoorsActive)
+        updateToggle(espBtn, teamEspActive)
         updateToggle(rtxBtn, rtxActive)
+        updateToggle(futureBtn, futureActive)
     end
 
     btn.MouseButton1Click:Connect(applyTheme)
@@ -356,7 +375,6 @@ end
 
 -- ========== CORE FUNCTIONS ==========
 
--- RESTORE FUNCTIONS
 local function restoreInfect()
     local count = 0
     local items = {}
@@ -423,7 +441,6 @@ local function restoreDoors()
     return count
 end
 
--- SCAN & DELETE FUNCTIONS
 local function scanAndDeleteInfect()
     if not deleteInfectActive then
         restoreInfect()
@@ -515,7 +532,245 @@ local function scanAndDeleteDoors()
     end
 end
 
--- ========== RTX FUNCTION ==========
+-- ========== ESP SYSTEM ==========
+local function getTeamColor(plr)
+    if plr.Team then
+        return plr.Team.TeamColor.Color
+    end
+    return Color3.fromRGB(255, 255, 255)
+end
+
+local function createEspForPlayer(target)
+    if target == player then return end
+    if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local root = target.Character.HumanoidRootPart
+    local teamColor = getTeamColor(target)
+    
+    -- Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_Highlight"
+    highlight.FillTransparency = 0.6
+    highlight.OutlineTransparency = 0.3
+    highlight.FillColor = teamColor
+    highlight.OutlineColor = teamColor
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = target.Character
+    
+    -- 2D Box (on screen)
+    local box = Instance.new("Frame")
+    box.Name = "ESP_Box"
+    box.Size = UDim2.new(0, 30, 0, 60)
+    box.Position = UDim2.new(0.5, -15, 0.5, -30)
+    box.BackgroundTransparency = 0.5
+    box.BackgroundColor3 = teamColor
+    box.BorderSizePixel = 2
+    box.BorderColor3 = teamColor
+    box.Parent = root
+    box.Visible = false
+    
+    -- Name label
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "ESP_Name"
+    nameLabel.Size = UDim2.new(1, 0, 0, 16)
+    nameLabel.Position = UDim2.new(0, 0, 0, -18)
+    nameLabel.Text = target.Name
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextSize = 10
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    nameLabel.TextStrokeTransparency = 0.3
+    nameLabel.Parent = box
+    
+    -- Line tracer
+    local line = Instance.new("Frame")
+    line.Name = "ESP_Line"
+    line.Size = UDim2.new(0, 1, 0, 1)
+    line.BackgroundTransparency = 0.6
+    line.BackgroundColor3 = teamColor
+    line.Parent = root
+    line.Visible = false
+    
+    espObjects[target] = {
+        Highlight = highlight,
+        Box = box,
+        Name = nameLabel,
+        Line = line,
+        Root = root
+    }
+end
+
+local function updateEsp()
+    if not teamEspActive then
+        -- Clean up all ESP
+        for target, data in pairs(espObjects) do
+            if data.Highlight then data.Highlight:Destroy() end
+            if data.Box then data.Box:Destroy() end
+            if data.Line then data.Line:Destroy() end
+        end
+        espObjects = {}
+        return
+    end
+    
+    local players = Players:GetPlayers()
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local myPos = character.HumanoidRootPart.Position
+    
+    for _, target in pairs(players) do
+        if target ~= player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            if not espObjects[target] then
+                createEspForPlayer(target)
+            end
+            
+            local data = espObjects[target]
+            if data and data.Root then
+                local targetPos = data.Root.Position
+                local distance = (myPos - targetPos).Magnitude
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPos)
+                
+                -- Fade when close (distance < 30 studs)
+                local fade = math.clamp((distance - 15) / 30, 0.3, 1)
+                
+                if onScreen and distance < 200 then
+                    -- Update box position
+                    local boxSize = math.clamp(80 / distance, 20, 80)
+                    data.Box.Size = UDim2.new(0, boxSize, 0, boxSize * 1.8)
+                    data.Box.Position = UDim2.new(0, screenPos.X - boxSize/2, 0, screenPos.Y - boxSize * 0.9)
+                    data.Box.BackgroundTransparency = 0.3 + (1 - fade) * 0.5
+                    data.Box.Visible = true
+                    
+                    -- Update highlight transparency
+                    data.Highlight.FillTransparency = 0.4 + (1 - fade) * 0.4
+                    data.Highlight.OutlineTransparency = 0.2 + (1 - fade) * 0.3
+                    
+                    -- Update line tracer
+                    local centerX = screenPos.X
+                    local centerY = screenPos.Y + boxSize * 0.5
+                    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                    local dx = centerX - screenCenter.X
+                    local dy = centerY - screenCenter.Y
+                    local angle = math.atan2(dy, dx)
+                    local length = math.sqrt(dx^2 + dy^2)
+                    length = math.clamp(length, 20, 300)
+                    
+                    data.Line.Size = UDim2.new(0, length, 0, 1)
+                    data.Line.Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
+                    data.Line.Rotation = math.deg(angle)
+                    data.Line.BackgroundTransparency = 0.4 + (1 - fade) * 0.3
+                    data.Line.Visible = true
+                    
+                else
+                    data.Box.Visible = false
+                    data.Line.Visible = false
+                    data.Highlight.FillTransparency = 0.7
+                end
+            end
+        end
+    end
+end
+
+local function toggleEsp()
+    teamEspActive = not teamEspActive
+    if teamEspActive then
+        espBtn.Text = "ON"
+        espBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        espBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "ESP ENABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+        
+        if espConnection then
+            pcall(function() espConnection:Disconnect() end)
+            espConnection = nil
+        end
+        
+        -- Create ESP for existing players
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player then
+                createEspForPlayer(target)
+            end
+        end
+        
+        espConnection = RunService.RenderStepped:Connect(updateEsp)
+        
+        -- Connect player added
+        Players.PlayerAdded:Connect(function(target)
+            task.wait(0.5)
+            if teamEspActive then
+                createEspForPlayer(target)
+            end
+        end)
+        
+    else
+        espBtn.Text = "OFF"
+        espBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        espBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        statusLabel.Text = "ESP DISABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        if espConnection then
+            pcall(function() espConnection:Disconnect() end)
+            espConnection = nil
+        end
+        
+        -- Clean up all ESP
+        for target, data in pairs(espObjects) do
+            pcall(function()
+                if data.Highlight then data.Highlight:Destroy() end
+                if data.Box then data.Box:Destroy() end
+                if data.Line then data.Line:Destroy() end
+            end)
+        end
+        espObjects = {}
+        
+        task.wait(0.5)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+espBtn.MouseButton1Click:Connect(toggleEsp)
+espBtn.TouchTap:Connect(toggleEsp)
+
+-- ========== FUTURE LIGHTING TOGGLE ==========
+local function toggleFuture()
+    futureActive = not futureActive
+    
+    if futureActive then
+        futureBtn.Text = "ON"
+        futureBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        futureBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Future Lighting ON"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+        
+        originalLighting.Technology = Lighting.Technology
+        Lighting.Technology = Enum.Technology.Future
+        Lighting.GlobalShadows = true
+        Lighting.ShadowSoftness = 0.5
+        
+    else
+        futureBtn.Text = "OFF"
+        futureBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        futureBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        statusLabel.Text = "Future Lighting OFF"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        Lighting.Technology = originalLighting.Technology
+        Lighting.GlobalShadows = originalLighting.GlobalShadows
+        Lighting.ShadowSoftness = originalLighting.ShadowSoftness
+        
+        task.wait(0.5)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+futureBtn.MouseButton1Click:Connect(toggleFuture)
+futureBtn.TouchTap:Connect(toggleFuture)
+
+-- ========== RTX FUNCTION (Day/Night Aware) ==========
 local function toggleRTX()
     rtxActive = not rtxActive
     
@@ -526,6 +781,7 @@ local function toggleRTX()
         statusLabel.Text = "RTX ENABLED"
         statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
         
+        -- Store original settings
         originalLighting.Brightness = Lighting.Brightness
         originalLighting.ClockTime = Lighting.ClockTime
         originalLighting.Ambient = Lighting.Ambient
@@ -538,77 +794,108 @@ local function toggleRTX()
         originalLighting.ShadowSoftness = Lighting.ShadowSoftness
         originalLighting.Technology = Lighting.Technology
         
-        Lighting.Brightness = 2.5
-        Lighting.ClockTime = 14
-        Lighting.Ambient = Color3.fromRGB(80, 85, 95)
-        Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 150)
-        Lighting.ColorShift_Top = Color3.fromRGB(180, 200, 255)
-        Lighting.ColorShift_Bottom = Color3.fromRGB(100, 80, 120)
+        -- ===== RTX SETTINGS =====
+        Lighting.Technology = Enum.Technology.Future
+        
+        -- Check if it's day or night based on ClockTime
+        local currentTime = Lighting.ClockTime
+        local isNight = currentTime < 6 or currentTime > 18
+        
+        if isNight then
+            -- Night settings
+            Lighting.Brightness = 0.4
+            Lighting.Ambient = Color3.fromRGB(20, 20, 30)
+            Lighting.OutdoorAmbient = Color3.fromRGB(15, 15, 25)
+            Lighting.ColorShift_Top = Color3.fromRGB(10, 15, 30)
+            Lighting.ColorShift_Bottom = Color3.fromRGB(5, 5, 15)
+            Lighting.ShadowSoftness = 0.8
+            statusLabel.Text = "RTX NIGHT MODE"
+        else
+            -- Day settings
+            Lighting.Brightness = 2.5
+            Lighting.Ambient = Color3.fromRGB(80, 85, 95)
+            Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 150)
+            Lighting.ColorShift_Top = Color3.fromRGB(180, 200, 255)
+            Lighting.ColorShift_Bottom = Color3.fromRGB(100, 80, 120)
+            Lighting.ShadowSoftness = 0.5
+            statusLabel.Text = "RTX DAY MODE"
+        end
+        
         Lighting.EnvironmentDiffuseScale = 1.5
         Lighting.EnvironmentSpecularScale = 1.5
         Lighting.GlobalShadows = true
-        Lighting.ShadowSoftness = 0.5
-        Lighting.Technology = Enum.Technology.Future
         
+        -- Bloom
         local bloom = Lighting:FindFirstChild("Bloom")
         if not bloom then
             bloom = Instance.new("BloomEffect")
             bloom.Name = "Bloom"
-            bloom.Intensity = 0.5
-            bloom.Size = 2
-            bloom.Threshold = 0.3
+            bloom.Intensity = isNight and 0.15 or 0.5
+            bloom.Size = isNight and 1 or 2
+            bloom.Threshold = isNight and 0.5 or 0.3
             bloom.Parent = Lighting
         else
-            bloom.Intensity = 0.5
-            bloom.Size = 2
-            bloom.Threshold = 0.3
+            bloom.Intensity = isNight and 0.15 or 0.5
+            bloom.Size = isNight and 1 or 2
+            bloom.Threshold = isNight and 0.5 or 0.3
         end
         
+        -- Color Correction
         local cc = Lighting:FindFirstChild("ColorCorrection")
         if not cc then
             cc = Instance.new("ColorCorrectionEffect")
             cc.Name = "ColorCorrection"
-            cc.Saturation = 1.1
-            cc.Contrast = 1.1
-            cc.Brightness = 0.05
+            cc.Saturation = isNight and 0.8 or 1.1
+            cc.Contrast = isNight and 0.9 or 1.1
+            cc.Brightness = isNight and -0.1 or 0.05
             cc.Parent = Lighting
         else
-            cc.Saturation = 1.1
-            cc.Contrast = 1.1
-            cc.Brightness = 0.05
+            cc.Saturation = isNight and 0.8 or 1.1
+            cc.Contrast = isNight and 0.9 or 1.1
+            cc.Brightness = isNight and -0.1 or 0.05
         end
         
-        local sunRays = Lighting:FindFirstChild("SunRays")
-        if not sunRays then
-            sunRays = Instance.new("SunRaysEffect")
-            sunRays.Name = "SunRays"
-            sunRays.Intensity = 0.15
-            sunRays.Spread = 0.5
-            sunRays.Parent = Lighting
+        -- Sun Rays (only during day)
+        if not isNight then
+            local sunRays = Lighting:FindFirstChild("SunRays")
+            if not sunRays then
+                sunRays = Instance.new("SunRaysEffect")
+                sunRays.Name = "SunRays"
+                sunRays.Intensity = 0.15
+                sunRays.Spread = 0.5
+                sunRays.Parent = Lighting
+            else
+                sunRays.Intensity = 0.15
+                sunRays.Spread = 0.5
+                sunRays.Enabled = true
+            end
         else
-            sunRays.Intensity = 0.15
-            sunRays.Spread = 0.5
+            local sunRays = Lighting:FindFirstChild("SunRays")
+            if sunRays then sunRays.Enabled = false end
         end
         
+        -- Depth of Field
         local dof = Lighting:FindFirstChild("DepthOfField")
         if not dof then
             dof = Instance.new("DepthOfFieldEffect")
             dof.Name = "DepthOfField"
-            dof.FarIntensity = 0.3
-            dof.FarBlurSize = 2
+            dof.FarIntensity = isNight and 0.1 or 0.3
+            dof.FarBlurSize = isNight and 1 or 2
             dof.NearIntensity = 0
             dof.NearBlurSize = 0
-            dof.FocusDistance = 50
-            dof.InFocusRadius = 30
+            dof.FocusDistance = isNight and 30 or 50
+            dof.InFocusRadius = isNight and 20 or 30
             dof.Parent = Lighting
         else
-            dof.FarIntensity = 0.3
-            dof.FarBlurSize = 2
+            dof.FarIntensity = isNight and 0.1 or 0.3
+            dof.FarBlurSize = isNight and 1 or 2
             dof.NearIntensity = 0
             dof.NearBlurSize = 0
-            dof.FocusDistance = 50
-            dof.InFocusRadius = 30
+            dof.FocusDistance = isNight and 30 or 50
+            dof.InFocusRadius = isNight and 20 or 30
         end
+        
+        statusLabel.TextColor3 = isNight and Color3.fromRGB(100, 150, 255) or Color3.fromRGB(0, 200, 255)
         
     else
         rtxBtn.Text = "OFF"
@@ -617,6 +904,7 @@ local function toggleRTX()
         statusLabel.Text = "RTX DISABLED"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         
+        -- Restore original settings
         Lighting.Brightness = originalLighting.Brightness
         Lighting.ClockTime = originalLighting.ClockTime
         Lighting.Ambient = originalLighting.Ambient
@@ -629,6 +917,7 @@ local function toggleRTX()
         Lighting.ShadowSoftness = originalLighting.ShadowSoftness
         Lighting.Technology = originalLighting.Technology
         
+        -- Remove effects
         local bloom = Lighting:FindFirstChild("Bloom")
         if bloom then bloom:Destroy() end
         local cc = Lighting:FindFirstChild("ColorCorrection")
@@ -812,6 +1101,7 @@ toggleBtn.TextSize = 22
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
 toggleBtn.Parent = root
+toggleBtn.AutoButtonColor = true
 local toggleCorner = Instance.new("UICorner", toggleBtn)
 toggleCorner.CornerRadius = UDim.new(1, 0)
 local toggleStroke = Instance.new("UIStroke", toggleBtn)
@@ -820,21 +1110,34 @@ toggleStroke.Thickness = 2
 toggleStroke.Transparency = 0.2
 toggleBtn.ZIndex = 999
 toggleBtn.Active = true
-toggleBtn.Draggable = true
 
--- Button drag data
+local toggleDragFrame = Instance.new("Frame")
+toggleDragFrame.Size = UDim2.new(1.5, 20, 1.5, 20)
+toggleDragFrame.Position = UDim2.new(-0.25, 0, -0.25, 0)
+toggleDragFrame.BackgroundTransparency = 1
+toggleDragFrame.Parent = toggleBtn
+toggleDragFrame.ZIndex = 0
+
+local function onToggleClick()
+    if isOpen then closeGUI() else openGUI() end
+end
+
+toggleBtn.MouseButton1Click:Connect(onToggleClick)
+toggleBtn.TouchTap:Connect(onToggleClick)
+
 local btnDragData = {
     dragging = false,
     startPos = nil,
     btnStart = nil
 }
 
-local function startBtnDrag(input)
+toggleDragFrame.TouchBegan:Connect(function(input)
     btnDragData.dragging = true
-    btnDragData.startPos = input.Position    btnDragData.btnStart = toggleBtn.Position
-end
+    btnDragData.startPos = input.Position
+    btnDragData.btnStart = toggleBtn.Position
+end)
 
-local function updateBtnDrag(input)
+toggleDragFrame.TouchMoved:Connect(function(input)
     if not btnDragData.dragging or not btnDragData.startPos then return end
     local delta = input.Position - btnDragData.startPos
     toggleBtn.Position = UDim2.new(
@@ -843,56 +1146,35 @@ local function updateBtnDrag(input)
         btnDragData.btnStart.Y.Scale,
         btnDragData.btnStart.Y.Offset + delta.Y
     )
-end
+end)
 
-local function endBtnDrag()
+toggleDragFrame.TouchEnded:Connect(function()
     btnDragData.dragging = false
     btnDragData.startPos = nil
     btnDragData.btnStart = nil
-end
-
--- Mobile touch drag for button
-toggleBtn.TouchBegan:Connect(function(input)
-    startBtnDrag(input)
-end)
-toggleBtn.TouchMoved:Connect(function(input)
-    updateBtnDrag(input)
-end)
-toggleBtn.TouchEnded:Connect(function()
-    endBtnDrag()
 end)
 
--- PC mouse drag for button
-toggleBtn.MouseButton1Down:Connect(function(input)
-    startBtnDrag(input)
-end)
-toggleBtn.MouseMoved:Connect(function(input)
-    updateBtnDrag(input)
-end)
-toggleBtn.MouseButton1Up:Connect(function()
-    endBtnDrag()
+toggleDragFrame.MouseButton1Down:Connect(function(input)
+    btnDragData.dragging = true
+    btnDragData.startPos = input.Position
+    btnDragData.btnStart = toggleBtn.Position
 end)
 
--- Button click (open/close) - separate from drag
-local btnClickStart = nil
-local btnClickEnd = nil
-
-toggleBtn.TouchBegan:Connect(function(input)
-    btnClickStart = tick()
+toggleDragFrame.MouseMoved:Connect(function(input)
+    if not btnDragData.dragging or not btnDragData.startPos then return end
+    local delta = input.Position - btnDragData.startPos
+    toggleBtn.Position = UDim2.new(
+        btnDragData.btnStart.X.Scale,
+        btnDragData.btnStart.X.Offset + delta.X,
+        btnDragData.btnStart.Y.Scale,
+        btnDragData.btnStart.Y.Offset + delta.Y
+    )
 end)
 
-toggleBtn.TouchEnded:Connect(function()
-    btnClickEnd = tick()
-    if btnClickStart and btnClickEnd - btnClickStart < 0.3 then
-        -- It was a tap, not a drag
-        if isOpen then closeGUI() else openGUI() end
-    end
-    btnClickStart = nil
-    btnClickEnd = nil
-end)
-
-toggleBtn.MouseButton1Click:Connect(function()
-    if isOpen then closeGUI() else openGUI() end
+toggleDragFrame.MouseButton1Up:Connect(function()
+    btnDragData.dragging = false
+    btnDragData.startPos = nil
+    btnDragData.btnStart = nil
 end)
 
 -- ========== OPEN/CLOSE FUNCTIONS ==========
@@ -990,9 +1272,9 @@ end)
 task.wait(0.3)
 frame.Visible = true
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 300, 0, 240)
-frame.Position = UDim2.new(0.5, -150, 0.5, -120)
+frame.Size = UDim2.new(0, 320, 0, 280)
+frame.Position = UDim2.new(0.5, -160, 0.5, -140)
 blur.Size = 3
 toggleBtn.Text = "◀"
 
-print("NZ-IS v2 - Toggle button is now draggable!")
+print("NZ-IS v3 - RTX Day/Night aware + TEAM ESP loaded!")
