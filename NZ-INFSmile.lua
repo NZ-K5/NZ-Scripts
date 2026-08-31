@@ -1,3 +1,6 @@
+-- LOADER FOR NZ-INFSmile.lua (Mobile-friendly chunked loading)
+local scriptChunks = {
+    [1] = [[
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -92,8 +95,7 @@ local noclipConnection = nil
 local espObjects = {}
 local flyBodyVelocity = nil
 local flyBodyGyro = nil
-local infJumpConnection = nil
-local characterAddedConnection = nil
+local infJumpBind = nil
 
 local deletedInfect = {}
 local deletedKill = {}
@@ -213,7 +215,8 @@ miniLabel.TextSize = 14
 miniLabel.Font = Enum.Font.GothamBold
 miniLabel.BackgroundTransparency = 1
 miniLabel.Parent = miniFrame
-
+]],
+    [2] = [[
 -- ========== SHITFLOCK BUTTON ==========
 local shitflockBtn = Instance.new("TextButton")
 shitflockBtn.Size = UDim2.new(0, 55, 0, 55)
@@ -229,7 +232,6 @@ shitflockBtn.Active = true
 
 local shitflockCorner = Instance.new("UICorner", shitflockBtn)
 shitflockCorner.CornerRadius = UDim.new(1, 0)
-
 local shitflockStroke = Instance.new("UIStroke", shitflockBtn)
 shitflockStroke.Color = Color3.fromRGB(255, 255, 255)
 shitflockStroke.Thickness = 2
@@ -449,7 +451,8 @@ local function makeButton(text, y, parent, color)
     c.CornerRadius = UDim.new(0, 6)
     return btn
 end
-
+]],
+    [3] = [[
 -- ========== MODS PAGE ==========
 local yOff = 4
 
@@ -668,7 +671,8 @@ creditsLabel.Parent = othersPage
 oY = oY + 30
 
 othersPage.CanvasSize = UDim2.new(0, 0, 0, oY + 10)
-
+]],
+    [4] = [[
 -- ========== SHITFLOCK TOGGLE ==========
 local function toggleShitflock()
     shitflockActive = not shitflockActive
@@ -697,9 +701,7 @@ shitflockToggle.TouchTap:Connect(toggleShitflock)
 
 -- ========== PLAYER MOD FUNCTIONS ==========
 
--- Inf Jump (FIXED)
-local infJumpBind = nil
-
+-- Inf Jump
 local function setupInfJump()
     if infJumpBind then
         pcall(function() infJumpBind:Disconnect() end)
@@ -718,9 +720,6 @@ local function setupInfJump()
         if not infJumpActive then return end
         if newState == Enum.HumanoidStateType.Jumping then
             jumpCount = jumpCount + 1
-            if jumpCount >= maxJumps then
-                jumpCount = 0
-            end
         end
         if newState == Enum.HumanoidStateType.Landed then
             jumpCount = 0
@@ -762,7 +761,7 @@ end
 infJumpBtn.MouseButton1Click:Connect(toggleInfJump)
 infJumpBtn.TouchTap:Connect(toggleInfJump)
 
--- Noclip (FIXED - rebinds on CharacterAdded)
+-- Noclip
 local function setupNoclip()
     if noclipConnection then
         pcall(function() noclipConnection:Disconnect() end)
@@ -817,7 +816,7 @@ end
 noclipBtn.MouseButton1Click:Connect(toggleNoclip)
 noclipBtn.TouchTap:Connect(toggleNoclip)
 
--- Fly (FIXED - rebinds on CharacterAdded)
+-- Fly
 local function setupFly()
     if flyConnection then
         pcall(function() flyConnection:Disconnect() end)
@@ -930,70 +929,30 @@ flyBtn.TouchTap:Connect(toggleFly)
 -- ========== CHARACTER ADDED REBIND ==========
 local function onCharacterAdded(char)
     task.wait(0.3)
-    
-    -- Apply WalkSpeed
     if player.Character and player.Character:FindFirstChild("Humanoid") then
         player.Character.Humanoid.WalkSpeed = walkspeedValue
         player.Character.Humanoid.JumpPower = jumppowerValue
     end
-    
-    -- Rebind Inf Jump
-    if infJumpActive then
-        setupInfJump()
-    end
-    
-    -- Rebind Noclip
-    if noclipActive then
-        setupNoclip()
-    end
-    
-    -- Rebind Fly
-    if flyActive then
-        setupFly()
-    end
+    if infJumpActive then setupInfJump() end
+    if noclipActive then setupNoclip() end
+    if flyActive then setupFly() end
 end
 
 player.CharacterAdded:Connect(onCharacterAdded)
-
+]],
+    [5] = [[
 -- ========== DESTROY FUNCTION ==========
 local function destroyGUI()
-    if infectConnection then
-        pcall(function() infectConnection:Disconnect() end)
-        infectConnection = nil
-    end
-    if killConnection then
-        pcall(function() killConnection:Disconnect() end)
-        killConnection = nil
-    end
-    if doorsConnection then
-        pcall(function() doorsConnection:Disconnect() end)
-        doorsConnection = nil
-    end
-    if espConnection then
-        pcall(function() espConnection:Disconnect() end)
-        espConnection = nil
-    end
-    if noclipConnection then
-        pcall(function() noclipConnection:Disconnect() end)
-        noclipConnection = nil
-    end
-    if flyConnection then
-        pcall(function() flyConnection:Disconnect() end)
-        flyConnection = nil
-    end
-    if infJumpBind then
-        pcall(function() infJumpBind:Disconnect() end)
-        infJumpBind = nil
-    end
-    if flyBodyVelocity then
-        pcall(function() flyBodyVelocity:Destroy() end)
-        flyBodyVelocity = nil
-    end
-    if flyBodyGyro then
-        pcall(function() flyBodyGyro:Destroy() end)
-        flyBodyGyro = nil
-    end
-    for target, data in pairs(espObjects) do
+    if infectConnection then pcall(function() infectConnection:Disconnect() end) end
+    if killConnection then pcall(function() killConnection:Disconnect() end) end
+    if doorsConnection then pcall(function() doorsConnection:Disconnect() end) end
+    if espConnection then pcall(function() espConnection:Disconnect() end) end
+    if noclipConnection then pcall(function() noclipConnection:Disconnect() end) end
+    if flyConnection then pcall(function() flyConnection:Disconnect() end) end
+    if infJumpBind then pcall(function() infJumpBind:Disconnect() end) end
+    if flyBodyVelocity then pcall(function() flyBodyVelocity:Destroy() end) end
+    if flyBodyGyro then pcall(function() flyBodyGyro:Destroy() end) end
+    for _, data in pairs(espObjects) do
         pcall(function()
             if data.Highlight then data.Highlight:Destroy() end
             if data.Box then data.Box:Destroy() end
@@ -1009,20 +968,14 @@ destroyBtn.MouseButton1Click:Connect(destroyGUI)
 destroyBtn.TouchTap:Connect(destroyGUI)
 
 -- ========== CORE FUNCTIONS ==========
-
 local function restoreInfect()
     local count = 0
     local items = {}
     for _, item in pairs(deletedInfect) do
-        if item and not item.Parent then
-            table.insert(items, item)
-        end
+        if item and not item.Parent then table.insert(items, item) end
     end
     for _, item in pairs(items) do
-        pcall(function()
-            item.Parent = workspace
-            count = count + 1
-        end)
+        pcall(function() item.Parent = workspace; count = count + 1 end)
     end
     deletedInfect = {}
     if count > 0 then
@@ -1036,15 +989,10 @@ local function restoreKill()
     local count = 0
     local items = {}
     for _, item in pairs(deletedKill) do
-        if item and not item.Parent then
-            table.insert(items, item)
-        end
+        if item and not item.Parent then table.insert(items, item) end
     end
     for _, item in pairs(items) do
-        pcall(function()
-            item.Parent = workspace
-            count = count + 1
-        end)
+        pcall(function() item.Parent = workspace; count = count + 1 end)
     end
     deletedKill = {}
     if count > 0 then
@@ -1058,15 +1006,10 @@ local function restoreDoors()
     local count = 0
     local items = {}
     for _, item in pairs(deletedDoors) do
-        if item and not item.Parent then
-            table.insert(items, item)
-        end
+        if item and not item.Parent then table.insert(items, item) end
     end
     for _, item in pairs(items) do
-        pcall(function()
-            item.Parent = workspace
-            count = count + 1
-        end)
+        pcall(function() item.Parent = workspace; count = count + 1 end)
     end
     deletedDoors = {}
     if count > 0 then
@@ -1077,23 +1020,15 @@ local function restoreDoors()
 end
 
 local function scanAndDeleteInfect()
-    if not deleteInfectActive then
-        restoreInfect()
-        return
-    end
+    if not deleteInfectActive then restoreInfect(); return end
     local found = {}
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            if v.Name and string.lower(v.Name):find("infect") then
-                table.insert(found, v)
-            end
+            if v.Name and string.lower(v.Name):find("infect") then table.insert(found, v) end
         end
     end
     for _, v in pairs(found) do
-        if v and v.Parent then
-            table.insert(deletedInfect, v)
-            pcall(function() v.Parent = nil end)
-        end
+        if v and v.Parent then table.insert(deletedInfect, v); pcall(function() v.Parent = nil end) end
     end
     if #found > 0 then
         statusLabel.Text = "Del " .. #found .. " inf"
@@ -1105,23 +1040,15 @@ local function scanAndDeleteInfect()
 end
 
 local function scanAndDeleteKill()
-    if not deleteKillActive then
-        restoreKill()
-        return
-    end
+    if not deleteKillActive then restoreKill(); return end
     local found = {}
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            if v.Name and string.lower(v.Name):find("kill") then
-                table.insert(found, v)
-            end
+            if v.Name and string.lower(v.Name):find("kill") then table.insert(found, v) end
         end
     end
     for _, v in pairs(found) do
-        if v and v.Parent then
-            table.insert(deletedKill, v)
-            pcall(function() v.Parent = nil end)
-        end
+        if v and v.Parent then table.insert(deletedKill, v); pcall(function() v.Parent = nil end) end
     end
     if #found > 0 then
         statusLabel.Text = "Del " .. #found .. " kill"
@@ -1133,30 +1060,18 @@ local function scanAndDeleteKill()
 end
 
 local function scanAndDeleteDoors()
-    if not deleteDoorsActive then
-        restoreDoors()
-        return
-    end
-    local found = {}
-    local keywords = {"door", "gate", "portal", "doorway", "entrance", "exit"}
+    if not deleteDoorsActive then restoreDoors(); return end
+    local found, keywords = {}, {"door", "gate", "portal", "doorway", "entrance", "exit"}
     for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            if v.Name then
-                local nameLower = string.lower(v.Name)
-                for _, kw in pairs(keywords) do
-                    if nameLower:find(kw) then
-                        table.insert(found, v)
-                        break
-                    end
-                end
+        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
+            local nameLower = string.lower(v.Name)
+            for _, kw in pairs(keywords) do
+                if nameLower:find(kw) then table.insert(found, v); break end
             end
         end
     end
     for _, v in pairs(found) do
-        if v and v.Parent then
-            table.insert(deletedDoors, v)
-            pcall(function() v.Parent = nil end)
-        end
+        if v and v.Parent then table.insert(deletedDoors, v); pcall(function() v.Parent = nil end) end
     end
     if #found > 0 then
         statusLabel.Text = "Del " .. #found .. " doors"
@@ -1169,9 +1084,7 @@ end
 
 -- ========== ESP SYSTEM ==========
 local function getTeamColor(plr)
-    if plr.Team then
-        return plr.Team.TeamColor.Color
-    end
+    if plr.Team then return plr.Team.TeamColor.Color end
     return Color3.fromRGB(255, 255, 255)
 end
 
@@ -1183,58 +1096,23 @@ local function createEspForPlayer(target)
     local teamColor = getTeamColor(target)
     
     local highlight = Instance.new("Highlight")
-    highlight.Name = "ESP_Highlight"
-    highlight.FillTransparency = 0.6
-    highlight.OutlineTransparency = 0.3
-    highlight.FillColor = teamColor
-    highlight.OutlineColor = teamColor
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = target.Character
+    highlight.Name, highlight.FillTransparency, highlight.OutlineTransparency, highlight.FillColor, highlight.OutlineColor, highlight.DepthMode, highlight.Parent = "ESP_Highlight", 0.6, 0.3, teamColor, teamColor, Enum.HighlightDepthMode.AlwaysOnTop, target.Character
     
     local box = Instance.new("Frame")
-    box.Name = "ESP_Box"
-    box.Size = UDim2.new(0, 30, 0, 60)
-    box.Position = UDim2.new(0.5, -15, 0.5, -30)
-    box.BackgroundTransparency = 0.5
-    box.BackgroundColor3 = teamColor
-    box.BorderSizePixel = 2
-    box.BorderColor3 = teamColor
-    box.Parent = root
-    box.Visible = false
+    box.Name, box.Size, box.Position, box.BackgroundTransparency, box.BackgroundColor3, box.BorderSizePixel, box.BorderColor3, box.Parent, box.Visible = "ESP_Box", UDim2.new(0,30,0,60), UDim2.new(0.5,-15,0.5,-30), 0.5, teamColor, 2, teamColor, root, false
     
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Name = "ESP_Name"
-    nameLabel.Size = UDim2.new(1, 0, 0, 16)
-    nameLabel.Position = UDim2.new(0, 0, 0, -18)
-    nameLabel.Text = target.Name
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.TextSize = 10
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    nameLabel.TextStrokeTransparency = 0.3
-    nameLabel.Parent = box
+    nameLabel.Name, nameLabel.Size, nameLabel.Position, nameLabel.Text, nameLabel.TextColor3, nameLabel.TextSize, nameLabel.Font, nameLabel.BackgroundTransparency, nameLabel.TextStrokeColor3, nameLabel.TextStrokeTransparency, nameLabel.Parent = "ESP_Name", UDim2.new(1,0,0,16), UDim2.new(0,0,0,-18), target.Name, Color3.fromRGB(255,255,255), 10, Enum.Font.GothamBold, 1, Color3.fromRGB(0,0,0), 0.3, box
     
     local line = Instance.new("Frame")
-    line.Name = "ESP_Line"
-    line.Size = UDim2.new(0, 1, 0, 1)
-    line.BackgroundTransparency = 0.6
-    line.BackgroundColor3 = teamColor
-    line.Parent = root
-    line.Visible = false
+    line.Name, line.Size, line.BackgroundTransparency, line.BackgroundColor3, line.Parent, line.Visible = "ESP_Line", UDim2.new(0,1,0,1), 0.6, teamColor, root, false
     
-    espObjects[target] = {
-        Highlight = highlight,
-        Box = box,
-        Name = nameLabel,
-        Line = line,
-        Root = root
-    }
+    espObjects[target] = {Highlight = highlight, Box = box, Name = nameLabel, Line = line, Root = root}
 end
 
 local function updateEsp()
     if not teamEspActive then
-        for target, data in pairs(espObjects) do
+        for _, data in pairs(espObjects) do
             if data.Highlight then data.Highlight:Destroy() end
             if data.Box then data.Box:Destroy() end
             if data.Line then data.Line:Destroy() end
@@ -1243,55 +1121,30 @@ local function updateEsp()
         return
     end
     
-    local players = Players:GetPlayers()
     local character = player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    
     local myPos = character.HumanoidRootPart.Position
     
-    for _, target in pairs(players) do
+    for _, target in pairs(Players:GetPlayers()) do
         if target ~= player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            if not espObjects[target] then
-                createEspForPlayer(target)
-            end
-            
+            if not espObjects[target] then createEspForPlayer(target) end
             local data = espObjects[target]
             if data and data.Root then
                 local targetPos = data.Root.Position
                 local distance = (myPos - targetPos).Magnitude
                 local screenPos, onScreen = Camera:WorldToViewportPoint(targetPos)
-                
                 local fade = math.clamp((distance - 15) / 30, 0.3, 1)
-                
                 if onScreen and distance < 200 then
                     local boxSize = math.clamp(80 / distance, 20, 80)
-                    data.Box.Size = UDim2.new(0, boxSize, 0, boxSize * 1.8)
-                    data.Box.Position = UDim2.new(0, screenPos.X - boxSize/2, 0, screenPos.Y - boxSize * 0.9)
-                    data.Box.BackgroundTransparency = 0.3 + (1 - fade) * 0.5
-                    data.Box.Visible = true
-                    
-                    data.Highlight.FillTransparency = 0.4 + (1 - fade) * 0.4
-                    data.Highlight.OutlineTransparency = 0.2 + (1 - fade) * 0.3
-                    
-                    local centerX = screenPos.X
-                    local centerY = screenPos.Y + boxSize * 0.5
-                    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-                    local dx = centerX - screenCenter.X
-                    local dy = centerY - screenCenter.Y
-                    local angle = math.atan2(dy, dx)
-                    local length = math.sqrt(dx^2 + dy^2)
-                    length = math.clamp(length, 20, 300)
-                    
-                    data.Line.Size = UDim2.new(0, length, 0, 1)
-                    data.Line.Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
-                    data.Line.Rotation = math.deg(angle)
-                    data.Line.BackgroundTransparency = 0.4 + (1 - fade) * 0.3
-                    data.Line.Visible = true
-                    
+                    data.Box.Size, data.Box.Position, data.Box.BackgroundTransparency, data.Box.Visible = UDim2.new(0,boxSize,0,boxSize*1.8), UDim2.new(0,screenPos.X-boxSize/2,0,screenPos.Y-boxSize*0.9), 0.3 + (1-fade)*0.5, true
+                    data.Highlight.FillTransparency, data.Highlight.OutlineTransparency = 0.4 + (1-fade)*0.4, 0.2 + (1-fade)*0.3
+                    local centerX, centerY = screenPos.X, screenPos.Y + boxSize*0.5
+                    local screenCenter = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+                    local dx, dy = centerX - screenCenter.X, centerY - screenCenter.Y
+                    local angle, length = math.atan2(dy, dx), math.clamp(math.sqrt(dx^2+dy^2), 20, 300)
+                    data.Line.Size, data.Line.Position, data.Line.Rotation, data.Line.BackgroundTransparency, data.Line.Visible = UDim2.new(0,length,0,1), UDim2.new(0,screenCenter.X,0,screenCenter.Y), math.deg(angle), 0.4 + (1-fade)*0.3, true
                 else
-                    data.Box.Visible = false
-                    data.Line.Visible = false
-                    data.Highlight.FillTransparency = 0.7
+                    data.Box.Visible, data.Line.Visible, data.Highlight.FillTransparency = false, false, 0.7
                 end
             end
         end
@@ -1301,33 +1154,14 @@ end
 local function toggleEsp()
     teamEspActive = not teamEspActive
     if teamEspActive then
-        espBtn.Text = "ON"
-        espBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        espBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "ESP ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        
-        if espConnection then
-            pcall(function() espConnection:Disconnect() end)
-            espConnection = nil
-        end
-        
+        espBtn.Text, espBtn.BackgroundColor3, espBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
+        statusLabel.Text, statusLabel.TextColor3 = "ESP ENABLED", Color3.fromRGB(0,200,255)
+        if espConnection then pcall(function() espConnection:Disconnect() end) end
         for _, target in pairs(Players:GetPlayers()) do
-            if target ~= player then
-                createEspForPlayer(target)
-            end
+            if target ~= player then createEspForPlayer(target) end
         end
-        
         espConnection = RunService.RenderStepped:Connect(updateEsp)
-        
-        Players.PlayerAdded:Connect(function(target)
-            task.wait(0.5)
-            if teamEspActive then
-                createEspForPlayer(target)
-            end
-        end)
-        
-        -- Clean up when players leave
+        Players.PlayerAdded:Connect(function(target) task.wait(0.5); if teamEspActive then createEspForPlayer(target) end end)
         Players.PlayerRemoving:Connect(function(target)
             if espObjects[target] then
                 pcall(function()
@@ -1338,241 +1172,89 @@ local function toggleEsp()
                 espObjects[target] = nil
             end
         end)
-        
     else
-        espBtn.Text = "OFF"
-        espBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        espBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "ESP DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        
-        if espConnection then
-            pcall(function() espConnection:Disconnect() end)
-            espConnection = nil
-        end
-        
-        for target, data in pairs(espObjects) do
-            pcall(function()
-                if data.Highlight then data.Highlight:Destroy() end
-                if data.Box then data.Box:Destroy() end
-                if data.Line then data.Line:Destroy() end
-            end)
+        espBtn.Text, espBtn.BackgroundColor3, espBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        statusLabel.Text, statusLabel.TextColor3 = "ESP DISABLED", Color3.fromRGB(255,100,100)
+        if espConnection then pcall(function() espConnection:Disconnect() end) end
+        for _, data in pairs(espObjects) do
+            if data.Highlight then data.Highlight:Destroy() end
+            if data.Box then data.Box:Destroy() end
+            if data.Line then data.Line:Destroy() end
         end
         espObjects = {}
-        
         task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+        statusLabel.Text, statusLabel.TextColor3 = "Ready", Color3.fromRGB(0,255,150)
     end
 end
 
 espBtn.MouseButton1Click:Connect(toggleEsp)
 espBtn.TouchTap:Connect(toggleEsp)
-
+]],
+    [6] = [[
 -- ========== LIGHTING TOGGLE ==========
 local function toggleFuture()
     futureActive = not futureActive
-    
     if futureActive then
-        futureBtn.Text = "ON"
-        futureBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        futureBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Lighting ON"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        
+        futureBtn.Text, futureBtn.BackgroundColor3, futureBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
+        statusLabel.Text, statusLabel.TextColor3 = "Lighting ON", Color3.fromRGB(0,200,255)
         originalLighting.Technology = Lighting.Technology
-        
-        pcall(function()
-            Lighting.Technology = Enum.Technology.Future
-        end)
-        if Lighting.Technology ~= Enum.Technology.Future then
-            pcall(function()
-                Lighting.Technology = Enum.Technology.Realistic
-            end)
-        end
-        
-        Lighting.GlobalShadows = true
-        Lighting.ShadowSoftness = 0.5
-        
+        pcall(function() Lighting.Technology = Enum.Technology.Future end)
+        if Lighting.Technology ~= Enum.Technology.Future then pcall(function() Lighting.Technology = Enum.Technology.Realistic end) end
+        Lighting.GlobalShadows, Lighting.ShadowSoftness = true, 0.5
     else
-        futureBtn.Text = "OFF"
-        futureBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        futureBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "Lighting OFF"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        
-        Lighting.Technology = originalLighting.Technology
-        Lighting.GlobalShadows = originalLighting.GlobalShadows
-        Lighting.ShadowSoftness = originalLighting.ShadowSoftness
-        
+        futureBtn.Text, futureBtn.BackgroundColor3, futureBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        statusLabel.Text, statusLabel.TextColor3 = "Lighting OFF", Color3.fromRGB(255,100,100)
+        Lighting.Technology, Lighting.GlobalShadows, Lighting.ShadowSoftness = originalLighting.Technology, originalLighting.GlobalShadows, originalLighting.ShadowSoftness
         task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+        statusLabel.Text, statusLabel.TextColor3 = "Ready", Color3.fromRGB(0,255,150)
     end
 end
-
 futureBtn.MouseButton1Click:Connect(toggleFuture)
 futureBtn.TouchTap:Connect(toggleFuture)
 
 -- ========== RTX FUNCTION ==========
 local function toggleRTX()
     rtxActive = not rtxActive
-    
     if rtxActive then
-        rtxBtn.Text = "ON"
-        rtxBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        rtxBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "RTX ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        
-        originalLighting.Brightness = Lighting.Brightness
-        originalLighting.ClockTime = Lighting.ClockTime
-        originalLighting.Ambient = Lighting.Ambient
-        originalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
-        originalLighting.ColorShift_Top = Lighting.ColorShift_Top
-        originalLighting.ColorShift_Bottom = Lighting.ColorShift_Bottom
-        originalLighting.EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale
-        originalLighting.EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale
-        originalLighting.GlobalShadows = Lighting.GlobalShadows
-        originalLighting.ShadowSoftness = Lighting.ShadowSoftness
-        originalLighting.Technology = Lighting.Technology
-        
-        pcall(function()
-            Lighting.Technology = Enum.Technology.Future
-        end)
-        if Lighting.Technology ~= Enum.Technology.Future then
-            pcall(function()
-                Lighting.Technology = Enum.Technology.Realistic
-            end)
-        end
-        
-        local currentTime = Lighting.ClockTime
-        local isNight = currentTime < 6 or currentTime > 18
-        
+        rtxBtn.Text, rtxBtn.BackgroundColor3, rtxBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
+        statusLabel.Text, statusLabel.TextColor3 = "RTX ENABLED", Color3.fromRGB(0,200,255)
+        originalLighting.Brightness, originalLighting.ClockTime, originalLighting.Ambient, originalLighting.OutdoorAmbient, originalLighting.ColorShift_Top, originalLighting.ColorShift_Bottom, originalLighting.EnvironmentDiffuseScale, originalLighting.EnvironmentSpecularScale, originalLighting.GlobalShadows, originalLighting.ShadowSoftness, originalLighting.Technology = Lighting.Brightness, Lighting.ClockTime, Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.ColorShift_Top, Lighting.ColorShift_Bottom, Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale, Lighting.GlobalShadows, Lighting.ShadowSoftness, Lighting.Technology
+        pcall(function() Lighting.Technology = Enum.Technology.Future end)
+        if Lighting.Technology ~= Enum.Technology.Future then pcall(function() Lighting.Technology = Enum.Technology.Realistic end) end
+        local isNight = Lighting.ClockTime < 6 or Lighting.ClockTime > 18
         if isNight then
-            Lighting.Brightness = 0.4
-            Lighting.Ambient = Color3.fromRGB(20, 20, 30)
-            Lighting.OutdoorAmbient = Color3.fromRGB(15, 15, 25)
-            Lighting.ColorShift_Top = Color3.fromRGB(10, 15, 30)
-            Lighting.ColorShift_Bottom = Color3.fromRGB(5, 5, 15)
-            Lighting.ShadowSoftness = 0.8
-            statusLabel.Text = "RTX NIGHT MODE"
+            Lighting.Brightness, Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.ColorShift_Top, Lighting.ColorShift_Bottom, Lighting.ShadowSoftness, statusLabel.Text = 0.4, Color3.fromRGB(20,20,30), Color3.fromRGB(15,15,25), Color3.fromRGB(10,15,30), Color3.fromRGB(5,5,15), 0.8, "RTX NIGHT MODE"
         else
-            Lighting.Brightness = 2.5
-            Lighting.Ambient = Color3.fromRGB(80, 85, 95)
-            Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 150)
-            Lighting.ColorShift_Top = Color3.fromRGB(180, 200, 255)
-            Lighting.ColorShift_Bottom = Color3.fromRGB(100, 80, 120)
-            Lighting.ShadowSoftness = 0.5
-            statusLabel.Text = "RTX DAY MODE"
+            Lighting.Brightness, Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.ColorShift_Top, Lighting.ColorShift_Bottom, Lighting.ShadowSoftness, statusLabel.Text = 2.5, Color3.fromRGB(80,85,95), Color3.fromRGB(120,130,150), Color3.fromRGB(180,200,255), Color3.fromRGB(100,80,120), 0.5, "RTX DAY MODE"
         end
-        
-        Lighting.EnvironmentDiffuseScale = 1.5
-        Lighting.EnvironmentSpecularScale = 1.5
-        Lighting.GlobalShadows = true
-        
+        Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale, Lighting.GlobalShadows = 1.5, 1.5, true
         local bloom = Lighting:FindFirstChild("Bloom")
-        if not bloom then
-            bloom = Instance.new("BloomEffect")
-            bloom.Name = "Bloom"
-            bloom.Intensity = isNight and 0.15 or 0.5
-            bloom.Size = isNight and 1 or 2
-            bloom.Threshold = isNight and 0.5 or 0.3
-            bloom.Parent = Lighting
-        else
-            bloom.Intensity = isNight and 0.15 or 0.5
-            bloom.Size = isNight and 1 or 2
-            bloom.Threshold = isNight and 0.5 or 0.3
-        end
-        
+        if not bloom then bloom = Instance.new("BloomEffect", Lighting); bloom.Name = "Bloom" end
+        bloom.Intensity, bloom.Size, bloom.Threshold = isNight and 0.15 or 0.5, isNight and 1 or 2, isNight and 0.5 or 0.3
         local cc = Lighting:FindFirstChild("ColorCorrection")
-        if not cc then
-            cc = Instance.new("ColorCorrectionEffect")
-            cc.Name = "ColorCorrection"
-            cc.Saturation = isNight and 0.8 or 1.1
-            cc.Contrast = isNight and 0.9 or 1.1
-            cc.Brightness = isNight and -0.1 or 0.05
-            cc.Parent = Lighting
-        else
-            cc.Saturation = isNight and 0.8 or 1.1
-            cc.Contrast = isNight and 0.9 or 1.1
-            cc.Brightness = isNight and -0.1 or 0.05
-        end
-        
-        if not isNight then
-            local sunRays = Lighting:FindFirstChild("SunRays")
-            if not sunRays then
-                sunRays = Instance.new("SunRaysEffect")
-                sunRays.Name = "SunRays"
-                sunRays.Intensity = 0.15
-                sunRays.Spread = 0.5
-                sunRays.Parent = Lighting
-            else
-                sunRays.Intensity = 0.15
-                sunRays.Spread = 0.5
-                sunRays.Enabled = true
-            end
-        else
-            local sunRays = Lighting:FindFirstChild("SunRays")
-            if sunRays then sunRays.Enabled = false end
-        end
-        
-        local dof = Lighting:FindFirstChild("DepthOfField")
-        if not dof then
-            dof = Instance.new("DepthOfFieldEffect")
-            dof.Name = "DepthOfField"
-            dof.FarIntensity = isNight and 0.1 or 0.3
-            dof.FarBlurSize = isNight and 1 or 2
-            dof.NearIntensity = 0
-            dof.NearBlurSize = 0
-            dof.FocusDistance = isNight and 30 or 50
-            dof.InFocusRadius = isNight and 20 or 30
-            dof.Parent = Lighting
-        else
-            dof.FarIntensity = isNight and 0.1 or 0.3
-            dof.FarBlurSize = isNight and 1 or 2
-            dof.NearIntensity = 0
-            dof.NearBlurSize = 0
-            dof.FocusDistance = isNight and 30 or 50
-            dof.InFocusRadius = isNight and 20 or 30
-        end
-        
-        statusLabel.TextColor3 = isNight and Color3.fromRGB(100, 150, 255) or Color3.fromRGB(0, 200, 255)
-        
-    else
-        rtxBtn.Text = "OFF"
-        rtxBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        rtxBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "RTX DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        
-        Lighting.Brightness = originalLighting.Brightness
-        Lighting.ClockTime = originalLighting.ClockTime
-        Lighting.Ambient = originalLighting.Ambient
-        Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
-        Lighting.ColorShift_Top = originalLighting.ColorShift_Top
-        Lighting.ColorShift_Bottom = originalLighting.ColorShift_Bottom
-        Lighting.EnvironmentDiffuseScale = originalLighting.EnvironmentDiffuseScale
-        Lighting.EnvironmentSpecularScale = originalLighting.EnvironmentSpecularScale
-        Lighting.GlobalShadows = originalLighting.GlobalShadows
-        Lighting.ShadowSoftness = originalLighting.ShadowSoftness
-        Lighting.Technology = originalLighting.Technology
-        
-        local bloom = Lighting:FindFirstChild("Bloom")
-        if bloom then bloom:Destroy() end
-        local cc = Lighting:FindFirstChild("ColorCorrection")
-        if cc then cc:Destroy() end
+        if not cc then cc = Instance.new("ColorCorrectionEffect", Lighting); cc.Name = "ColorCorrection" end
+        cc.Saturation, cc.Contrast, cc.Brightness = isNight and 0.8 or 1.1, isNight and 0.9 or 1.1, isNight and -0.1 or 0.05
         local sunRays = Lighting:FindFirstChild("SunRays")
-        if sunRays then sunRays:Destroy() end
+        if not isNight then
+            if not sunRays then sunRays = Instance.new("SunRaysEffect", Lighting); sunRays.Name = "SunRays" end
+            sunRays.Intensity, sunRays.Spread, sunRays.Enabled = 0.15, 0.5, true
+        elseif sunRays then sunRays.Enabled = false end
         local dof = Lighting:FindFirstChild("DepthOfField")
-        if dof then dof:Destroy() end
-        
+        if not dof then dof = Instance.new("DepthOfFieldEffect", Lighting); dof.Name = "DepthOfField" end
+        dof.FarIntensity, dof.FarBlurSize, dof.NearIntensity, dof.NearBlurSize, dof.FocusDistance, dof.InFocusRadius = isNight and 0.1 or 0.3, isNight and 1 or 2, 0, 0, isNight and 30 or 50, isNight and 20 or 30
+        statusLabel.TextColor3 = isNight and Color3.fromRGB(100,150,255) or Color3.fromRGB(0,200,255)
+    else
+        rtxBtn.Text, rtxBtn.BackgroundColor3, rtxBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        statusLabel.Text, statusLabel.TextColor3 = "RTX DISABLED", Color3.fromRGB(255,100,100)
+        Lighting.Brightness, Lighting.ClockTime, Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.ColorShift_Top, Lighting.ColorShift_Bottom, Lighting.EnvironmentDiffuseScale, Lighting.EnvironmentSpecularScale, Lighting.GlobalShadows, Lighting.ShadowSoftness, Lighting.Technology = originalLighting.Brightness, originalLighting.ClockTime, originalLighting.Ambient, originalLighting.OutdoorAmbient, originalLighting.ColorShift_Top, originalLighting.ColorShift_Bottom, originalLighting.EnvironmentDiffuseScale, originalLighting.EnvironmentSpecularScale, originalLighting.GlobalShadows, originalLighting.ShadowSoftness, originalLighting.Technology
+        local bloom = Lighting:FindFirstChild("Bloom"); if bloom then bloom:Destroy() end
+        local cc = Lighting:FindFirstChild("ColorCorrection"); if cc then cc:Destroy() end
+        local sunRays = Lighting:FindFirstChild("SunRays"); if sunRays then sunRays:Destroy() end
+        local dof = Lighting:FindFirstChild("DepthOfField"); if dof then dof:Destroy() end
         task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+        statusLabel.Text, statusLabel.TextColor3 = "Ready", Color3.fromRGB(0,255,150)
     end
 end
-
 rtxBtn.MouseButton1Click:Connect(toggleRTX)
 rtxBtn.TouchTap:Connect(toggleRTX)
 
@@ -1580,186 +1262,82 @@ rtxBtn.TouchTap:Connect(toggleRTX)
 local function toggleInfect()
     deleteInfectActive = not deleteInfectActive
     if deleteInfectActive then
-        infectBtn.Text = "ON"
-        infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning infect..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        if infectConnection then
-            pcall(function() infectConnection:Disconnect() end)
-            infectConnection = nil
-        end
+        infectBtn.Text, infectBtn.BackgroundColor3, infectBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
+        statusLabel.Text, statusLabel.TextColor3 = "Scanning infect...", Color3.fromRGB(0,255,100)
+        if infectConnection then pcall(function() infectConnection:Disconnect() end); infectConnection = nil end
         scanAndDeleteInfect()
-        infectConnection = RunService.Heartbeat:Connect(function()
-            if deleteInfectActive then
-                scanAndDeleteInfect()
-            end
-        end)
+        infectConnection = RunService.Heartbeat:Connect(function() if deleteInfectActive then scanAndDeleteInfect() end end)
     else
-        infectBtn.Text = "OFF"
-        infectBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        if infectConnection then
-            pcall(function() infectConnection:Disconnect() end)
-            infectConnection = nil
-        end
+        infectBtn.Text, infectBtn.BackgroundColor3, infectBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        if infectConnection then pcall(function() infectConnection:Disconnect() end); infectConnection = nil end
         local restored = restoreInfect()
-        if restored > 0 then
-            statusLabel.Text = "Restored " .. restored .. " infect"
-        else
-            statusLabel.Text = "No infect to restore"
-        end
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+        statusLabel.Text = restored > 0 and "Restored " .. restored .. " infect" or "No infect to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(0,255,150)
     end
 end
-
 infectBtn.MouseButton1Click:Connect(toggleInfect)
 infectBtn.TouchTap:Connect(toggleInfect)
 
 local function toggleKill()
     deleteKillActive = not deleteKillActive
     if deleteKillActive then
-        killBtn.Text = "ON"
-        killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning kill..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        if killConnection then
-            pcall(function() killConnection:Disconnect() end)
-            killConnection = nil
-        end
+        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
+        statusLabel.Text, statusLabel.TextColor3 = "Scanning kill...", Color3.fromRGB(0,255,100)
+        if killConnection then pcall(function() killConnection:Disconnect() end); killConnection = nil end
         scanAndDeleteKill()
-        killConnection = RunService.Heartbeat:Connect(function()
-            if deleteKillActive then
-                scanAndDeleteKill()
-            end
-        end)
+        killConnection = RunService.Heartbeat:Connect(function() if deleteKillActive then scanAndDeleteKill() end end)
     else
-        killBtn.Text = "OFF"
-        killBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        if killConnection then
-            pcall(function() killConnection:Disconnect() end)
-            killConnection = nil
-        end
+        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        if killConnection then pcall(function() killConnection:Disconnect() end); killConnection = nil end
         local restored = restoreKill()
-        if restored > 0 then
-            statusLabel.Text = "Restored " .. restored .. " kill"
-        else
-            statusLabel.Text = "No kill to restore"
-        end
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+        statusLabel.Text = restored > 0 and "Restored " .. restored .. " kill" or "No kill to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(0,255,150)
     end
 end
-
 killBtn.MouseButton1Click:Connect(toggleKill)
 killBtn.TouchTap:Connect(toggleKill)
 
 local function toggleDoors()
     deleteDoorsActive = not deleteDoorsActive
     if deleteDoorsActive then
-        doorsBtn.Text = "ON"
-        doorsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        doorsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning doors..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        if doorsConnection then
-            pcall(function() doorsConnection:Disconnect() end)
-            doorsConnection = nil
-        end
+        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100)
+        statusLabel.Text, statusLabel.TextColor3 = "Scanning doors...", Color3.fromRGB(0,255,100)
+        if doorsConnection then pcall(function() doorsConnection:Disconnect() end); doorsConnection = nil end
         scanAndDeleteDoors()
-        doorsConnection = RunService.Heartbeat:Connect(function()
-            if deleteDoorsActive then
-                scanAndDeleteDoors()
-            end
-        end)
+        doorsConnection = RunService.Heartbeat:Connect(function() if deleteDoorsActive then scanAndDeleteDoors() end end)
     else
-        doorsBtn.Text = "OFF"
-        doorsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        doorsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        if doorsConnection then
-            pcall(function() doorsConnection:Disconnect() end)
-            doorsConnection = nil
-        end
+        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        if doorsConnection then pcall(function() doorsConnection:Disconnect() end); doorsConnection = nil end
         local restored = restoreDoors()
-        if restored > 0 then
-            statusLabel.Text = "Restored " .. restored .. " doors"
-        else
-            statusLabel.Text = "No doors to restore"
-        end
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+        statusLabel.Text = restored > 0 and "Restored " .. restored .. " doors" or "No doors to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(0,255,150)
     end
 end
-
 doorsBtn.MouseButton1Click:Connect(toggleDoors)
 doorsBtn.TouchTap:Connect(toggleDoors)
-
+]],
+    [7] = [[
 -- ========== TAB SWITCHING ==========
 local function switchToMods()
-    modsPage.Visible = true
-    playerPage.Visible = false
-    graphicsPage.Visible = false
-    themePage.Visible = false
-    othersPage.Visible = false
-    tabMods.TextColor3 = themes[currentTheme].accent
-    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+    modsPage.Visible, playerPage.Visible, graphicsPage.Visible, themePage.Visible, othersPage.Visible = true, false, false, false, false
+    tabMods.TextColor3, tabPlayer.TextColor3, tabGraphics.TextColor3, tabTheme.TextColor3, tabOthers.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
 end
-
 local function switchToPlayer()
-    modsPage.Visible = false
-    playerPage.Visible = true
-    graphicsPage.Visible = false
-    themePage.Visible = false
-    othersPage.Visible = false
-    tabPlayer.TextColor3 = themes[currentTheme].accent
-    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+    modsPage.Visible, playerPage.Visible, graphicsPage.Visible, themePage.Visible, othersPage.Visible = false, true, false, false, false
+    tabPlayer.TextColor3, tabMods.TextColor3, tabGraphics.TextColor3, tabTheme.TextColor3, tabOthers.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
 end
-
 local function switchToGraphics()
-    modsPage.Visible = false
-    playerPage.Visible = false
-    graphicsPage.Visible = true
-    themePage.Visible = false
-    othersPage.Visible = false
-    tabGraphics.TextColor3 = themes[currentTheme].accent
-    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+    modsPage.Visible, playerPage.Visible, graphicsPage.Visible, themePage.Visible, othersPage.Visible = false, false, true, false, false
+    tabGraphics.TextColor3, tabMods.TextColor3, tabPlayer.TextColor3, tabTheme.TextColor3, tabOthers.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
 end
-
 local function switchToTheme()
-    modsPage.Visible = false
-    playerPage.Visible = false
-    graphicsPage.Visible = false
-    themePage.Visible = true
-    othersPage.Visible = false
-    tabTheme.TextColor3 = themes[currentTheme].accent
-    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+    modsPage.Visible, playerPage.Visible, graphicsPage.Visible, themePage.Visible, othersPage.Visible = false, false, false, true, false
+    tabTheme.TextColor3, tabMods.TextColor3, tabPlayer.TextColor3, tabGraphics.TextColor3, tabOthers.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
 end
-
 local function switchToOthers()
-    modsPage.Visible = false
-    playerPage.Visible = false
-    graphicsPage.Visible = false
-    themePage.Visible = false
-    othersPage.Visible = true
-    tabOthers.TextColor3 = themes[currentTheme].accent
-    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
+    modsPage.Visible, playerPage.Visible, graphicsPage.Visible, themePage.Visible, othersPage.Visible = false, false, false, false, true
+    tabOthers.TextColor3, tabMods.TextColor3, tabPlayer.TextColor3, tabGraphics.TextColor3, tabTheme.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
 end
-
 tabMods.MouseButton1Click:Connect(switchToMods)
 tabMods.TouchTap:Connect(switchToMods)
 tabPlayer.MouseButton1Click:Connect(switchToPlayer)
@@ -1771,67 +1349,38 @@ tabTheme.TouchTap:Connect(switchToTheme)
 tabOthers.MouseButton1Click:Connect(switchToOthers)
 tabOthers.TouchTap:Connect(switchToOthers)
 
-modsPage.Visible = true
-tabMods.TextColor3 = themes.Default.accent
+modsPage.Visible, tabMods.TextColor3 = true, themes.Default.accent
 
 -- ========== MINIMIZE FUNCTIONS ==========
 local function minimizeGUI()
     if isMinimized then return end
     isMinimized = true
-    frame.Visible = false
-    miniFrame.Visible = true
-    blur.Size = 0
+    frame.Visible, miniFrame.Visible, blur.Size = false, true, 0
 end
-
 local function unminimizeGUI()
     if not isMinimized then return end
     isMinimized = false
-    frame.Visible = true
-    miniFrame.Visible = false
-    blur.Size = 3
+    frame.Visible, miniFrame.Visible, blur.Size = true, false, 3
 end
-
 minBtn.MouseButton1Click:Connect(minimizeGUI)
 minBtn.TouchTap:Connect(minimizeGUI)
-
 miniFrame.MouseButton1Click:Connect(unminimizeGUI)
 miniFrame.TouchTap:Connect(unminimizeGUI)
 
 closeBtn.MouseButton1Click:Connect(function()
     if isOpen then
-        isOpen = false
-        frame.Visible = false
-        miniFrame.Visible = false
-        closeBtn.Text = "▶"
-        closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        blur.Size = 0
+        isOpen, frame.Visible, miniFrame.Visible, closeBtn.Text, closeBtn.TextColor3, blur.Size = false, false, false, "▶", Color3.fromRGB(100,255,100), 0
     else
-        isOpen = true
-        frame.Visible = true
-        if not isMinimized then
-            blur.Size = 3
-        end
-        closeBtn.Text = "✕"
-        closeBtn.TextColor3 = themes[currentTheme].accent
+        isOpen, frame.Visible, closeBtn.Text, closeBtn.TextColor3 = true, true, "✕", themes[currentTheme].accent
+        if not isMinimized then blur.Size = 3 end
     end
 end)
-
 closeBtn.TouchTap:Connect(function()
     if isOpen then
-        isOpen = false
-        frame.Visible = false
-        miniFrame.Visible = false
-        closeBtn.Text = "▶"
-        closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        blur.Size = 0
+        isOpen, frame.Visible, miniFrame.Visible, closeBtn.Text, closeBtn.TextColor3, blur.Size = false, false, false, "▶", Color3.fromRGB(100,255,100), 0
     else
-        isOpen = true
-        frame.Visible = true
-        if not isMinimized then
-            blur.Size = 3
-        end
-        closeBtn.Text = "✕"
-        closeBtn.TextColor3 = themes[currentTheme].accent
+        isOpen, frame.Visible, closeBtn.Text, closeBtn.TextColor3 = true, true, "✕", themes[currentTheme].accent
+        if not isMinimized then blur.Size = 3 end
     end
 end)
 
@@ -1840,35 +1389,42 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.Insert then
         if isOpen then
-            isOpen = false
-            frame.Visible = false
-            miniFrame.Visible = false
-            closeBtn.Text = "▶"
-            closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-            blur.Size = 0
+            isOpen, frame.Visible, miniFrame.Visible, closeBtn.Text, closeBtn.TextColor3, blur.Size = false, false, false, "▶", Color3.fromRGB(100,255,100), 0
         else
-            isOpen = true
-            frame.Visible = true
-            if not isMinimized then
-                blur.Size = 3
-            end
-            closeBtn.Text = "✕"
-            closeBtn.TextColor3 = themes[currentTheme].accent
+            isOpen, frame.Visible, closeBtn.Text, closeBtn.TextColor3 = true, true, "✕", themes[currentTheme].accent
+            if not isMinimized then blur.Size = 3 end
         end
     end
 end)
 
 -- ========== FORCE VISIBILITY ==========
 task.wait(0.3)
-frame.Visible = true
-frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 360, 0, 340)
-frame.Position = UDim2.new(0.5, -180, 0.5, -170)
-blur.Size = 3
-miniFrame.Visible = false
-closeBtn.Text = "✕"
-shitflockBtn.Visible = false
-flyUpBtn.Visible = false
-flyDownBtn.Visible = false
+frame.Visible, frame.BackgroundTransparency, frame.Size, frame.Position = true, 0.08, UDim2.new(0,360,0,340), UDim2.new(0.5,-180,0.5,-170)
+blur.Size, miniFrame.Visible, closeBtn.Text, shitflockBtn.Visible, flyUpBtn.Visible, flyDownBtn.Visible = 3, false, "✕", false, false, false
 
-print("NZ-IS v6 - All mods fixed, CharacterAdded rebind added, no errors!")
+print("NZ-IS v6 - Fully loaded!")
+]]
+}
+
+-- Execute all chunks
+local fullScript = ""
+for i = 1, #scriptChunks do
+    fullScript = fullScript .. scriptChunks[i]
+end
+
+-- Load and execute
+local func, err = loadstring(fullScript)
+if func then
+    func()
+else
+    warn("Failed to load script: " .. tostring(err))
+    -- Fallback: try executing chunks individually
+    for i, chunk in pairs(scriptChunks) do
+        local f, e = loadstring(chunk)
+        if f then
+            pcall(f)
+        else
+            warn("Chunk " .. i .. " failed: " .. tostring(e))
+        end
+    end
+end
