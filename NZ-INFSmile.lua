@@ -34,6 +34,7 @@ local deleteFireLavaActive = false
 local deleteSeismicActive = false
 local antiInfectionActive = false
 local deleteOrbActive = false
+local signsEditActive = false
 
 local deletedInfect = {}
 local deletedKill = {}
@@ -45,11 +46,12 @@ local deletedSeismic = {}
 local deletedOrb = {}
 local duplicatedSadWater = nil
 local originalSadWater = nil
+local signTexts = {} -- Store original texts for reset
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 270)
-frame.Position = UDim2.new(0.5, -140, 0.5, -135)
+frame.Size = UDim2.new(0, 320, 0, 290)
+frame.Position = UDim2.new(0.5, -160, 0.5, -145)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -150,7 +152,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -74)
     pg.Position = UDim2.new(0, 5, 0, 65)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 380)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 420)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 80)
     pg.Parent = frame
@@ -180,7 +182,7 @@ end
 local function makeToggle(y, parent)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 60, 0, 22)
-    btn.Position = UDim2.new(0, 160, 0, y)
+    btn.Position = UDim2.new(0, 200, 0, y)
     btn.Text = "OFF"
     btn.TextColor3 = Color3.fromRGB(255, 100, 100)
     btn.TextSize = 10
@@ -245,6 +247,54 @@ yOff = yOff + 28
 
 makeLabel("Delete Orb", yOff, modsPage, 110)
 local deleteOrbBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+-- Signs Edit (with TextBox)
+local signsLabel = makeLabel("Signs Edit", yOff, modsPage, 80)
+yOff = yOff + 28
+
+-- TextBox for Signs Edit
+local signsTextBox = Instance.new("TextBox")
+signsTextBox.Size = UDim2.new(0, 100, 0, 22)
+signsTextBox.Position = UDim2.new(0, 85, 0, yOff - 28)
+signsTextBox.PlaceholderText = "Enter text..."
+signsTextBox.Text = ""
+signsTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+signsTextBox.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+signsTextBox.BackgroundTransparency = 0.3
+signsTextBox.TextSize = 11
+signsTextBox.Font = Enum.Font.Gotham
+signsTextBox.Parent = modsPage
+local signsCorner = Instance.new("UICorner", signsTextBox)
+signsCorner.CornerRadius = UDim.new(0, 4)
+
+-- Toggle for Signs Edit
+local signsBtn = Instance.new("TextButton")
+signsBtn.Size = UDim2.new(0, 60, 0, 22)
+signsBtn.Position = UDim2.new(0, 200, 0, yOff - 28)
+signsBtn.Text = "OFF"
+signsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+signsBtn.TextSize = 10
+signsBtn.Font = Enum.Font.GothamBold
+signsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+signsBtn.Parent = modsPage
+local signsCorner2 = Instance.new("UICorner", signsBtn)
+signsCorner2.CornerRadius = UDim.new(0, 4)
+
+-- Reset button for Signs Edit
+local signsResetBtn = Instance.new("TextButton")
+signsResetBtn.Size = UDim2.new(0, 50, 0, 22)
+signsResetBtn.Position = UDim2.new(0, 265, 0, yOff - 28)
+signsResetBtn.Text = "Reset"
+signsResetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+signsResetBtn.TextSize = 9
+signsResetBtn.Font = Enum.Font.GothamBold
+signsResetBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 20)
+signsResetBtn.Parent = modsPage
+local resetCorner = Instance.new("UICorner", signsResetBtn)
+resetCorner.CornerRadius = UDim.new(0, 4)
+signsResetBtn.Visible = false
+
 yOff = yOff + 32
 
 local statusLabel = Instance.new("TextLabel")
@@ -548,6 +598,110 @@ end
 deleteOrbBtn.MouseButton1Click:Connect(toggleDeleteOrb)
 deleteOrbBtn.TouchTap:Connect(toggleDeleteOrb)
 
+-- ===== SIGNS EDIT =====
+local function saveSignTexts()
+    signTexts = {}
+    for _, model in pairs(Workspace:GetDescendants()) do
+        if model:IsA("Model") and model.Name and string.lower(model.Name):find("smilesign") then
+            for _, child in pairs(model:GetDescendants()) do
+                if child:IsA("TextLabel") then
+                    table.insert(signTexts, {
+                        Label = child,
+                        OriginalText = child.Text
+                    })
+                end
+            end
+        end
+    end
+end
+
+local function applySignTexts(newText)
+    local count = 0
+    for _, data in pairs(signTexts) do
+        if data.Label and data.Label.Parent then
+            pcall(function()
+                data.Label.Text = newText
+                count = count + 1
+            end)
+        end
+    end
+    return count
+end
+
+local function resetSignTexts()
+    local count = 0
+    for _, data in pairs(signTexts) do
+        if data.Label and data.Label.Parent then
+            pcall(function()
+                data.Label.Text = data.OriginalText
+                count = count + 1
+            end)
+        end
+    end
+    return count
+end
+
+local function toggleSignsEdit()
+    signsEditActive = not signsEditActive
+    if signsEditActive then
+        signsBtn.Text = "ON"
+        signsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        signsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        signsResetBtn.Visible = true
+        saveSignTexts()
+        statusLabel.Text = "Signs Edit ENABLED - Type text and press Enter"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+    else
+        signsBtn.Text = "OFF"
+        signsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        signsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        signsResetBtn.Visible = false
+        resetSignTexts()
+        statusLabel.Text = "Signs Edit DISABLED - Texts restored"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        task.wait(0.5)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+signsBtn.MouseButton1Click:Connect(toggleSignsEdit)
+signsBtn.TouchTap:Connect(toggleSignsEdit)
+
+-- TextBox: Press Enter to apply text
+signsTextBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed and signsEditActive then
+        local newText = signsTextBox.Text
+        if newText and newText ~= "" then
+            local count = applySignTexts(newText)
+            statusLabel.Text = "Applied '" .. newText .. "' to " .. count .. " signs"
+            statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        else
+            statusLabel.Text = "Please enter text first"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+        end
+    end
+end)
+
+-- Reset button
+signsResetBtn.MouseButton1Click:Connect(function()
+    if signsEditActive then
+        local count = resetSignTexts()
+        statusLabel.Text = "Reset " .. count .. " signs to original text"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+        signsTextBox.Text = ""
+    end
+end)
+
+signsResetBtn.TouchTap:Connect(function()
+    if signsEditActive then
+        local count = resetSignTexts()
+        statusLabel.Text = "Reset " .. count .. " signs to original text"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+        signsTextBox.Text = ""
+    end
+end)
+
 -- ===== TOGGLES =====
 local function toggleInfect()
     deleteInfectActive = not deleteInfectActive
@@ -731,7 +885,7 @@ UserInputService.InputBegan:Connect(function(i, gp) if gp then return end; if i.
 
 -- ===== FORCE VISIBILITY =====
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 280, 0, 270)
+frame.Size = UDim2.new(0, 320, 0, 290)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Delete Orb mod added)")
+print("NZ-IS v6 - LOADED! (Signs Edit mod added)")
