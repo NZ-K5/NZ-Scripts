@@ -1,4 +1,3 @@
--- NZ-IS v6 - FIXED
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -33,60 +32,25 @@ local currentTheme = "Default"
 local isOpen = true
 local isMinimized = false
 
--- Toggles
 local infectActive = false
 local killActive = false
 local doorsActive = false
 local espActive = false
-local rtxActive = false
-local futureActive = false
-local shitflockActive = false
-local infJumpActive = false
-local noclipActive = false
-local flyActive = false
 
-local walkspeedVal = 16
-local jumppowerVal = 50
-
--- Connections
 local infectConn = nil
 local killConn = nil
 local doorsConn = nil
 local espConn = nil
-local flyConn = nil
-local noclipConn = nil
-local infJumpConn = nil
 
--- Data storage
 local deletedInfect = {}
 local deletedKill = {}
 local deletedDoors = {}
 local espObjects = {}
 
--- Fly
-local flyVelocity = nil
-local flyGyro = nil
-local flyUpHeld = false
-local flyDownHeld = false
-
-local originalLighting = {
-    Brightness = Lighting.Brightness,
-    ClockTime = Lighting.ClockTime,
-    Ambient = Lighting.Ambient,
-    OutdoorAmbient = Lighting.OutdoorAmbient,
-    ColorShift_Top = Lighting.ColorShift_Top,
-    ColorShift_Bottom = Lighting.ColorShift_Bottom,
-    EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale,
-    EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale,
-    GlobalShadows = Lighting.GlobalShadows,
-    ShadowSoftness = Lighting.ShadowSoftness,
-    Technology = Lighting.Technology
-}
-
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 360, 0, 340)
-frame.Position = UDim2.new(0.5, -180, 0.5, -170)
+frame.Size = UDim2.new(0, 340, 0, 300)
+frame.Position = UDim2.new(0.5, -170, 0.5, -150)
 frame.BackgroundColor3 = themes.Default.bg
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -178,67 +142,6 @@ miniLabel.Font = Enum.Font.GothamBold
 miniLabel.BackgroundTransparency = 1
 miniLabel.Parent = miniFrame
 
--- ===== SHITFLOCK BUTTON =====
-local shitflockBtn = Instance.new("TextButton")
-shitflockBtn.Size = UDim2.new(0, 55, 0, 55)
-shitflockBtn.Position = UDim2.new(0, 10, 1, -70)
-shitflockBtn.Text = "🔄"
-shitflockBtn.TextSize = 26
-shitflockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-shitflockBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
-shitflockBtn.Parent = root
-shitflockBtn.Visible = false
-shitflockBtn.ZIndex = 999
-shitflockBtn.Active = true
-local shitflockCorner = Instance.new("UICorner", shitflockBtn)
-shitflockCorner.CornerRadius = UDim.new(1, 0)
-local shitflockStroke = Instance.new("UIStroke", shitflockBtn)
-shitflockStroke.Color = Color3.fromRGB(255, 255, 255)
-shitflockStroke.Thickness = 2
-shitflockStroke.Transparency = 0.2
-
-shitflockBtn.MouseButton1Click:Connect(function() print("Shitflock") end)
-shitflockBtn.TouchTap:Connect(function() print("Shitflock") end)
-
--- ===== FLY MOBILE CONTROLS =====
-local flyUpBtn = Instance.new("TextButton")
-flyUpBtn.Size = UDim2.new(0, 70, 0, 70)
-flyUpBtn.Position = UDim2.new(1, -85, 0.5, -85)
-flyUpBtn.Text = "▲"
-flyUpBtn.TextSize = 30
-flyUpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-flyUpBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
-flyUpBtn.BackgroundTransparency = 0.5
-flyUpBtn.Parent = root
-flyUpBtn.Visible = false
-flyUpBtn.ZIndex = 999
-local flyUpCorner = Instance.new("UICorner", flyUpBtn)
-flyUpCorner.CornerRadius = UDim.new(1, 0)
-
-local flyDownBtn = Instance.new("TextButton")
-flyDownBtn.Size = UDim2.new(0, 70, 0, 70)
-flyDownBtn.Position = UDim2.new(1, -85, 0.5, -5)
-flyDownBtn.Text = "▼"
-flyDownBtn.TextSize = 30
-flyDownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-flyDownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
-flyDownBtn.BackgroundTransparency = 0.5
-flyDownBtn.Parent = root
-flyDownBtn.Visible = false
-flyDownBtn.ZIndex = 999
-local flyDownCorner = Instance.new("UICorner", flyDownBtn)
-flyDownCorner.CornerRadius = UDim.new(1, 0)
-
-flyUpBtn.TouchBegan:Connect(function() flyUpHeld = true end)
-flyUpBtn.TouchEnded:Connect(function() flyUpHeld = false end)
-flyUpBtn.MouseButton1Down:Connect(function() flyUpHeld = true end)
-flyUpBtn.MouseButton1Up:Connect(function() flyUpHeld = false end)
-
-flyDownBtn.TouchBegan:Connect(function() flyDownHeld = true end)
-flyDownBtn.TouchEnded:Connect(function() flyDownHeld = false end)
-flyDownBtn.MouseButton1Down:Connect(function() flyDownHeld = true end)
-flyDownBtn.MouseButton1Up:Connect(function() flyDownHeld = false end)
-
 -- ===== TABS =====
 local tabContainer = Instance.new("Frame")
 tabContainer.Size = UDim2.new(1, -10, 0, 28)
@@ -248,11 +151,11 @@ tabContainer.Parent = frame
 
 local function makeTab(name, x)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 65, 1, 0)
+    btn.Size = UDim2.new(0, 100, 1, 0)
     btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 210)
-    btn.TextSize = 10
+    btn.TextSize = 11
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     btn.BackgroundTransparency = 0.3
@@ -264,10 +167,7 @@ local function makeTab(name, x)
 end
 
 local tabMods = makeTab("Mods", 0)
-local tabPlayer = makeTab("Player", 70)
-local tabGraphics = makeTab("Graphics", 140)
-local tabTheme = makeTab("Theme", 210)
-local tabOthers = makeTab("Others", 280)
+local tabOthers = makeTab("Others", 110)
 
 -- ===== PAGES =====
 local function makePage()
@@ -275,7 +175,7 @@ local function makePage()
     pg.Size = UDim2.new(1, -10, 1, -84)
     pg.Position = UDim2.new(0, 5, 0, 80)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 550)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 250)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = themes.Default.ac
     pg.Parent = frame
@@ -284,9 +184,6 @@ local function makePage()
 end
 
 local modsPage = makePage()
-local playerPage = makePage()
-local graphicsPage = makePage()
-local themePage = makePage()
 local othersPage = makePage()
 
 -- ===== UI HELPERS =====
@@ -319,74 +216,6 @@ local function addToggle(y, parent)
     local c = Instance.new("UICorner", btn)
     c.CornerRadius = UDim.new(0, 4)
     return btn
-end
-
-local function addSlider(text, y, parent, minVal, maxVal, defaultVal, callback)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 120, 0, 22)
-    label.Position = UDim2.new(0, 0, 0, y)
-    label.Text = text
-    label.TextColor3 = themes.Default.tx
-    label.TextSize = 11
-    label.Font = Enum.Font.Gotham
-    label.BackgroundTransparency = 1
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = parent
-
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Size = UDim2.new(0, 40, 0, 22)
-    valueLabel.Position = UDim2.new(0, 125, 0, y)
-    valueLabel.Text = tostring(defaultVal)
-    valueLabel.TextColor3 = themes.Default.ac
-    valueLabel.TextSize = 11
-    valueLabel.Font = Enum.Font.GothamBold
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.TextXAlignment = Enum.TextXAlignment.Center
-    valueLabel.Parent = parent
-
-    local slider = Instance.new("Frame")
-    slider.Size = UDim2.new(0, 120, 0, 8)
-    slider.Position = UDim2.new(0, 170, 0, y + 7)
-    slider.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    slider.Parent = parent
-    local sliderCorner = Instance.new("UICorner", slider)
-    sliderCorner.CornerRadius = UDim.new(0, 4)
-
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new((defaultVal - minVal) / (maxVal - minVal), 0, 1, 0)
-    fill.BackgroundColor3 = themes.Default.ac
-    fill.Parent = slider
-    local fillCorner = Instance.new("UICorner", fill)
-    fillCorner.CornerRadius = UDim.new(0, 4)
-
-    local currentVal = defaultVal
-
-    local function updateSlider(input)
-        local pos = input.Position.X - slider.AbsolutePosition.X
-        local width = slider.AbsoluteSize.X
-        local percent = math.clamp(pos / width, 0, 1)
-        local newVal = math.floor((minVal + (maxVal - minVal) * percent) * 10) / 10
-        if newVal < minVal then newVal = minVal end
-        if newVal > maxVal then newVal = maxVal end
-        currentVal = newVal
-        fill.Size = UDim2.new(percent, 0, 1, 0)
-        valueLabel.Text = tostring(newVal)
-        if callback then callback(newVal) end
-    end
-
-    slider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            updateSlider(input)
-        end
-    end)
-
-    slider.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            updateSlider(input)
-        end
-    end)
-
-    return {Slider = slider, Fill = fill, ValueLabel = valueLabel, GetValue = function() return currentVal end}
 end
 
 local function addButton(text, y, parent, color)
@@ -434,173 +263,10 @@ statusLabel.Parent = modsPage
 yOff = yOff + 28
 modsPage.CanvasSize = UDim2.new(0, 0, 0, yOff + 10)
 
--- ===== PLAYER PAGE =====
-local pY = 4
-addLabel("Enable Shitflock", pY, playerPage, 120)
-local shitflockToggle = addToggle(pY, playerPage)
-pY = pY + 28
-
-addSlider("WalkSpeed", pY, playerPage, 10, 100, 16, function(val)
-    walkspeedVal = val
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = val
-    end
-end)
-pY = pY + 36
-
-addSlider("JumpPower", pY, playerPage, 20, 200, 50, function(val)
-    jumppowerVal = val
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.JumpPower = val
-    end
-end)
-pY = pY + 36
-
-addLabel("Inf Jump", pY, playerPage, 120)
-local infJumpBtn = addToggle(pY, playerPage)
-pY = pY + 28
-
-addLabel("Noclip", pY, playerPage, 120)
-local noclipBtn = addToggle(pY, playerPage)
-pY = pY + 28
-
-addLabel("Fly", pY, playerPage, 120)
-local flyBtn = addToggle(pY, playerPage)
-pY = pY + 28
-
-local playerDesc = Instance.new("TextLabel")
-playerDesc.Size = UDim2.new(1, -10, 0, 30)
-playerDesc.Position = UDim2.new(0, 0, 0, pY)
-playerDesc.Text = "Fly: ▲ ▼ buttons appear on the right side"
-playerDesc.TextColor3 = Color3.fromRGB(150, 150, 170)
-playerDesc.TextSize = 10
-playerDesc.Font = Enum.Font.Gotham
-playerDesc.BackgroundTransparency = 1
-playerDesc.TextXAlignment = Enum.TextXAlignment.Left
-playerDesc.Parent = playerPage
-pY = pY + 40
-playerPage.CanvasSize = UDim2.new(0, 0, 0, pY + 10)
-
--- ===== GRAPHICS PAGE =====
-local gY = 4
-addLabel("RTX Graphics", gY, graphicsPage, 120)
-local rtxBtn = addToggle(gY, graphicsPage)
-gY = gY + 28
-addLabel("Realistic/Future Lighting", gY, graphicsPage, 120)
-local futureBtn = addToggle(gY, graphicsPage)
-gY = gY + 28
-
-local gDesc = Instance.new("TextLabel")
-gDesc.Size = UDim2.new(1, -10, 0, 30)
-gDesc.Position = UDim2.new(0, 0, 0, gY)
-gDesc.Text = "Lighting: Enables Future/Realistic tech\nRTX: Full visual overhaul"
-gDesc.TextColor3 = Color3.fromRGB(150, 150, 170)
-gDesc.TextSize = 10
-gDesc.Font = Enum.Font.Gotham
-gDesc.BackgroundTransparency = 1
-gDesc.TextXAlignment = Enum.TextXAlignment.Left
-gDesc.Parent = graphicsPage
-gY = gY + 40
-graphicsPage.CanvasSize = UDim2.new(0, 0, 0, gY + 10)
-
--- ===== THEME PAGE =====
-local tY = 4
-local themeLabel = Instance.new("TextLabel")
-themeLabel.Size = UDim2.new(1, -10, 0, 22)
-themeLabel.Position = UDim2.new(0, 0, 0, tY)
-themeLabel.Text = "THEMES"
-themeLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
-themeLabel.TextSize = 11
-themeLabel.Font = Enum.Font.GothamBold
-themeLabel.BackgroundTransparency = 1
-themeLabel.TextXAlignment = Enum.TextXAlignment.Left
-themeLabel.Parent = themePage
-tY = tY + 28
-
-local function addThemeButton(name, y, color)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 120, 0, 28)
-    btn.Position = UDim2.new(0, 0, 0, y)
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 12
-    btn.Font = Enum.Font.GothamBold
-    btn.BackgroundColor3 = color or Color3.fromRGB(30, 30, 50)
-    btn.Parent = themePage
-    btn.AutoButtonColor = true
-    local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 5)
-
-    local function applyTheme()
-        currentTheme = name
-        local t = themes[name]
-        frame.BackgroundColor3 = t.bg
-        frameStroke.Color = t.st
-        titleLabel.TextColor3 = t.ac
-        statusLabel.TextColor3 = t.ac
-        miniFrame.BackgroundColor3 = t.ac
-        miniStroke.Color = t.ac
-        minBtn.TextColor3 = t.ac
-        closeBtn.TextColor3 = t.ac
-        shitflockBtn.BackgroundColor3 = t.ac
-        flyUpBtn.BackgroundColor3 = t.ac
-        flyDownBtn.BackgroundColor3 = t.ac
-
-        for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= rtxBtn and child ~= futureBtn and child ~= minBtn and child ~= closeBtn and child ~= shitflockToggle and child ~= infJumpBtn and child ~= noclipBtn and child ~= flyBtn then
-                if child.Text == "Mods" or child.Text == "Player" or child.Text == "Graphics" or child.Text == "Theme" or child.Text == "Others" then
-                    child.TextColor3 = t.ac
-                end
-            end
-            if child:IsA("ScrollingFrame") then
-                child.ScrollBarImageColor3 = t.ac
-            end
-        end
-
-        local function updateToggle(btn, active)
-            if active then
-                btn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-                btn.TextColor3 = Color3.fromRGB(100, 255, 100)
-            else
-                btn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-                btn.TextColor3 = Color3.fromRGB(255, 100, 100)
-            end
-        end
-        updateToggle(infectBtn, infectActive)
-        updateToggle(killBtn, killActive)
-        updateToggle(doorsBtn, doorsActive)
-        updateToggle(espBtn, espActive)
-        updateToggle(rtxBtn, rtxActive)
-        updateToggle(futureBtn, futureActive)
-        updateToggle(shitflockToggle, shitflockActive)
-        updateToggle(infJumpBtn, infJumpActive)
-        updateToggle(noclipBtn, noclipActive)
-        updateToggle(flyBtn, flyActive)
-    end
-
-    btn.MouseButton1Click:Connect(applyTheme)
-    btn.TouchTap:Connect(applyTheme)
-    return btn
-end
-
-local themeColors = {
-    {name = "Default", color = Color3.fromRGB(30, 20, 25)},
-    {name = "Crimson", color = Color3.fromRGB(35, 15, 20)},
-    {name = "Cyber", color = Color3.fromRGB(10, 15, 40)},
-    {name = "Amber", color = Color3.fromRGB(35, 25, 15)},
-    {name = "Violet", color = Color3.fromRGB(25, 15, 40)}
-}
-
-for _, t in pairs(themeColors) do
-    addThemeButton(t.name, tY, t.color)
-    tY = tY + 33
-end
-
 -- ===== OTHERS PAGE =====
 local oY = 10
 local destroyBtn = addButton("Destroy GUI", oY, othersPage, Color3.fromRGB(80, 20, 20))
 oY = oY + 40
-
 local creditsLabel = Instance.new("TextLabel")
 creditsLabel.Size = UDim2.new(1, -10, 0, 20)
 creditsLabel.Position = UDim2.new(0, 0, 0, oY)
@@ -614,230 +280,78 @@ creditsLabel.Parent = othersPage
 oY = oY + 30
 othersPage.CanvasSize = UDim2.new(0, 0, 0, oY + 10)
 
--- ===== SHITFLOCK TOGGLE =====
-local function toggleShitflock()
-    shitflockActive = not shitflockActive
-    if shitflockActive then
-        shitflockToggle.Text = "ON"
-        shitflockToggle.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        shitflockToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        shitflockBtn.Visible = true
-        statusLabel.Text = "Shitflock ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-    else
-        shitflockToggle.Text = "OFF"
-        shitflockToggle.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        shitflockToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        shitflockBtn.Visible = false
-        statusLabel.Text = "Shitflock DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
-end
-shitflockToggle.MouseButton1Click:Connect(toggleShitflock)
-shitflockToggle.TouchTap:Connect(toggleShitflock)
+-- ===== THEME BUTTONS (on title bar) =====
+local themeContainer = Instance.new("Frame")
+themeContainer.Size = UDim2.new(0, 200, 0, 28)
+themeContainer.Position = UDim2.new(0.5, -100, 0, 76)
+themeContainer.BackgroundTransparency = 1
+themeContainer.Parent = frame
 
--- ===== INF JUMP =====
-local function setupInfJump()
-    if infJumpConn then pcall(function() infJumpConn:Disconnect() end); infJumpConn = nil end
-    local char = player.Character
-    if not char then return end
-    local hum = char:FindFirstChild("Humanoid")
-    if not hum then return end
-    local jumpCount = 0
-    infJumpConn = hum.StateChanged:Connect(function(oldState, newState)
-        if not infJumpActive then return end
-        if newState == Enum.HumanoidStateType.Jumping then jumpCount = jumpCount + 1 end
-        if newState == Enum.HumanoidStateType.Landed then jumpCount = 0 end
-        if newState == Enum.HumanoidStateType.Freefall and jumpCount > 0 then
-            task.wait(0.05)
-            if infJumpActive and hum and hum.Parent then
-                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+local function addThemeButton(name, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 35, 1, 0)
+    btn.Position = UDim2.new(0, 0, 0, 0)
+    btn.Text = name:sub(1,1)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 10
+    btn.Font = Enum.Font.GothamBold
+    btn.BackgroundColor3 = color
+    btn.Parent = themeContainer
+    btn.AutoButtonColor = true
+    local c = Instance.new("UICorner", btn)
+    c.CornerRadius = UDim.new(0, 4)
+
+    btn.MouseButton1Click:Connect(function()
+        currentTheme = name
+        local t = themes[name]
+        frame.BackgroundColor3 = t.bg
+        frameStroke.Color = t.st
+        titleLabel.TextColor3 = t.ac
+        statusLabel.TextColor3 = t.ac
+        miniFrame.BackgroundColor3 = t.ac
+        miniStroke.Color = t.ac
+        minBtn.TextColor3 = t.ac
+        closeBtn.TextColor3 = t.ac
+        for _, child in pairs(frame:GetDescendants()) do
+            if child:IsA("ScrollingFrame") then
+                child.ScrollBarImageColor3 = t.ac
             end
         end
     end)
-end
-
-local function toggleInfJump()
-    infJumpActive = not infJumpActive
-    if infJumpActive then
-        infJumpBtn.Text = "ON"
-        infJumpBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        infJumpBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Inf Jump ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        setupInfJump()
-    else
-        infJumpBtn.Text = "OFF"
-        infJumpBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        infJumpBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "Inf Jump DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        if infJumpConn then pcall(function() infJumpConn:Disconnect() end); infJumpConn = nil end
-        task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
-end
-infJumpBtn.MouseButton1Click:Connect(toggleInfJump)
-infJumpBtn.TouchTap:Connect(toggleInfJump)
-
--- ===== NOCLIP =====
-local function setupNoclip()
-    if noclipConn then pcall(function() noclipConn:Disconnect() end); noclipConn = nil end
-    if not noclipActive then return end
-    noclipConn = RunService.Stepped:Connect(function()
-        if noclipActive and player.Character then
-            for _, part in pairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
+    btn.TouchTap:Connect(function()
+        currentTheme = name
+        local t = themes[name]
+        frame.BackgroundColor3 = t.bg
+        frameStroke.Color = t.st
+        titleLabel.TextColor3 = t.ac
+        statusLabel.TextColor3 = t.ac
+        miniFrame.BackgroundColor3 = t.ac
+        miniStroke.Color = t.ac
+        minBtn.TextColor3 = t.ac
+        closeBtn.TextColor3 = t.ac
+        for _, child in pairs(frame:GetDescendants()) do
+            if child:IsA("ScrollingFrame") then
+                child.ScrollBarImageColor3 = t.ac
             end
         end
     end)
+    return btn
 end
 
-local function toggleNoclip()
-    noclipActive = not noclipActive
-    if noclipActive then
-        noclipBtn.Text = "ON"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        noclipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Noclip ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        setupNoclip()
-    else
-        noclipBtn.Text = "OFF"
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "Noclip DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        if noclipConn then pcall(function() noclipConn:Disconnect() end); noclipConn = nil end
-        if player.Character then
-            for _, part in pairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
-            end
-        end
-        task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
+local themeColors = {
+    {name = "Default", color = Color3.fromRGB(30, 20, 25)},
+    {name = "Crimson", color = Color3.fromRGB(35, 15, 20)},
+    {name = "Cyber", color = Color3.fromRGB(10, 15, 40)},
+    {name = "Amber", color = Color3.fromRGB(35, 25, 15)},
+    {name = "Violet", color = Color3.fromRGB(25, 15, 40)}
+}
+
+local xPos = 0
+for _, t in pairs(themeColors) do
+    local btn = addThemeButton(t.name, t.color)
+    btn.Position = UDim2.new(0, xPos, 0, 0)
+    xPos = xPos + 40
 end
-noclipBtn.MouseButton1Click:Connect(toggleNoclip)
-noclipBtn.TouchTap:Connect(toggleNoclip)
-
--- ===== FLY =====
-local function setupFly()
-    if flyConn then pcall(function() flyConn:Disconnect() end); flyConn = nil end
-    if not flyActive then return end
-
-    flyConn = RunService.Heartbeat:Connect(function()
-        if not flyActive then return end
-        local char = player.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
-        local rootPart = char.HumanoidRootPart
-        local hum = char:FindFirstChild("Humanoid")
-
-        if not flyVelocity or flyVelocity.Parent == nil then
-            flyVelocity = Instance.new("BodyVelocity")
-            flyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-            flyVelocity.Parent = rootPart
-        end
-
-        if not flyGyro or flyGyro.Parent == nil then
-            flyGyro = Instance.new("BodyGyro")
-            flyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-            flyGyro.CFrame = rootPart.CFrame
-            flyGyro.Parent = rootPart
-        end
-
-        local moveDirection = Vector3.new()
-        local forward = Camera.CFrame.LookVector
-        local right = Camera.CFrame.RightVector
-
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + forward end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - forward end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - right end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + right end
-
-        if flyUpHeld then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
-        if flyDownHeld then moveDirection = moveDirection + Vector3.new(0, -1, 0) end
-
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            moveDirection = moveDirection + Vector3.new(0, 1, 0)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-            moveDirection = moveDirection + Vector3.new(0, -1, 0)
-        end
-
-        if moveDirection.Magnitude > 0 then
-            moveDirection = moveDirection.Unit * 50
-        end
-
-        flyVelocity.Velocity = moveDirection
-        flyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + forward * 10)
-
-        if hum then
-            hum.PlatformStand = true
-            hum.AutoRotate = false
-        end
-    end)
-end
-
-local function toggleFly()
-    flyActive = not flyActive
-    if flyActive then
-        flyBtn.Text = "ON"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        flyBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Fly ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        flyUpBtn.Visible = true
-        flyDownBtn.Visible = true
-        setupFly()
-    else
-        flyBtn.Text = "OFF"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        flyBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "Fly DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        flyUpBtn.Visible = false
-        flyDownBtn.Visible = false
-        flyUpHeld = false
-        flyDownHeld = false
-        if flyConn then pcall(function() flyConn:Disconnect() end); flyConn = nil end
-        if flyVelocity then pcall(function() flyVelocity:Destroy() end); flyVelocity = nil end
-        if flyGyro then pcall(function() flyGyro:Destroy() end); flyGyro = nil end
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.PlatformStand = false
-            char.Humanoid.AutoRotate = true
-        end
-        task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
-end
-flyBtn.MouseButton1Click:Connect(toggleFly)
-flyBtn.TouchTap:Connect(toggleFly)
-
--- ===== CHARACTER ADDED REBIND =====
-local function onCharacterAdded(char)
-    task.wait(0.3)
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = walkspeedVal
-        player.Character.Humanoid.JumpPower = jumppowerVal
-    end
-    if infJumpActive then setupInfJump() end
-    if noclipActive then setupNoclip() end
-    if flyActive then setupFly() end
-end
-player.CharacterAdded:Connect(onCharacterAdded)
 
 -- ===== DESTROY FUNCTION =====
 local function destroyGUI()
@@ -845,11 +359,6 @@ local function destroyGUI()
     if killConn then pcall(function() killConn:Disconnect() end) end
     if doorsConn then pcall(function() doorsConn:Disconnect() end) end
     if espConn then pcall(function() espConn:Disconnect() end) end
-    if noclipConn then pcall(function() noclipConn:Disconnect() end) end
-    if flyConn then pcall(function() flyConn:Disconnect() end) end
-    if infJumpConn then pcall(function() infJumpConn:Disconnect() end) end
-    if flyVelocity then pcall(function() flyVelocity:Destroy() end) end
-    if flyGyro then pcall(function() flyGyro:Destroy() end) end
     for _, data in pairs(espObjects) do
         pcall(function()
             if data.Highlight then data.Highlight:Destroy() end
@@ -1167,157 +676,7 @@ end
 espBtn.MouseButton1Click:Connect(toggleEsp)
 espBtn.TouchTap:Connect(toggleEsp)
 
--- ===== FUTURE LIGHTING =====
-local function toggleFuture()
-    futureActive = not futureActive
-    if futureActive then
-        futureBtn.Text = "ON"
-        futureBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        futureBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Lighting ON"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-
-        originalLighting.Technology = Lighting.Technology
-        pcall(function() Lighting.Technology = Enum.Technology.Future end)
-        if Lighting.Technology ~= Enum.Technology.Future then
-            pcall(function() Lighting.Technology = Enum.Technology.Realistic end)
-        end
-        Lighting.GlobalShadows = true
-        Lighting.ShadowSoftness = 0.5
-    else
-        futureBtn.Text = "OFF"
-        futureBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        futureBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "Lighting OFF"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-
-        Lighting.Technology = originalLighting.Technology
-        Lighting.GlobalShadows = originalLighting.GlobalShadows
-        Lighting.ShadowSoftness = originalLighting.ShadowSoftness
-        task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
-end
-futureBtn.MouseButton1Click:Connect(toggleFuture)
-futureBtn.TouchTap:Connect(toggleFuture)
-
--- ===== RTX =====
-local function toggleRTX()
-    rtxActive = not rtxActive
-    if rtxActive then
-        rtxBtn.Text = "ON"
-        rtxBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        rtxBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "RTX ENABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-
-        originalLighting.Brightness = Lighting.Brightness
-        originalLighting.ClockTime = Lighting.ClockTime
-        originalLighting.Ambient = Lighting.Ambient
-        originalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
-        originalLighting.ColorShift_Top = Lighting.ColorShift_Top
-        originalLighting.ColorShift_Bottom = Lighting.ColorShift_Bottom
-        originalLighting.EnvironmentDiffuseScale = Lighting.EnvironmentDiffuseScale
-        originalLighting.EnvironmentSpecularScale = Lighting.EnvironmentSpecularScale
-        originalLighting.GlobalShadows = Lighting.GlobalShadows
-        originalLighting.ShadowSoftness = Lighting.ShadowSoftness
-        originalLighting.Technology = Lighting.Technology
-
-        pcall(function() Lighting.Technology = Enum.Technology.Future end)
-        if Lighting.Technology ~= Enum.Technology.Future then
-            pcall(function() Lighting.Technology = Enum.Technology.Realistic end)
-        end
-
-        local isNight = Lighting.ClockTime < 6 or Lighting.ClockTime > 18
-
-        if isNight then
-            Lighting.Brightness = 0.4
-            Lighting.Ambient = Color3.fromRGB(20, 20, 30)
-            Lighting.OutdoorAmbient = Color3.fromRGB(15, 15, 25)
-            Lighting.ColorShift_Top = Color3.fromRGB(10, 15, 30)
-            Lighting.ColorShift_Bottom = Color3.fromRGB(5, 5, 15)
-            Lighting.ShadowSoftness = 0.8
-            statusLabel.Text = "RTX NIGHT MODE"
-        else
-            Lighting.Brightness = 2.5
-            Lighting.Ambient = Color3.fromRGB(80, 85, 95)
-            Lighting.OutdoorAmbient = Color3.fromRGB(120, 130, 150)
-            Lighting.ColorShift_Top = Color3.fromRGB(180, 200, 255)
-            Lighting.ColorShift_Bottom = Color3.fromRGB(100, 80, 120)
-            Lighting.ShadowSoftness = 0.5
-            statusLabel.Text = "RTX DAY MODE"
-        end
-
-        Lighting.EnvironmentDiffuseScale = 1.5
-        Lighting.EnvironmentSpecularScale = 1.5
-        Lighting.GlobalShadows = true
-
-        local bloom = Lighting:FindFirstChild("Bloom")
-        if not bloom then bloom = Instance.new("BloomEffect", Lighting); bloom.Name = "Bloom" end
-        bloom.Intensity = isNight and 0.15 or 0.5
-        bloom.Size = isNight and 1 or 2
-        bloom.Threshold = isNight and 0.5 or 0.3
-
-        local cc = Lighting:FindFirstChild("ColorCorrection")
-        if not cc then cc = Instance.new("ColorCorrectionEffect", Lighting); cc.Name = "ColorCorrection" end
-        cc.Saturation = isNight and 0.8 or 1.1
-        cc.Contrast = isNight and 0.9 or 1.1
-        cc.Brightness = isNight and -0.1 or 0.05
-
-        local sunRays = Lighting:FindFirstChild("SunRays")
-        if not isNight then
-            if not sunRays then sunRays = Instance.new("SunRaysEffect", Lighting); sunRays.Name = "SunRays" end
-            sunRays.Intensity = 0.15
-            sunRays.Spread = 0.5
-            sunRays.Enabled = true
-        elseif sunRays then
-            sunRays.Enabled = false
-        end
-
-        local dof = Lighting:FindFirstChild("DepthOfField")
-        if not dof then dof = Instance.new("DepthOfFieldEffect", Lighting); dof.Name = "DepthOfField" end
-        dof.FarIntensity = isNight and 0.1 or 0.3
-        dof.FarBlurSize = isNight and 1 or 2
-        dof.NearIntensity = 0
-        dof.NearBlurSize = 0
-        dof.FocusDistance = isNight and 30 or 50
-        dof.InFocusRadius = isNight and 20 or 30
-
-        statusLabel.TextColor3 = isNight and Color3.fromRGB(100, 150, 255) or Color3.fromRGB(0, 200, 255)
-    else
-        rtxBtn.Text = "OFF"
-        rtxBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        rtxBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        statusLabel.Text = "RTX DISABLED"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-
-        Lighting.Brightness = originalLighting.Brightness
-        Lighting.ClockTime = originalLighting.ClockTime
-        Lighting.Ambient = originalLighting.Ambient
-        Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
-        Lighting.ColorShift_Top = originalLighting.ColorShift_Top
-        Lighting.ColorShift_Bottom = originalLighting.ColorShift_Bottom
-        Lighting.EnvironmentDiffuseScale = originalLighting.EnvironmentDiffuseScale
-        Lighting.EnvironmentSpecularScale = originalLighting.EnvironmentSpecularScale
-        Lighting.GlobalShadows = originalLighting.GlobalShadows
-        Lighting.ShadowSoftness = originalLighting.ShadowSoftness
-        Lighting.Technology = originalLighting.Technology
-
-        local bloom = Lighting:FindFirstChild("Bloom"); if bloom then bloom:Destroy() end
-        local cc = Lighting:FindFirstChild("ColorCorrection"); if cc then cc:Destroy() end
-        local sunRays = Lighting:FindFirstChild("SunRays"); if sunRays then sunRays:Destroy() end
-        local dof = Lighting:FindFirstChild("DepthOfField"); if dof then dof:Destroy() end
-
-        task.wait(0.5)
-        statusLabel.Text = "Ready"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    end
-end
-rtxBtn.MouseButton1Click:Connect(toggleRTX)
-rtxBtn.TouchTap:Connect(toggleRTX)
-
--- ===== INFECT/KILL/DOORS TOGGLES =====
+-- ===== TOGGLES =====
 local function toggleInfect()
     infectActive = not infectActive
     if infectActive then
@@ -1393,77 +752,20 @@ doorsBtn.TouchTap:Connect(toggleDoors)
 -- ===== TAB SWITCHING =====
 local function switchToMods()
     modsPage.Visible = true
-    playerPage.Visible = false
-    graphicsPage.Visible = false
-    themePage.Visible = false
     othersPage.Visible = false
     tabMods.TextColor3 = themes[currentTheme].ac
-    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
-end
-
-local function switchToPlayer()
-    modsPage.Visible = false
-    playerPage.Visible = true
-    graphicsPage.Visible = false
-    themePage.Visible = false
-    othersPage.Visible = false
-    tabPlayer.TextColor3 = themes[currentTheme].ac
-    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
-end
-
-local function switchToGraphics()
-    modsPage.Visible = false
-    playerPage.Visible = false
-    graphicsPage.Visible = true
-    themePage.Visible = false
-    othersPage.Visible = false
-    tabGraphics.TextColor3 = themes[currentTheme].ac
-    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
-end
-
-local function switchToTheme()
-    modsPage.Visible = false
-    playerPage.Visible = false
-    graphicsPage.Visible = false
-    themePage.Visible = true
-    othersPage.Visible = false
-    tabTheme.TextColor3 = themes[currentTheme].ac
-    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
 
 local function switchToOthers()
     modsPage.Visible = false
-    playerPage.Visible = false
-    graphicsPage.Visible = false
-    themePage.Visible = false
     othersPage.Visible = true
     tabOthers.TextColor3 = themes[currentTheme].ac
     tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
-    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
 
 tabMods.MouseButton1Click:Connect(switchToMods)
 tabMods.TouchTap:Connect(switchToMods)
-tabPlayer.MouseButton1Click:Connect(switchToPlayer)
-tabPlayer.TouchTap:Connect(switchToPlayer)
-tabGraphics.MouseButton1Click:Connect(switchToGraphics)
-tabGraphics.TouchTap:Connect(switchToGraphics)
-tabTheme.MouseButton1Click:Connect(switchToTheme)
-tabTheme.TouchTap:Connect(switchToTheme)
 tabOthers.MouseButton1Click:Connect(switchToOthers)
 tabOthers.TouchTap:Connect(switchToOthers)
 
@@ -1552,13 +854,10 @@ end)
 task.wait(0.3)
 frame.Visible = true
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 360, 0, 340)
-frame.Position = UDim2.new(0.5, -180, 0.5, -170)
+frame.Size = UDim2.new(0, 340, 0, 300)
+frame.Position = UDim2.new(0.5, -170, 0.5, -150)
 blur.Size = 3
 miniFrame.Visible = false
 closeBtn.Text = "✕"
-shitflockBtn.Visible = false
-flyUpBtn.Visible = false
-flyDownBtn.Visible = false
 
-print("NZ-IS v6 - LOADED SUCCESSFULLY!")
+print("NZ-IS v6 - LOADED!")
