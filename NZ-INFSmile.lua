@@ -75,11 +75,19 @@ local isOpen = true
 local deleteInfectActive = false
 local deleteKillActive = false
 local deleteDoorsActive = false
+local deleteAntiHackActive = false
+local deleteSpearsActive = false
+local deleteFireLavaActive = false
+local deleteSeismicActive = false
 local espActive = false
 
 local deletedInfect = {}
 local deletedKill = {}
 local deletedDoors = {}
+local deletedAntiHack = {}
+local deletedSpears = {}
+local deletedFireLava = {}
+local deletedSeismic = {}
 local espObjects = {}
 
 -- ===== MAIN FRAME =====
@@ -225,7 +233,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -74)
     pg.Position = UDim2.new(0, 5, 0, 65)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 220)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 310)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = themes.Default.accent
     pg.Parent = frame
@@ -308,7 +316,7 @@ local function makeThemeButton(name, y, color)
         miniStroke.Color = t.accent
         reopenBtn.BackgroundColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= antiHackBtn and child ~= spearsBtn and child ~= fireLavaBtn and child ~= seismicBtn and child ~= espBtn then
                 if child.Text == "Mods" or child.Text == "Theme" or child.Text == "Others" then
                     child.TextColor3 = t.accent
                 end
@@ -333,7 +341,7 @@ local function makeThemeButton(name, y, color)
         miniStroke.Color = t.accent
         reopenBtn.BackgroundColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= antiHackBtn and child ~= spearsBtn and child ~= fireLavaBtn and child ~= seismicBtn and child ~= espBtn then
                 if child.Text == "Mods" or child.Text == "Theme" or child.Text == "Others" then
                     child.TextColor3 = t.accent
                 end
@@ -357,12 +365,28 @@ makeLabel("Delete Infected", yOff, modsPage, 110)
 local infectBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
-makeLabel("Disable Kill Parts", yOff, modsPage, 110)
+makeLabel("Disable Kill", yOff, modsPage, 110)
 local killBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
 makeLabel("Disable Doors/Gates", yOff, modsPage, 110)
 local doorsBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Disable Anti-Hack", yOff, modsPage, 110)
+local antiHackBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Disable Spears", yOff, modsPage, 110)
+local spearsBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Disable Fire/Lava", yOff, modsPage, 110)
+local fireLavaBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Disable SeismicRockWall", yOff, modsPage, 110)
+local seismicBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
 makeLabel("TEAM ESP", yOff, modsPage, 110)
@@ -434,13 +458,22 @@ othersPage.CanvasSize = UDim2.new(0, 0, 0, oY + 10)
 
 -- ===== SINGLE-SCAN DELETE FUNCTIONS =====
 
-local function restoreInfect()
+local function restoreItems(storage)
     local count = 0
-    for _, item in pairs(deletedInfect) do
+    for _, item in pairs(storage) do
         if item and not item.Parent then
-            pcall(function() item.Parent = Workspace; count = count + 1 end)
+            pcall(function()
+                item.Parent = Workspace
+                count = count + 1
+            end)
         end
     end
+    return count
+end
+
+-- INFECTED
+local function restoreInfect()
+    local count = restoreItems(deletedInfect)
     deletedInfect = {}
     if count > 0 then
         statusLabel.Text = "Restored " .. count .. " infected"
@@ -452,50 +485,11 @@ local function restoreInfect()
     return count
 end
 
-local function restoreKill()
-    local count = 0
-    for _, item in pairs(deletedKill) do
-        if item and not item.Parent then
-            pcall(function() item.Parent = Workspace; count = count + 1 end)
-        end
-    end
-    deletedKill = {}
-    if count > 0 then
-        statusLabel.Text = "Restored " .. count .. " kill parts"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    else
-        statusLabel.Text = "No kill parts to restore"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    end
-    return count
-end
-
-local function restoreDoors()
-    local count = 0
-    for _, item in pairs(deletedDoors) do
-        if item and not item.Parent then
-            pcall(function() item.Parent = Workspace; count = count + 1 end)
-        end
-    end
-    deletedDoors = {}
-    if count > 0 then
-        statusLabel.Text = "Restored " .. count .. " doors/gates"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-    else
-        statusLabel.Text = "No doors/gates to restore"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    end
-    return count
-end
-
 local function scanAndDeleteInfect()
-    if not deleteInfectActive then
-        restoreInfect()
-        return
-    end
+    if not deleteInfectActive then restoreInfect(); return end
     local found = {}
     for _, v in pairs(Workspace:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
+        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
             if v.Name and string.lower(v.Name):find("infect") then
                 table.insert(found, v)
             end
@@ -516,14 +510,25 @@ local function scanAndDeleteInfect()
     end
 end
 
-local function scanAndDeleteKill()
-    if not deleteKillActive then
-        restoreKill()
-        return
+-- KILL
+local function restoreKill()
+    local count = restoreItems(deletedKill)
+    deletedKill = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " kill items"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No kill items to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
+    return count
+end
+
+local function scanAndDeleteKill()
+    if not deleteKillActive then restoreKill(); return end
     local found = {}
     for _, v in pairs(Workspace:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
+        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
             if v.Name and string.lower(v.Name):find("kill") then
                 table.insert(found, v)
             end
@@ -536,23 +541,34 @@ local function scanAndDeleteKill()
         end
     end
     if #found > 0 then
-        statusLabel.Text = "Deleted " .. #found .. " kill parts"
+        statusLabel.Text = "Deleted " .. #found .. " kill items"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     else
-        statusLabel.Text = "No kill parts found"
+        statusLabel.Text = "No kill items found"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
 
-local function scanAndDeleteDoors()
-    if not deleteDoorsActive then
-        restoreDoors()
-        return
+-- DOORS/GATES
+local function restoreDoors()
+    local count = restoreItems(deletedDoors)
+    deletedDoors = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " doors/gates"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No doors/gates to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
+    return count
+end
+
+local function scanAndDeleteDoors()
+    if not deleteDoorsActive then restoreDoors(); return end
     local found = {}
     local keywords = {"door", "gate", "portal", "doorway", "entrance", "exit"}
     for _, v in pairs(Workspace:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
+        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
             local nameLower = string.lower(v.Name)
             for _, kw in pairs(keywords) do
                 if nameLower:find(kw) then
@@ -573,6 +589,183 @@ local function scanAndDeleteDoors()
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     else
         statusLabel.Text = "No doors/gates found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+-- ANTI-HACK
+local function restoreAntiHack()
+    local count = restoreItems(deletedAntiHack)
+    deletedAntiHack = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " anti-hack items"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No anti-hack items to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
+local function scanAndDeleteAntiHack()
+    if not deleteAntiHackActive then restoreAntiHack(); return end
+    local found = {}
+    local keywords = {"anti", "hack", "anticheat", "anti-cheat", "cheat", "exploit", "bypass", "security"}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
+            local nameLower = string.lower(v.Name)
+            for _, kw in pairs(keywords) do
+                if nameLower:find(kw) then
+                    table.insert(found, v)
+                    break
+                end
+            end
+        end
+    end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedAntiHack, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " anti-hack items"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No anti-hack items found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+-- SPEARS
+local function restoreSpears()
+    local count = restoreItems(deletedSpears)
+    deletedSpears = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " spears"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No spears to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
+local function scanAndDeleteSpears()
+    if not deleteSpearsActive then restoreSpears(); return end
+    local found = {}
+    local keywords = {"spear", "javelin", "lance", "pike", "harpoon"}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
+            local nameLower = string.lower(v.Name)
+            for _, kw in pairs(keywords) do
+                if nameLower:find(kw) then
+                    table.insert(found, v)
+                    break
+                end
+            end
+        end
+    end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedSpears, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " spears"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No spears found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+-- FIRE/LAVA
+local function restoreFireLava()
+    local count = restoreItems(deletedFireLava)
+    deletedFireLava = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " fire/lava items"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No fire/lava items to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
+local function scanAndDeleteFireLava()
+    if not deleteFireLavaActive then restoreFireLava(); return end
+    local found = {}
+    local keywords = {"fire", "lava", "flame", "burn", "ignite", "molten", "magma", "combust", "pyro"}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
+            local nameLower = string.lower(v.Name)
+            for _, kw in pairs(keywords) do
+                if nameLower:find(kw) then
+                    table.insert(found, v)
+                    break
+                end
+            end
+        end
+    end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedFireLava, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " fire/lava items"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No fire/lava items found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+-- SEISMIC ROCKWALL (MODELS ONLY)
+local function restoreSeismic()
+    local count = restoreItems(deletedSeismic)
+    deletedSeismic = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " seismic rock walls"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No seismic rock walls to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
+local function scanAndDeleteSeismic()
+    if not deleteSeismicActive then restoreSeismic(); return end
+    local found = {}
+    local keywords = {"weight", "seismic", "rockwall", "rock_wall", "seismicwall", "weighted"}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        -- ONLY MODELS
+        if v:IsA("Model") and v.Name then
+            local nameLower = string.lower(v.Name)
+            for _, kw in pairs(keywords) do
+                if nameLower:find(kw) then
+                    table.insert(found, v)
+                    break
+                end
+            end
+        end
+    end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedSeismic, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " seismic rock walls"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No seismic rock walls found"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
@@ -750,6 +943,86 @@ end
 
 doorsBtn.MouseButton1Click:Connect(toggleDoors)
 doorsBtn.TouchTap:Connect(toggleDoors)
+
+local function toggleAntiHack()
+    deleteAntiHackActive = not deleteAntiHackActive
+    if deleteAntiHackActive then
+        antiHackBtn.Text = "ON"
+        antiHackBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        antiHackBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteAntiHack()
+    else
+        antiHackBtn.Text = "OFF"
+        antiHackBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        antiHackBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreAntiHack()
+    end
+end
+
+antiHackBtn.MouseButton1Click:Connect(toggleAntiHack)
+antiHackBtn.TouchTap:Connect(toggleAntiHack)
+
+local function toggleSpears()
+    deleteSpearsActive = not deleteSpearsActive
+    if deleteSpearsActive then
+        spearsBtn.Text = "ON"
+        spearsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        spearsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteSpears()
+    else
+        spearsBtn.Text = "OFF"
+        spearsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        spearsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreSpears()
+    end
+end
+
+spearsBtn.MouseButton1Click:Connect(toggleSpears)
+spearsBtn.TouchTap:Connect(toggleSpears)
+
+local function toggleFireLava()
+    deleteFireLavaActive = not deleteFireLavaActive
+    if deleteFireLavaActive then
+        fireLavaBtn.Text = "ON"
+        fireLavaBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        fireLavaBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteFireLava()
+    else
+        fireLavaBtn.Text = "OFF"
+        fireLavaBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        fireLavaBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreFireLava()
+    end
+end
+
+fireLavaBtn.MouseButton1Click:Connect(toggleFireLava)
+fireLavaBtn.TouchTap:Connect(toggleFireLava)
+
+local function toggleSeismic()
+    deleteSeismicActive = not deleteSeismicActive
+    if deleteSeismicActive then
+        seismicBtn.Text = "ON"
+        seismicBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        seismicBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteSeismic()
+    else
+        seismicBtn.Text = "OFF"
+        seismicBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        seismicBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreSeismic()
+    end
+end
+
+seismicBtn.MouseButton1Click:Connect(toggleSeismic)
+seismicBtn.TouchTap:Connect(toggleSeismic)
 
 local function toggleEsp()
     espActive = not espActive
@@ -1049,4 +1322,4 @@ TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.Easing
 }):Play()
 blur.Size = 3
 
-print("NZ-IS v6 - FULLY LOADED! (Mods, Theme, Others tabs)")
+print("NZ-IS v6 - FULLY LOADED! (Disable SeismicRockWall added - MODELS ONLY)")
