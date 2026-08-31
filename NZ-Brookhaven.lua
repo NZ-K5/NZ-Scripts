@@ -74,19 +74,19 @@ local infJumpActive = false
 local speedMultiplier = 1
 local jumpHeight = 50
 local floatHeight = 20
+local flySpeed = 50
+local mouseFlySpeed = 50
 local noclipConnections = {}
 local keyboardFlyConnection = nil
 local mouseFlyConnection = nil
 local floatConnection = nil
 local jumpConnection = nil
 local infJumpConnection = nil
-local flySpeed = 50
-local mouseFlySpeed = 50
 local originalCollision = {}
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 580, 0, 560)
-frame.Position = UDim2.new(0.5, -290, 0.5, -280)
+frame.Size = UDim2.new(0, 580, 0, 540)
+frame.Position = UDim2.new(0.5, -290, 0.5, -270)
 frame.BackgroundColor3 = themes.Default.background
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -801,15 +801,16 @@ local function toggleFloat()
             if not carModel or not floatActive then return end
             local carRoot = carModel:FindFirstChild("HumanoidRootPart") or carModel:FindFirstChildWhichIsA("BasePart")
             if not carRoot then return end
-            local targetY = carRoot.Position.Y
             local ray = Ray.new(carRoot.Position + Vector3.new(0, 10, 0), Vector3.new(0, -100, 0))
             local hit, pos = workspace:FindPartOnRay(ray, carModel)
             if hit and pos then
-                targetY = pos.Y + floatHeight
-            end
-            local currentY = carRoot.Position.Y
-            if currentY < targetY then
-                carRoot.Velocity = Vector3.new(carRoot.Velocity.X, (targetY - currentY) * 5, carRoot.Velocity.Z)
+                local targetY = pos.Y + floatHeight
+                local currentY = carRoot.Position.Y
+                if currentY < targetY then
+                    carRoot.Velocity = Vector3.new(carRoot.Velocity.X, (targetY - currentY) * 8, carRoot.Velocity.Z)
+                elseif currentY > targetY + 1 then
+                    carRoot.Velocity = Vector3.new(carRoot.Velocity.X, -10, carRoot.Velocity.Z)
+                end
             end
         end)
     else
@@ -928,7 +929,8 @@ floatHeightApply.MouseButton1Click:Connect(function()
     end
 end)
 
-keyboardFlySpeedApply = makeApply(yOff, carPage, "Set")
+local keyboardFlySpeedBox = makeBox(yOff, carPage, "50")
+local keyboardFlySpeedApply = makeApply(yOff, carPage, "Set")
 keyboardFlySpeedApply.Size = UDim2.new(0, 50, 0, 28)
 keyboardFlySpeedApply.Position = UDim2.new(0, 280, 0, yOff)
 keyboardFlySpeedApply.Text = "Set"
@@ -940,7 +942,8 @@ keyboardFlySpeedApply.MouseButton1Click:Connect(function()
     end
 end)
 
-mouseFlySpeedApply = makeApply(yOff, carPage, "Set")
+local mouseFlySpeedBox = makeBox(yOff, carPage, "30")
+local mouseFlySpeedApply = makeApply(yOff, carPage, "Set")
 mouseFlySpeedApply.Size = UDim2.new(0, 50, 0, 28)
 mouseFlySpeedApply.Position = UDim2.new(0, 280, 0, yOff)
 mouseFlySpeedApply.Text = "Set"
@@ -1104,8 +1107,8 @@ end
 
 local function maximizeGUI()
     isMinimized = false
-    frame.Size = UDim2.new(0, 580, 0, 560)
-    frame.Position = UDim2.new(0.5, -290, 0.5, -280)
+    frame.Size = UDim2.new(0, 580, 0, 540)
+    frame.Position = UDim2.new(0.5, -290, 0.5, -270)
     tabContainer.Visible = true
     carPage.Visible = true
     playerPage.Visible = false
