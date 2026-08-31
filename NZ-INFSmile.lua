@@ -76,12 +76,22 @@ local deleteDoorsActive = false
 local rtxActive = false
 local futureActive = false
 local teamEspActive = false
+local shitflockActive = false
+local infJumpActive = false
+local noclipActive = false
+local flyActive = false
+local walkspeedValue = 16
+local jumppowerValue = 50
 
 local infectConnection = nil
 local killConnection = nil
 local doorsConnection = nil
 local espConnection = nil
+local flyConnection = nil
+local noclipConnection = nil
 local espObjects = {}
+local flyBodyVelocity = nil
+local flyBodyGyro = nil
 
 local deletedInfect = {}
 local deletedKill = {}
@@ -103,8 +113,8 @@ local originalLighting = {
 
 -- ========== MAIN GUI FRAME ==========
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 340, 0, 300)
-frame.Position = UDim2.new(0.5, -170, 0.5, -150)
+frame.Size = UDim2.new(0, 360, 0, 340)
+frame.Position = UDim2.new(0.5, -180, 0.5, -170)
 frame.BackgroundColor3 = themes.Default.background
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -133,7 +143,7 @@ local titleCorner = Instance.new("UICorner", titleBar)
 titleCorner.CornerRadius = UDim.new(0, 8)
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.6, 0, 1, 0)
+titleLabel.Size = UDim2.new(0.5, 0, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.Text = "NZ-IS"
 titleLabel.TextColor3 = themes.Default.accent
@@ -146,7 +156,7 @@ titleLabel.Parent = titleBar
 -- ========== MINIMIZE BUTTON ==========
 local minBtn = Instance.new("TextButton")
 minBtn.Size = UDim2.new(0, 30, 0, 30)
-minBtn.Position = UDim2.new(1, -38, 0, 7)
+minBtn.Position = UDim2.new(1, -68, 0, 7)
 minBtn.Text = "─"
 minBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
 minBtn.TextSize = 18
@@ -158,10 +168,25 @@ minBtn.AutoButtonColor = true
 local minCorner = Instance.new("UICorner", minBtn)
 minCorner.CornerRadius = UDim.new(0, 6)
 
+-- ========== CLOSE/OPEN BUTTON ==========
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -36, 0, 7)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+closeBtn.TextSize = 14
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+closeBtn.BackgroundTransparency = 0.2
+closeBtn.Parent = titleBar
+closeBtn.AutoButtonColor = true
+local closeCorner = Instance.new("UICorner", closeBtn)
+closeCorner.CornerRadius = UDim.new(0, 6)
+
 -- ========== MINIMIZED SQUARE ==========
 local miniFrame = Instance.new("Frame")
-miniFrame.Size = UDim2.new(0, 60, 0, 60)
-miniFrame.Position = UDim2.new(0.5, -30, 0.5, -30)
+miniFrame.Size = UDim2.new(0, 55, 0, 55)
+miniFrame.Position = UDim2.new(1, -65, 0, 10)
 miniFrame.BackgroundColor3 = themes.Default.accent
 miniFrame.BackgroundTransparency = 0.1
 miniFrame.ClipsDescendants = true
@@ -187,6 +212,77 @@ miniLabel.Font = Enum.Font.GothamBold
 miniLabel.BackgroundTransparency = 1
 miniLabel.Parent = miniFrame
 
+-- ========== SHITFLOCK BUTTON ==========
+local shitflockBtn = Instance.new("TextButton")
+shitflockBtn.Size = UDim2.new(0, 55, 0, 55)
+shitflockBtn.Position = UDim2.new(0, 10, 1, -70)
+shitflockBtn.Text = "🔄"
+shitflockBtn.TextSize = 26
+shitflockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+shitflockBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
+shitflockBtn.Parent = root
+shitflockBtn.Visible = false
+shitflockBtn.ZIndex = 999
+shitflockBtn.Active = true
+
+local shitflockCorner = Instance.new("UICorner", shitflockBtn)
+shitflockCorner.CornerRadius = UDim.new(1, 0)
+
+local shitflockStroke = Instance.new("UIStroke", shitflockBtn)
+shitflockStroke.Color = Color3.fromRGB(255, 255, 255)
+shitflockStroke.Thickness = 2
+shitflockStroke.Transparency = 0.2
+
+shitflockBtn.MouseButton1Click:Connect(function()
+    print("Shitflock button pressed!")
+end)
+shitflockBtn.TouchTap:Connect(function()
+    print("Shitflock button pressed!")
+end)
+
+-- ========== FLY MOBILE CONTROLS ==========
+local flyUpBtn = Instance.new("TextButton")
+flyUpBtn.Size = UDim2.new(0, 70, 0, 70)
+flyUpBtn.Position = UDim2.new(1, -85, 0.5, -85)
+flyUpBtn.Text = "▲"
+flyUpBtn.TextSize = 30
+flyUpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyUpBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
+flyUpBtn.BackgroundTransparency = 0.5
+flyUpBtn.Parent = root
+flyUpBtn.Visible = false
+flyUpBtn.ZIndex = 999
+local flyUpCorner = Instance.new("UICorner", flyUpBtn)
+flyUpCorner.CornerRadius = UDim.new(1, 0)
+
+local flyDownBtn = Instance.new("TextButton")
+flyDownBtn.Size = UDim2.new(0, 70, 0, 70)
+flyDownBtn.Position = UDim2.new(1, -85, 0.5, -5)
+flyDownBtn.Text = "▼"
+flyDownBtn.TextSize = 30
+flyDownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyDownBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
+flyDownBtn.BackgroundTransparency = 0.5
+flyDownBtn.Parent = root
+flyDownBtn.Visible = false
+flyDownBtn.ZIndex = 999
+local flyDownCorner = Instance.new("UICorner", flyDownBtn)
+flyDownCorner.CornerRadius = UDim.new(1, 0)
+
+-- Fly control variables
+local flyUpHeld = false
+local flyDownHeld = false
+
+flyUpBtn.TouchBegan:Connect(function() flyUpHeld = true end)
+flyUpBtn.TouchEnded:Connect(function() flyUpHeld = false end)
+flyUpBtn.MouseButton1Down:Connect(function() flyUpHeld = true end)
+flyUpBtn.MouseButton1Up:Connect(function() flyUpHeld = false end)
+
+flyDownBtn.TouchBegan:Connect(function() flyDownHeld = true end)
+flyDownBtn.TouchEnded:Connect(function() flyDownHeld = false end)
+flyDownBtn.MouseButton1Down:Connect(function() flyDownHeld = true end)
+flyDownBtn.MouseButton1Up:Connect(function() flyDownHeld = false end)
+
 -- ========== TABS ==========
 local tabContainer = Instance.new("Frame")
 tabContainer.Size = UDim2.new(1, -10, 0, 28)
@@ -196,11 +292,11 @@ tabContainer.Parent = frame
 
 local function createTab(name, x)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 75, 1, 0)
+    btn.Size = UDim2.new(0, 65, 1, 0)
     btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 210)
-    btn.TextSize = 11
+    btn.TextSize = 10
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     btn.BackgroundTransparency = 0.3
@@ -212,9 +308,10 @@ local function createTab(name, x)
 end
 
 local tabMods = createTab("Mods", 0)
-local tabGraphics = createTab("Graphics", 80)
-local tabTheme = createTab("Theme", 160)
-local tabOthers = createTab("Others", 240)
+local tabPlayer = createTab("Player", 70)
+local tabGraphics = createTab("Graphics", 140)
+local tabTheme = createTab("Theme", 210)
+local tabOthers = createTab("Others", 280)
 
 -- ========== PAGES ==========
 local function createPage()
@@ -222,7 +319,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -84)
     pg.Position = UDim2.new(0, 5, 0, 80)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 350)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 550)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = themes.Default.accent
     pg.Parent = frame
@@ -231,6 +328,7 @@ local function createPage()
 end
 
 local modsPage = createPage()
+local playerPage = createPage()
 local graphicsPage = createPage()
 local themePage = createPage()
 local othersPage = createPage()
@@ -264,6 +362,74 @@ local function makeToggle(y, parent)
     local c = Instance.new("UICorner", btn)
     c.CornerRadius = UDim.new(0, 4)
     return btn
+end
+
+local function makeSlider(text, y, parent, minVal, maxVal, defaultVal, callback)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 120, 0, 22)
+    label.Position = UDim2.new(0, 0, 0, y)
+    label.Text = text
+    label.TextColor3 = themes.Default.text
+    label.TextSize = 11
+    label.Font = Enum.Font.Gotham
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = parent
+    
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(0, 40, 0, 22)
+    valueLabel.Position = UDim2.new(0, 125, 0, y)
+    valueLabel.Text = tostring(defaultVal)
+    valueLabel.TextColor3 = themes.Default.accent
+    valueLabel.TextSize = 11
+    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Center
+    valueLabel.Parent = parent
+    
+    local slider = Instance.new("Frame")
+    slider.Size = UDim2.new(0, 120, 0, 8)
+    slider.Position = UDim2.new(0, 170, 0, y + 7)
+    slider.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    slider.Parent = parent
+    local sliderCorner = Instance.new("UICorner", slider)
+    sliderCorner.CornerRadius = UDim.new(0, 4)
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((defaultVal - minVal) / (maxVal - minVal), 0, 1, 0)
+    fill.BackgroundColor3 = themes.Default.accent
+    fill.Parent = slider
+    local fillCorner = Instance.new("UICorner", fill)
+    fillCorner.CornerRadius = UDim.new(0, 4)
+    
+    local currentVal = defaultVal
+    
+    local function updateSlider(input)
+        local pos = input.Position.X - slider.AbsolutePosition.X
+        local width = slider.AbsoluteSize.X
+        local percent = math.clamp(pos / width, 0, 1)
+        local newVal = math.floor((minVal + (maxVal - minVal) * percent) * 10) / 10
+        if newVal < minVal then newVal = minVal end
+        if newVal > maxVal then newVal = maxVal end
+        currentVal = newVal
+        fill.Size = UDim2.new(percent, 0, 1, 0)
+        valueLabel.Text = tostring(newVal)
+        if callback then callback(newVal) end
+    end
+    
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            updateSlider(input)
+        end
+    end)
+    
+    slider.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            updateSlider(input)
+        end
+    end)
+    
+    return {Slider = slider, Fill = fill, ValueLabel = valueLabel, GetValue = function() return currentVal end}
 end
 
 local function makeButton(text, y, parent, color)
@@ -315,6 +481,55 @@ statusLabel.Parent = modsPage
 yOff = yOff + 28
 
 modsPage.CanvasSize = UDim2.new(0, 0, 0, yOff + 10)
+
+-- ========== PLAYER PAGE ==========
+local pY = 4
+
+makeLabel("Enable Shitflock", pY, playerPage, 120)
+local shitflockToggle = makeToggle(pY, playerPage)
+pY = pY + 28
+
+local wsSlider = makeSlider("WalkSpeed", pY, playerPage, 10, 100, 16, function(val)
+    walkspeedValue = val
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = val
+    end
+end)
+pY = pY + 36
+
+local jpSlider = makeSlider("JumpPower", pY, playerPage, 20, 200, 50, function(val)
+    jumppowerValue = val
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = val
+    end
+end)
+pY = pY + 36
+
+makeLabel("Inf Jump", pY, playerPage, 120)
+local infJumpBtn = makeToggle(pY, playerPage)
+pY = pY + 28
+
+makeLabel("Noclip", pY, playerPage, 120)
+local noclipBtn = makeToggle(pY, playerPage)
+pY = pY + 28
+
+makeLabel("Fly", pY, playerPage, 120)
+local flyBtn = makeToggle(pY, playerPage)
+pY = pY + 28
+
+local playerDesc = Instance.new("TextLabel")
+playerDesc.Size = UDim2.new(1, -10, 0, 30)
+playerDesc.Position = UDim2.new(0, 0, 0, pY)
+playerDesc.Text = "Fly: ▲ ▼ buttons appear on the right side"
+playerDesc.TextColor3 = Color3.fromRGB(150, 150, 170)
+playerDesc.TextSize = 10
+playerDesc.Font = Enum.Font.Gotham
+playerDesc.BackgroundTransparency = 1
+playerDesc.TextXAlignment = Enum.TextXAlignment.Left
+playerDesc.Parent = playerPage
+pY = pY + 40
+
+playerPage.CanvasSize = UDim2.new(0, 0, 0, pY + 10)
 
 -- ========== GRAPHICS PAGE ==========
 local gY = 4
@@ -379,9 +594,13 @@ local function createThemeButton(name, y, color)
         miniFrame.BackgroundColor3 = t.accent
         miniStroke.Color = t.accent
         minBtn.TextColor3 = t.accent
+        closeBtn.TextColor3 = t.accent
+        shitflockBtn.BackgroundColor3 = t.accent
+        flyUpBtn.BackgroundColor3 = t.accent
+        flyDownBtn.BackgroundColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= rtxBtn and child ~= futureBtn and child ~= minBtn then
-                if child.Text == "Mods" or child.Text == "Graphics" or child.Text == "Theme" or child.Text == "Others" then
+            if child:IsA("TextButton") and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= rtxBtn and child ~= futureBtn and child ~= minBtn and child ~= closeBtn and child ~= shitflockToggle and child ~= infJumpBtn and child ~= noclipBtn and child ~= flyBtn then
+                if child.Text == "Mods" or child.Text == "Player" or child.Text == "Graphics" or child.Text == "Theme" or child.Text == "Others" then
                     child.TextColor3 = t.accent
                 end
             end
@@ -405,6 +624,10 @@ local function createThemeButton(name, y, color)
         updateToggle(espBtn, teamEspActive)
         updateToggle(rtxBtn, rtxActive)
         updateToggle(futureBtn, futureActive)
+        updateToggle(shitflockToggle, shitflockActive)
+        updateToggle(infJumpBtn, infJumpActive)
+        updateToggle(noclipBtn, noclipActive)
+        updateToggle(flyBtn, flyActive)
     end
 
     btn.MouseButton1Click:Connect(applyTheme)
@@ -428,7 +651,7 @@ end
 -- ========== OTHERS PAGE ==========
 local oY = 10
 
-local destroyBtn = makeButton("🗑 Destroy GUI", oY, othersPage, Color3.fromRGB(80, 20, 20))
+local destroyBtn = makeButton("Destroy GUI", oY, othersPage, Color3.fromRGB(80, 20, 20))
 oY = oY + 40
 
 local creditsLabel = Instance.new("TextLabel")
@@ -444,6 +667,242 @@ creditsLabel.Parent = othersPage
 oY = oY + 30
 
 othersPage.CanvasSize = UDim2.new(0, 0, 0, oY + 10)
+
+-- ========== SHITFLOCK TOGGLE ==========
+local function toggleShitflock()
+    shitflockActive = not shitflockActive
+    if shitflockActive then
+        shitflockToggle.Text = "ON"
+        shitflockToggle.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        shitflockToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+        shitflockBtn.Visible = true
+        statusLabel.Text = "Shitflock ENABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+    else
+        shitflockToggle.Text = "OFF"
+        shitflockToggle.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        shitflockToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+        shitflockBtn.Visible = false
+        statusLabel.Text = "Shitflock DISABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        task.wait(0.5)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+shitflockToggle.MouseButton1Click:Connect(toggleShitflock)
+shitflockToggle.TouchTap:Connect(toggleShitflock)
+
+-- ========== PLAYER MOD FUNCTIONS ==========
+
+-- Inf Jump
+local function toggleInfJump()
+    infJumpActive = not infJumpActive
+    if infJumpActive then
+        infJumpBtn.Text = "ON"
+        infJumpBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        infJumpBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Inf Jump ENABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+        
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            local hum = char.Humanoid
+            hum:GetPropertyChangedSignal("Jump"):Connect(function()
+                if infJumpActive and hum.Jump then
+                    task.wait(0.05)
+                    hum.Jump = true
+                end
+            end)
+        end
+    else
+        infJumpBtn.Text = "OFF"
+        infJumpBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        infJumpBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        statusLabel.Text = "Inf Jump DISABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        task.wait(0.5)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+infJumpBtn.MouseButton1Click:Connect(toggleInfJump)
+infJumpBtn.TouchTap:Connect(toggleInfJump)
+
+-- Noclip
+local function toggleNoclip()
+    noclipActive = not noclipActive
+    if noclipActive then
+        noclipBtn.Text = "ON"
+        noclipBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        noclipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Noclip ENABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+        
+        if noclipConnection then
+            pcall(function() noclipConnection:Disconnect() end)
+            noclipConnection = nil
+        end
+        
+        noclipConnection = RunService.Stepped:Connect(function()
+            if noclipActive and player.Character then
+                for _, part in pairs(player.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        noclipBtn.Text = "OFF"
+        noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        statusLabel.Text = "Noclip DISABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        if noclipConnection then
+            pcall(function() noclipConnection:Disconnect() end)
+            noclipConnection = nil
+        end
+        
+        if player.Character then
+            for _, part in pairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+        
+        task.wait(0.5)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+noclipBtn.MouseButton1Click:Connect(toggleNoclip)
+noclipBtn.TouchTap:Connect(toggleNoclip)
+
+-- Fly (with mobile controls)
+local function toggleFly()
+    flyActive = not flyActive
+    if flyActive then
+        flyBtn.Text = "ON"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        flyBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Fly ENABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+        
+        flyUpBtn.Visible = true
+        flyDownBtn.Visible = true
+        
+        if flyConnection then
+            pcall(function() flyConnection:Disconnect() end)
+            flyConnection = nil
+        end
+        
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = true
+        end
+        
+        flyConnection = RunService.Heartbeat:Connect(function()
+            if not flyActive then return end
+            local char = player.Character
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            
+            local rootPart = char.HumanoidRootPart
+            local hum = char:FindFirstChild("Humanoid")
+            
+            if not flyBodyVelocity or flyBodyVelocity.Parent == nil then
+                flyBodyVelocity = Instance.new("BodyVelocity")
+                flyBodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+                flyBodyVelocity.Parent = rootPart
+            end
+            
+            if not flyBodyGyro or flyBodyGyro.Parent == nil then
+                flyBodyGyro = Instance.new("BodyGyro")
+                flyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+                flyBodyGyro.CFrame = rootPart.CFrame
+                flyBodyGyro.Parent = rootPart
+            end
+            
+            local moveDirection = Vector3.new()
+            local forward = Camera.CFrame.LookVector
+            local right = Camera.CFrame.RightVector
+            
+            -- PC Keyboard controls
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + forward end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - forward end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - right end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + right end
+            
+            -- Mobile up/down buttons
+            if flyUpHeld then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
+            if flyDownHeld then moveDirection = moveDirection + Vector3.new(0, -1, 0) end
+            
+            -- PC keyboard up/down (also works)
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                moveDirection = moveDirection + Vector3.new(0, 1, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                moveDirection = moveDirection + Vector3.new(0, -1, 0)
+            end
+            
+            if moveDirection.Magnitude > 0 then
+                moveDirection = moveDirection.Unit * 50
+            end
+            
+            flyBodyVelocity.Velocity = moveDirection
+            flyBodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + forward * 10)
+            
+            if hum then
+                hum.PlatformStand = true
+                hum.AutoRotate = false
+            end
+        end)
+        
+    else
+        flyBtn.Text = "OFF"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        flyBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        statusLabel.Text = "Fly DISABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        
+        flyUpBtn.Visible = false
+        flyDownBtn.Visible = false
+        flyUpHeld = false
+        flyDownHeld = false
+        
+        if flyConnection then
+            pcall(function() flyConnection:Disconnect() end)
+            flyConnection = nil
+        end
+        
+        if flyBodyVelocity then
+            pcall(function() flyBodyVelocity:Destroy() end)
+            flyBodyVelocity = nil
+        end
+        if flyBodyGyro then
+            pcall(function() flyBodyGyro:Destroy() end)
+            flyBodyGyro = nil
+        end
+        
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+            char.Humanoid.AutoRotate = true
+        end
+        
+        task.wait(0.5)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+flyBtn.MouseButton1Click:Connect(toggleFly)
+flyBtn.TouchTap:Connect(toggleFly)
 
 -- ========== DESTROY FUNCTION ==========
 local function destroyGUI()
@@ -462,6 +921,22 @@ local function destroyGUI()
     if espConnection then
         pcall(function() espConnection:Disconnect() end)
         espConnection = nil
+    end
+    if noclipConnection then
+        pcall(function() noclipConnection:Disconnect() end)
+        noclipConnection = nil
+    end
+    if flyConnection then
+        pcall(function() flyConnection:Disconnect() end)
+        flyConnection = nil
+    end
+    if flyBodyVelocity then
+        pcall(function() flyBodyVelocity:Destroy() end)
+        flyBodyVelocity = nil
+    end
+    if flyBodyGyro then
+        pcall(function() flyBodyGyro:Destroy() end)
+        flyBodyGyro = nil
     end
     for target, data in pairs(espObjects) do
         pcall(function()
@@ -1155,10 +1630,25 @@ doorsBtn.TouchTap:Connect(toggleDoors)
 -- ========== TAB SWITCHING ==========
 local function switchToMods()
     modsPage.Visible = true
+    playerPage.Visible = false
     graphicsPage.Visible = false
     themePage.Visible = false
     othersPage.Visible = false
     tabMods.TextColor3 = themes[currentTheme].accent
+    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+end
+
+local function switchToPlayer()
+    modsPage.Visible = false
+    playerPage.Visible = true
+    graphicsPage.Visible = false
+    themePage.Visible = false
+    othersPage.Visible = false
+    tabPlayer.TextColor3 = themes[currentTheme].accent
+    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
@@ -1166,39 +1656,47 @@ end
 
 local function switchToGraphics()
     modsPage.Visible = false
+    playerPage.Visible = false
     graphicsPage.Visible = true
     themePage.Visible = false
     othersPage.Visible = false
     tabGraphics.TextColor3 = themes[currentTheme].accent
     tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
 
 local function switchToTheme()
     modsPage.Visible = false
+    playerPage.Visible = false
     graphicsPage.Visible = false
     themePage.Visible = true
     othersPage.Visible = false
     tabTheme.TextColor3 = themes[currentTheme].accent
     tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
 
 local function switchToOthers()
     modsPage.Visible = false
+    playerPage.Visible = false
     graphicsPage.Visible = false
     themePage.Visible = false
     othersPage.Visible = true
     tabOthers.TextColor3 = themes[currentTheme].accent
     tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabPlayer.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
 
 tabMods.MouseButton1Click:Connect(switchToMods)
 tabMods.TouchTap:Connect(switchToMods)
+tabPlayer.MouseButton1Click:Connect(switchToPlayer)
+tabPlayer.TouchTap:Connect(switchToPlayer)
 tabGraphics.MouseButton1Click:Connect(switchToGraphics)
 tabGraphics.TouchTap:Connect(switchToGraphics)
 tabTheme.MouseButton1Click:Connect(switchToTheme)
@@ -1213,128 +1711,61 @@ tabMods.TextColor3 = themes.Default.accent
 local function minimizeGUI()
     if isMinimized then return end
     isMinimized = true
-    
     frame.Visible = false
     miniFrame.Visible = true
-    
-    local framePos = frame.Position
-    miniFrame.Position = UDim2.new(
-        framePos.X.Scale,
-        framePos.X.Offset + 170 - 30,
-        framePos.Y.Scale,
-        framePos.Y.Offset + 150 - 30
-    )
-    
     blur.Size = 0
 end
 
 local function unminimizeGUI()
     if not isMinimized then return end
     isMinimized = false
-    
     frame.Visible = true
     miniFrame.Visible = false
-    
     blur.Size = 3
 end
 
--- ========== MINIMIZE BUTTON ==========
 minBtn.MouseButton1Click:Connect(minimizeGUI)
 minBtn.TouchTap:Connect(minimizeGUI)
 
-titleBar.MouseButton1Click:Connect(minimizeGUI)
-titleBar.TouchTap:Connect(minimizeGUI)
+miniFrame.MouseButton1Click:Connect(unminimizeGUI)
+miniFrame.TouchTap:Connect(unminimizeGUI)
 
--- ========== MINI SQUARE CONTROLS (FIXED) ==========
-local miniState = {
-    touchStart = nil,
-    posStart = nil,
-    isDragging = false,
-    hasMoved = false,
-    tapTimer = nil
-}
-
--- TOUCH EVENTS (MOBILE)
-miniFrame.TouchBegan:Connect(function(input)
-    miniState.touchStart = input.Position
-    miniState.posStart = miniFrame.Position
-    miniState.isDragging = false
-    miniState.hasMoved = false
-    miniState.tapTimer = tick()
-end)
-
-miniFrame.TouchMoved:Connect(function(input)
-    if not miniState.touchStart or not miniState.posStart then return end
-    
-    local delta = input.Position - miniState.touchStart
-    local distance = math.sqrt(delta.X^2 + delta.Y^2)
-    
-    if distance > 10 then
-        miniState.hasMoved = true
-        miniState.isDragging = true
-        miniFrame.Position = UDim2.new(
-            miniState.posStart.X.Scale,
-            miniState.posStart.X.Offset + delta.X,
-            miniState.posStart.Y.Scale,
-            miniState.posStart.Y.Offset + delta.Y
-        )
+closeBtn.MouseButton1Click:Connect(function()
+    if isOpen then
+        isOpen = false
+        frame.Visible = false
+        miniFrame.Visible = false
+        closeBtn.Text = "▶"
+        closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        blur.Size = 0
+    else
+        isOpen = true
+        frame.Visible = true
+        if not isMinimized then
+            blur.Size = 3
+        end
+        closeBtn.Text = "✕"
+        closeBtn.TextColor3 = themes[currentTheme].accent
     end
 end)
 
-miniFrame.TouchEnded:Connect(function()
-    local holdTime = tick() - (miniState.tapTimer or tick())
-    miniState.tapTimer = nil
-    
-    -- If it was a tap (not a drag, held for less than 0.4 seconds)
-    if not miniState.isDragging and not miniState.hasMoved and holdTime < 0.4 then
-        unminimizeGUI()
+closeBtn.TouchTap:Connect(function()
+    if isOpen then
+        isOpen = false
+        frame.Visible = false
+        miniFrame.Visible = false
+        closeBtn.Text = "▶"
+        closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        blur.Size = 0
+    else
+        isOpen = true
+        frame.Visible = true
+        if not isMinimized then
+            blur.Size = 3
+        end
+        closeBtn.Text = "✕"
+        closeBtn.TextColor3 = themes[currentTheme].accent
     end
-    
-    miniState.isDragging = false
-    miniState.hasMoved = false
-    miniState.touchStart = nil
-    miniState.posStart = nil
-end)
-
--- MOUSE EVENTS (PC)
-miniFrame.MouseButton1Down:Connect(function(input)
-    miniState.touchStart = input.Position
-    miniState.posStart = miniFrame.Position
-    miniState.isDragging = false
-    miniState.hasMoved = false
-    miniState.tapTimer = tick()
-end)
-
-miniFrame.MouseMoved:Connect(function(input)
-    if not miniState.touchStart or not miniState.posStart then return end
-    
-    local delta = input.Position - miniState.touchStart
-    local distance = math.sqrt(delta.X^2 + delta.Y^2)
-    
-    if distance > 3 then
-        miniState.hasMoved = true
-        miniState.isDragging = true
-        miniFrame.Position = UDim2.new(
-            miniState.posStart.X.Scale,
-            miniState.posStart.X.Offset + delta.X,
-            miniState.posStart.Y.Scale,
-            miniState.posStart.Y.Offset + delta.Y
-        )
-    end
-end)
-
-miniFrame.MouseButton1Up:Connect(function()
-    local holdTime = tick() - (miniState.tapTimer or tick())
-    miniState.tapTimer = nil
-    
-    if not miniState.isDragging and not miniState.hasMoved and holdTime < 0.4 then
-        unminimizeGUI()
-    end
-    
-    miniState.isDragging = false
-    miniState.hasMoved = false
-    miniState.touchStart = nil
-    miniState.posStart = nil
 end)
 
 -- ========== HOTKEY ==========
@@ -1345,12 +1776,17 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             isOpen = false
             frame.Visible = false
             miniFrame.Visible = false
+            closeBtn.Text = "▶"
+            closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+            blur.Size = 0
         else
             isOpen = true
             frame.Visible = true
             if not isMinimized then
                 blur.Size = 3
             end
+            closeBtn.Text = "✕"
+            closeBtn.TextColor3 = themes[currentTheme].accent
         end
     end
 end)
@@ -1359,9 +1795,13 @@ end)
 task.wait(0.3)
 frame.Visible = true
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 340, 0, 300)
-frame.Position = UDim2.new(0.5, -170, 0.5, -150)
+frame.Size = UDim2.new(0, 360, 0, 340)
+frame.Position = UDim2.new(0.5, -180, 0.5, -170)
 blur.Size = 3
 miniFrame.Visible = false
+closeBtn.Text = "✕"
+shitflockBtn.Visible = false
+flyUpBtn.Visible = false
+flyDownBtn.Visible = false
 
-print("NZ-IS v6 - Mini square FIXED! Tap to restore, hold + drag to move.")
+print("NZ-IS v6 - Fly has mobile controls (▲ ▼ buttons on right side)!")
