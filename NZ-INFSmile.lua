@@ -106,7 +106,7 @@ stroke.Color = themes.Default.stroke
 stroke.Thickness = 1.5
 stroke.Transparency = 0.6
 
--- ===== MINI SQUARE (TEXTBUTTON) =====
+-- ===== MINI SQUARE =====
 local miniBtn = Instance.new("TextButton")
 miniBtn.Size = UDim2.new(0, 50, 0, 50)
 miniBtn.Position = UDim2.new(1, -60, 0, 10)
@@ -129,7 +129,7 @@ miniStroke.Color = themes.Default.accent
 miniStroke.Thickness = 2
 miniStroke.Transparency = 0.3
 
--- ===== RE-OPEN BUTTON (DRAGGABLE) =====
+-- ===== RE-OPEN BUTTON (with tap/hold) =====
 local reopenBtn = Instance.new("TextButton")
 reopenBtn.Size = UDim2.new(0, 50, 0, 50)
 reopenBtn.Position = UDim2.new(0, 10, 1, -65)
@@ -156,6 +156,7 @@ local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 32)
 titleBar.BackgroundTransparency = 1
 titleBar.Parent = frame
+titleBar.Active = true
 
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(0.5, 0, 1, 0)
@@ -849,95 +850,115 @@ end
 closeBtn.MouseButton1Click:Connect(toggleOpenClose)
 closeBtn.TouchTap:Connect(toggleOpenClose)
 
--- Re-open button click to open GUI
-reopenBtn.MouseButton1Click:Connect(function()
-    if not isOpen then
-        isOpen = true
-        frame.Visible = true
-        reopenBtn.Visible = false
-        closeBtn.Text = "X"
-        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-        if not isMinimized then
-            blur.Size = 3
-        end
-    end
-end)
+-- ===== DRAG SYSTEM WITH TAP/HOLD DETECTION =====
 
-reopenBtn.TouchTap:Connect(function()
-    if not isOpen then
-        isOpen = true
-        frame.Visible = true
-        reopenBtn.Visible = false
-        closeBtn.Text = "X"
-        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-        if not isMinimized then
-            blur.Size = 3
-        end
-    end
-end)
+-- FRAME DRAG (title bar only - hold to drag, tap does nothing)
+local frameDragData = {
+    isDragging = false,
+    startPos = nil,
+    frameStart = nil,
+    hasMoved = false,
+    touchStart = nil,
+    isTap = false
+}
 
--- ===== DRAG SYSTEM (BLOCKS CAMERA MOVEMENT) =====
-local dragging = false
-local dragInput = nil
-local dragStart = nil
-local startPos = nil
-local isDraggingReopen = false
-
--- Frame drag
 titleBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
-        -- Block camera movement
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
+        frameDragData.isDragging = false
+        frameDragData.hasMoved = false
+        frameDragData.startPos = input.Position
+        frameDragData.frameStart = frame.Position
+        frameDragData.touchStart = tick()
+        frameDragData.isTap = true
     end
 end)
 
 titleBar.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
+        if frameDragData.startPos then
+            local delta = input.Position - frameDragData.startPos
+            local distance = math.sqrt(delta.X^2 + delta.Y^2)
+            if distance > 5 then
+                frameDragData.hasMoved = true
+                frameDragData.isDragging = true
+                frameDragData.isTap = false
+            end
+            if frameDragData.isDragging then
+                frame.Position = UDim2.new(frameDragData.frameStart.X.Scale, frameDragData.frameStart.X.Offset + delta.X, frameDragData.frameStart.Y.Scale, frameDragData.frameStart.Y.Offset + delta.Y)
+            end
+        end
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+titleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        frameDragData.isDragging = false
+        frameDragData.startPos = nil
+        frameDragData.frameStart = nil
     end
 end)
 
--- Re-open button drag
-local reopenDragStart = nil
-local reopenStartPos = nil
+-- RE-OPEN BUTTON DRAG (tap to open, hold to drag)
+local reopenDragData = {
+    isDragging = false,
+    startPos = nil,
+    btnStart = nil,
+    hasMoved = false,
+    touchStart = nil,
+    isTap = false
+}
 
 reopenBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        isDraggingReopen = true
-        reopenDragStart = input.Position
-        reopenStartPos = reopenBtn.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                isDraggingReopen = false
-            end
-        end)
+        reopenDragData.isDragging = false
+        reopenDragData.hasMoved = false
+        reopenDragData.startPos = input.Position
+        reopenDragData.btnStart = reopenBtn.Position
+        reopenDragData.touchStart = tick()
+        reopenDragData.isTap = true
     end
 end)
 
 reopenBtn.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
+        if reopenDragData.startPos then
+            local delta = input.Position - reopenDragData.startPos
+            local distance = math.sqrt(delta.X^2 + delta.Y^2)
+            if distance > 10 then
+                reopenDragData.hasMoved = true
+                reopenDragData.isDragging = true
+                reopenDragData.isTap = false
+            end
+            if reopenDragData.isDragging then
+                reopenBtn.Position = UDim2.new(reopenDragData.btnStart.X.Scale, reopenDragData.btnStart.X.Offset + delta.X, reopenDragData.btnStart.Y.Scale, reopenDragData.btnStart.Y.Offset + delta.Y)
+            end
+        end
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and isDraggingReopen then
-        local delta = input.Position - reopenDragStart
-        reopenBtn.Position = UDim2.new(reopenStartPos.X.Scale, reopenStartPos.X.Offset + delta.X, reopenStartPos.Y.Scale, reopenStartPos.Y.Offset + delta.Y)
+reopenBtn.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        -- Only trigger tap if it was a tap (not a drag)
+        if reopenDragData.isTap and not reopenDragData.hasMoved and reopenDragData.touchStart then
+            local holdTime = tick() - reopenDragData.touchStart
+            if holdTime < 0.3 then
+                -- Tap detected - open GUI
+                if not isOpen then
+                    isOpen = true
+                    frame.Visible = true
+                    reopenBtn.Visible = false
+                    closeBtn.Text = "X"
+                    closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+                    if not isMinimized then
+                        blur.Size = 3
+                    end
+                end
+            end
+        end
+        reopenDragData.isDragging = false
+        reopenDragData.startPos = nil
+        reopenDragData.btnStart = nil
+        reopenDragData.isTap = false
     end
 end)
 
@@ -958,4 +979,4 @@ TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.Easing
 }):Play()
 blur.Size = 3
 
-print("NZ-IS v6 - FULLY LOADED! Drag without camera turning, reopen button draggable!")
+print("NZ-IS v6 - TAP TO OPEN, HOLD TO DRAG!")
