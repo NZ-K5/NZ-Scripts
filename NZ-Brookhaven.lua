@@ -71,22 +71,25 @@ local mouseFlyActive = false
 local floatActive = false
 local jumpActive = false
 local infJumpActive = false
+local flingActive = false
 local speedMultiplier = 1
 local jumpHeight = 50
 local floatHeight = 20
 local flySpeed = 50
-local mouseFlySpeed = 50
+local mouseFlySpeed = 30
+local flingPower = 500
 local noclipConnections = {}
 local keyboardFlyConnection = nil
 local mouseFlyConnection = nil
 local floatConnection = nil
 local jumpConnection = nil
 local infJumpConnection = nil
+local flingConnection = nil
 local originalCollision = {}
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 580, 0, 540)
-frame.Position = UDim2.new(0.5, -290, 0.5, -270)
+frame.Size = UDim2.new(0, 580, 0, 580)
+frame.Position = UDim2.new(0.5, -290, 0.5, -290)
 frame.BackgroundColor3 = themes.Default.background
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -207,6 +210,10 @@ closeBtn.MouseButton1Click:Connect(function()
             pcall(function() infJumpConnection:Disconnect() end)
             infJumpConnection = nil
         end
+        if flingConnection then
+            pcall(function() flingConnection:Disconnect() end)
+            flingConnection = nil
+        end
         root:Destroy()
         blur:Destroy()
     end
@@ -247,7 +254,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -20, 1, -95)
     pg.Position = UDim2.new(0, 10, 0, 85)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 600)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 650)
     pg.ScrollBarThickness = 4
     pg.ScrollBarImageColor3 = themes.Default.accent
     pg.Parent = frame
@@ -364,8 +371,20 @@ makeLabel("Car Float", yOff, carPage)
 local floatBtn = makeToggle(yOff, carPage)
 yOff = yOff + 35
 
-makeLabel("Car Jump", yOff, carPage)
+makeLabel("Car Jump (F)", yOff, carPage)
 local jumpBtn = makeToggle(yOff, carPage)
+yOff = yOff + 35
+
+makeLabel("Car Fling", yOff, carPage)
+local flingBtn = makeToggle(yOff, carPage)
+yOff = yOff + 35
+
+makeLabel("Fling Power", yOff, carPage)
+local flingPowerBox = makeBox(yOff, carPage, "500")
+local flingPowerApply = makeApply(yOff, carPage, "Set")
+flingPowerApply.Size = UDim2.new(0, 50, 0, 28)
+flingPowerApply.Position = UDim2.new(0, 280, 0, yOff)
+flingPowerApply.Text = "Set"
 yOff = yOff + 40
 
 local modButton = Instance.new("TextButton")
@@ -483,7 +502,7 @@ local function createThemeButton(name, y)
         stroke.Color = t.stroke
         titleLabel.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= noclipBtn and child ~= keyboardFlyBtn and child ~= mouseFlyBtn and child ~= floatBtn and child ~= jumpBtn and child ~= infJumpBtn and child ~= speedApply and child ~= turboApply and child ~= speedMultApply and child ~= jumpHeightApply and child ~= floatHeightApply and child ~= walkSpeedApply and child ~= jumpPowerApply and child ~= tpApply and child ~= coordApply and child ~= carScaleApply then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= noclipBtn and child ~= keyboardFlyBtn and child ~= mouseFlyBtn and child ~= floatBtn and child ~= jumpBtn and child ~= flingBtn and child ~= infJumpBtn and child ~= speedApply and child ~= turboApply and child ~= speedMultApply and child ~= jumpHeightApply and child ~= floatHeightApply and child ~= walkSpeedApply and child ~= jumpPowerApply and child ~= tpApply and child ~= coordApply and child ~= carScaleApply and child ~= flingPowerApply then
                 if child.Text == "Apply" or child.Text == "Set" or child.Text == "Car Modded Customization" or child.Text == "Instant Brake" or child.Text == "Respawn" then
                     child.TextColor3 = t.accent
                 end
@@ -575,6 +594,14 @@ local function setupCarTracking()
             jumpBtn.Text = "OFF"
             jumpBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
             jumpBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+            if flingConnection then
+                pcall(function() flingConnection:Disconnect() end)
+                flingConnection = nil
+            end
+            flingActive = false
+            flingBtn.Text = "OFF"
+            flingBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            flingBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
             if infJumpConnection then
                 pcall(function() infJumpConnection:Disconnect() end)
                 infJumpConnection = nil
@@ -683,14 +710,17 @@ local function toggleKeyboardFly()
             if not rootPart then return end
             local carRoot = carModel:FindFirstChild("HumanoidRootPart") or carModel:FindFirstChildWhichIsA("BasePart")
             if not carRoot then return end
+            
             local moveDirection = humanoid.MoveDirection
             local forward = Vector3.new(moveDirection.X, 0, moveDirection.Z) * flySpeed
             local up = Vector3.new(0, 0, 0)
+            
             if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
                 up = Vector3.new(0, flySpeed, 0)
             elseif UserInputService:IsKeyDown(Enum.KeyCode.E) then
                 up = Vector3.new(0, -flySpeed, 0)
             end
+            
             local velocity = forward + up
             if velocity.Magnitude > 0 then
                 carRoot.Velocity = velocity
@@ -746,17 +776,20 @@ local function toggleMouseFly()
             if not camera then return end
             local carRoot = carModel:FindFirstChild("HumanoidRootPart") or carModel:FindFirstChildWhichIsA("BasePart")
             if not carRoot then return end
+            
             local mousePos = UserInputService:GetMouseLocation()
             local ray = camera:ScreenPointToRay(mousePos.X, mousePos.Y)
             local targetPos = ray.Origin + ray.Direction * 500
             local direction = (targetPos - carRoot.Position).Unit
             local horizontalDir = Vector3.new(direction.X, 0, direction.Z).Unit
+            
             local up = Vector3.new(0, 0, 0)
             if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
                 up = Vector3.new(0, mouseFlySpeed, 0)
             elseif UserInputService:IsKeyDown(Enum.KeyCode.E) then
                 up = Vector3.new(0, -mouseFlySpeed, 0)
             end
+            
             local velocity = horizontalDir * mouseFlySpeed + up
             if velocity.Magnitude > 0 then
                 carRoot.Velocity = velocity
@@ -801,6 +834,7 @@ local function toggleFloat()
             if not carModel or not floatActive then return end
             local carRoot = carModel:FindFirstChild("HumanoidRootPart") or carModel:FindFirstChildWhichIsA("BasePart")
             if not carRoot then return end
+            
             local ray = Ray.new(carRoot.Position + Vector3.new(0, 10, 0), Vector3.new(0, -100, 0))
             local hit, pos = workspace:FindPartOnRay(ray, carModel)
             if hit and pos then
@@ -840,7 +874,7 @@ local function toggleJump()
         jumpConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if gameProcessed then return end
             if not carModel or not jumpActive then return end
-            if input.KeyCode == Enum.KeyCode.Space then
+            if input.KeyCode == Enum.KeyCode.F then
                 local carRoot = carModel:FindFirstChild("HumanoidRootPart") or carModel:FindFirstChildWhichIsA("BasePart")
                 if carRoot then
                     carRoot.Velocity = Vector3.new(carRoot.Velocity.X, jumpHeight, carRoot.Velocity.Z)
@@ -860,6 +894,73 @@ end
 
 jumpBtn.MouseButton1Click:Connect(toggleJump)
 
+local function toggleFling()
+    if not carModel then return end
+    flingActive = not flingActive
+    if flingActive then
+        flingBtn.Text = "ON"
+        flingBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        flingBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
+        if flingConnection then
+            pcall(function() flingConnection:Disconnect() end)
+            flingConnection = nil
+        end
+        flingConnection = RunService.Heartbeat:Connect(function()
+            if not flingActive then return end
+            
+            for _, otherPlayer in pairs(Players:GetPlayers()) do
+                if otherPlayer ~= player then
+                    local otherChar = otherPlayer.Character
+                    if otherChar then
+                        local otherCar = otherChar:FindFirstChildOfClass("Model")
+                        if otherCar and otherCar.Name:find("Car") then
+                            local char = player.Character
+                            if char then
+                                local rootPart = char:FindFirstChild("HumanoidRootPart")
+                                if rootPart and (rootPart.Position - otherCar:GetPivot().Position).Magnitude < 20 then
+                                    local carRoot = otherCar:FindFirstChild("HumanoidRootPart") or otherCar:FindFirstChildWhichIsA("BasePart")
+                                    if carRoot then
+                                        local direction = (carRoot.Position - rootPart.Position).Unit
+                                        carRoot.Velocity = direction * flingPower + Vector3.new(0, flingPower * 0.3, 0)
+                                        for _, part in pairs(otherCar:GetDescendants()) do
+                                            if part:IsA("BasePart") and part ~= carRoot then
+                                                part.Velocity = direction * flingPower + Vector3.new(0, flingPower * 0.3, 0)
+                                            end
+                                        end
+                                        local humanoid = char:FindFirstChild("Humanoid")
+                                        if humanoid then
+                                            humanoid.Sit = true
+                                            task.wait(0.1)
+                                            humanoid.Sit = false
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    else
+        flingBtn.Text = "OFF"
+        flingBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        flingBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        if flingConnection then
+            pcall(function() flingConnection:Disconnect() end)
+            flingConnection = nil
+        end
+    end
+end
+
+flingBtn.MouseButton1Click:Connect(toggleFling)
+
+flingPowerApply.MouseButton1Click:Connect(function()
+    local power = tonumber(flingPowerBox.Text)
+    if power and power > 0 then
+        flingPower = power
+    end
+end)
+
 local function toggleInfJump()
     infJumpActive = not infJumpActive
     if infJumpActive then
@@ -870,17 +971,23 @@ local function toggleInfJump()
             pcall(function() infJumpConnection:Disconnect() end)
             infJumpConnection = nil
         end
-        infJumpConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if gameProcessed then return end
-            if input.KeyCode == Enum.KeyCode.Space then
-                local char = player.Character
-                if char then
-                    local humanoid = char:FindFirstChild("Humanoid")
-                    if humanoid then
-                        humanoid.Jump = true
-                    end
-                end
+        local playerChar = player.Character
+        if playerChar then
+            local humanoid = playerChar:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.Jump = true
             end
+        end
+        infJumpConnection = RunService.Heartbeat:Connect(function()
+            if not infJumpActive then return end
+            local char = player.Character
+            if not char then return end
+            local humanoid = char:FindFirstChild("Humanoid")
+            if not humanoid then return end
+            if humanoid.Jump then
+                humanoid.Jump = true
+            end
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
         end)
     else
         infJumpBtn.Text = "OFF"
@@ -1107,8 +1214,8 @@ end
 
 local function maximizeGUI()
     isMinimized = false
-    frame.Size = UDim2.new(0, 580, 0, 540)
-    frame.Position = UDim2.new(0.5, -290, 0.5, -270)
+    frame.Size = UDim2.new(0, 580, 0, 580)
+    frame.Position = UDim2.new(0.5, -290, 0.5, -290)
     tabContainer.Visible = true
     carPage.Visible = true
     playerPage.Visible = false
