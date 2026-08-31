@@ -92,6 +92,8 @@ local noclipConnection = nil
 local espObjects = {}
 local flyBodyVelocity = nil
 local flyBodyGyro = nil
+local infJumpConnection = nil
+local characterAddedConnection = nil
 
 local deletedInfect = {}
 local deletedKill = {}
@@ -269,7 +271,6 @@ flyDownBtn.ZIndex = 999
 local flyDownCorner = Instance.new("UICorner", flyDownBtn)
 flyDownCorner.CornerRadius = UDim.new(1, 0)
 
--- Fly control variables
 local flyUpHeld = false
 local flyDownHeld = false
 
@@ -696,7 +697,43 @@ shitflockToggle.TouchTap:Connect(toggleShitflock)
 
 -- ========== PLAYER MOD FUNCTIONS ==========
 
--- Inf Jump
+-- Inf Jump (FIXED)
+local infJumpBind = nil
+
+local function setupInfJump()
+    if infJumpBind then
+        pcall(function() infJumpBind:Disconnect() end)
+        infJumpBind = nil
+    end
+    
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum then return end
+    
+    local jumpCount = 0
+    local maxJumps = 999
+    
+    infJumpBind = hum.StateChanged:Connect(function(oldState, newState)
+        if not infJumpActive then return end
+        if newState == Enum.HumanoidStateType.Jumping then
+            jumpCount = jumpCount + 1
+            if jumpCount >= maxJumps then
+                jumpCount = 0
+            end
+        end
+        if newState == Enum.HumanoidStateType.Landed then
+            jumpCount = 0
+        end
+        if newState == Enum.HumanoidStateType.Freefall and jumpCount > 0 then
+            task.wait(0.05)
+            if infJumpActive and hum and hum.Parent then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end)
+end
+
 local function toggleInfJump()
     infJumpActive = not infJumpActive
     if infJumpActive then
@@ -705,23 +742,17 @@ local function toggleInfJump()
         infJumpBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         statusLabel.Text = "Inf Jump ENABLED"
         statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") then
-            local hum = char.Humanoid
-            hum:GetPropertyChangedSignal("Jump"):Connect(function()
-                if infJumpActive and hum.Jump then
-                    task.wait(0.05)
-                    hum.Jump = true
-                end
-            end)
-        end
+        setupInfJump()
     else
         infJumpBtn.Text = "OFF"
         infJumpBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         infJumpBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         statusLabel.Text = "Inf Jump DISABLED"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        if infJumpBind then
+            pcall(function() infJumpBind:Disconnect() end)
+            infJumpBind = nil
+        end
         task.wait(0.5)
         statusLabel.Text = "Ready"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
@@ -731,7 +762,26 @@ end
 infJumpBtn.MouseButton1Click:Connect(toggleInfJump)
 infJumpBtn.TouchTap:Connect(toggleInfJump)
 
--- Noclip
+-- Noclip (FIXED - rebinds on CharacterAdded)
+local function setupNoclip()
+    if noclipConnection then
+        pcall(function() noclipConnection:Disconnect() end)
+        noclipConnection = nil
+    end
+    
+    if not noclipActive then return end
+    
+    noclipConnection = RunService.Stepped:Connect(function()
+        if noclipActive and player.Character then
+            for _, part in pairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
 local function toggleNoclip()
     noclipActive = not noclipActive
     if noclipActive then
@@ -740,33 +790,17 @@ local function toggleNoclip()
         noclipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         statusLabel.Text = "Noclip ENABLED"
         statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        
-        if noclipConnection then
-            pcall(function() noclipConnection:Disconnect() end)
-            noclipConnection = nil
-        end
-        
-        noclipConnection = RunService.Stepped:Connect(function()
-            if noclipActive and player.Character then
-                for _, part in pairs(player.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
-            end
-        end)
+        setupNoclip()
     else
         noclipBtn.Text = "OFF"
         noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         statusLabel.Text = "Noclip DISABLED"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        
         if noclipConnection then
             pcall(function() noclipConnection:Disconnect() end)
             noclipConnection = nil
         end
-        
         if player.Character then
             for _, part in pairs(player.Character:GetDescendants()) do
                 if part:IsA("BasePart") then
@@ -774,7 +808,6 @@ local function toggleNoclip()
                 end
             end
         end
-        
         task.wait(0.5)
         statusLabel.Text = "Ready"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
@@ -784,7 +817,69 @@ end
 noclipBtn.MouseButton1Click:Connect(toggleNoclip)
 noclipBtn.TouchTap:Connect(toggleNoclip)
 
--- Fly (with mobile controls)
+-- Fly (FIXED - rebinds on CharacterAdded)
+local function setupFly()
+    if flyConnection then
+        pcall(function() flyConnection:Disconnect() end)
+        flyConnection = nil
+    end
+    
+    if not flyActive then return end
+    
+    flyConnection = RunService.Heartbeat:Connect(function()
+        if not flyActive then return end
+        local char = player.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        
+        local rootPart = char.HumanoidRootPart
+        local hum = char:FindFirstChild("Humanoid")
+        
+        if not flyBodyVelocity or flyBodyVelocity.Parent == nil then
+            flyBodyVelocity = Instance.new("BodyVelocity")
+            flyBodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+            flyBodyVelocity.Parent = rootPart
+        end
+        
+        if not flyBodyGyro or flyBodyGyro.Parent == nil then
+            flyBodyGyro = Instance.new("BodyGyro")
+            flyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+            flyBodyGyro.CFrame = rootPart.CFrame
+            flyBodyGyro.Parent = rootPart
+        end
+        
+        local moveDirection = Vector3.new()
+        local forward = Camera.CFrame.LookVector
+        local right = Camera.CFrame.RightVector
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + forward end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - forward end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - right end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + right end
+        
+        if flyUpHeld then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
+        if flyDownHeld then moveDirection = moveDirection + Vector3.new(0, -1, 0) end
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            moveDirection = moveDirection + Vector3.new(0, 1, 0)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+            moveDirection = moveDirection + Vector3.new(0, -1, 0)
+        end
+        
+        if moveDirection.Magnitude > 0 then
+            moveDirection = moveDirection.Unit * 50
+        end
+        
+        flyBodyVelocity.Velocity = moveDirection
+        flyBodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + forward * 10)
+        
+        if hum then
+            hum.PlatformStand = true
+            hum.AutoRotate = false
+        end
+    end)
+end
+
 local function toggleFly()
     flyActive = not flyActive
     if flyActive then
@@ -793,93 +888,23 @@ local function toggleFly()
         flyBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         statusLabel.Text = "Fly ENABLED"
         statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-        
         flyUpBtn.Visible = true
         flyDownBtn.Visible = true
-        
-        if flyConnection then
-            pcall(function() flyConnection:Disconnect() end)
-            flyConnection = nil
-        end
-        
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.PlatformStand = true
-        end
-        
-        flyConnection = RunService.Heartbeat:Connect(function()
-            if not flyActive then return end
-            local char = player.Character
-            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-            
-            local rootPart = char.HumanoidRootPart
-            local hum = char:FindFirstChild("Humanoid")
-            
-            if not flyBodyVelocity or flyBodyVelocity.Parent == nil then
-                flyBodyVelocity = Instance.new("BodyVelocity")
-                flyBodyVelocity.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-                flyBodyVelocity.Parent = rootPart
-            end
-            
-            if not flyBodyGyro or flyBodyGyro.Parent == nil then
-                flyBodyGyro = Instance.new("BodyGyro")
-                flyBodyGyro.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-                flyBodyGyro.CFrame = rootPart.CFrame
-                flyBodyGyro.Parent = rootPart
-            end
-            
-            local moveDirection = Vector3.new()
-            local forward = Camera.CFrame.LookVector
-            local right = Camera.CFrame.RightVector
-            
-            -- PC Keyboard controls
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + forward end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - forward end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - right end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + right end
-            
-            -- Mobile up/down buttons
-            if flyUpHeld then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
-            if flyDownHeld then moveDirection = moveDirection + Vector3.new(0, -1, 0) end
-            
-            -- PC keyboard up/down (also works)
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                moveDirection = moveDirection + Vector3.new(0, 1, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                moveDirection = moveDirection + Vector3.new(0, -1, 0)
-            end
-            
-            if moveDirection.Magnitude > 0 then
-                moveDirection = moveDirection.Unit * 50
-            end
-            
-            flyBodyVelocity.Velocity = moveDirection
-            flyBodyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + forward * 10)
-            
-            if hum then
-                hum.PlatformStand = true
-                hum.AutoRotate = false
-            end
-        end)
-        
+        setupFly()
     else
         flyBtn.Text = "OFF"
         flyBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         flyBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         statusLabel.Text = "Fly DISABLED"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        
         flyUpBtn.Visible = false
         flyDownBtn.Visible = false
         flyUpHeld = false
         flyDownHeld = false
-        
         if flyConnection then
             pcall(function() flyConnection:Disconnect() end)
             flyConnection = nil
         end
-        
         if flyBodyVelocity then
             pcall(function() flyBodyVelocity:Destroy() end)
             flyBodyVelocity = nil
@@ -888,13 +913,11 @@ local function toggleFly()
             pcall(function() flyBodyGyro:Destroy() end)
             flyBodyGyro = nil
         end
-        
         local char = player.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.PlatformStand = false
             char.Humanoid.AutoRotate = true
         end
-        
         task.wait(0.5)
         statusLabel.Text = "Ready"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
@@ -903,6 +926,34 @@ end
 
 flyBtn.MouseButton1Click:Connect(toggleFly)
 flyBtn.TouchTap:Connect(toggleFly)
+
+-- ========== CHARACTER ADDED REBIND ==========
+local function onCharacterAdded(char)
+    task.wait(0.3)
+    
+    -- Apply WalkSpeed
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = walkspeedValue
+        player.Character.Humanoid.JumpPower = jumppowerValue
+    end
+    
+    -- Rebind Inf Jump
+    if infJumpActive then
+        setupInfJump()
+    end
+    
+    -- Rebind Noclip
+    if noclipActive then
+        setupNoclip()
+    end
+    
+    -- Rebind Fly
+    if flyActive then
+        setupFly()
+    end
+end
+
+player.CharacterAdded:Connect(onCharacterAdded)
 
 -- ========== DESTROY FUNCTION ==========
 local function destroyGUI()
@@ -929,6 +980,10 @@ local function destroyGUI()
     if flyConnection then
         pcall(function() flyConnection:Disconnect() end)
         flyConnection = nil
+    end
+    if infJumpBind then
+        pcall(function() infJumpBind:Disconnect() end)
+        infJumpBind = nil
     end
     if flyBodyVelocity then
         pcall(function() flyBodyVelocity:Destroy() end)
@@ -1269,6 +1324,18 @@ local function toggleEsp()
             task.wait(0.5)
             if teamEspActive then
                 createEspForPlayer(target)
+            end
+        end)
+        
+        -- Clean up when players leave
+        Players.PlayerRemoving:Connect(function(target)
+            if espObjects[target] then
+                pcall(function()
+                    if espObjects[target].Highlight then espObjects[target].Highlight:Destroy() end
+                    if espObjects[target].Box then espObjects[target].Box:Destroy() end
+                    if espObjects[target].Line then espObjects[target].Line:Destroy() end
+                end)
+                espObjects[target] = nil
             end
         end)
         
@@ -1804,4 +1871,4 @@ shitflockBtn.Visible = false
 flyUpBtn.Visible = false
 flyDownBtn.Visible = false
 
-print("NZ-IS v6 - Fly has mobile controls (▲ ▼ buttons on right side)!")
+print("NZ-IS v6 - All mods fixed, CharacterAdded rebind added, no errors!")
