@@ -103,8 +103,8 @@ local originalLighting = {
 
 -- ========== MAIN GUI FRAME ==========
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 280)
-frame.Position = UDim2.new(0.5, -160, 0.5, -140)
+frame.Size = UDim2.new(0, 340, 0, 300)
+frame.Position = UDim2.new(0.5, -170, 0.5, -150)
 frame.BackgroundColor3 = themes.Default.background
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -121,7 +121,7 @@ stroke.Color = themes.Default.stroke
 stroke.Thickness = 1.5
 stroke.Transparency = 0.6
 
--- ========== TITLE BAR (TAP TO MINIMIZE) ==========
+-- ========== TITLE BAR ==========
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 44)
 titleBar.BackgroundTransparency = 0.2
@@ -133,7 +133,7 @@ local titleCorner = Instance.new("UICorner", titleBar)
 titleCorner.CornerRadius = UDim.new(0, 8)
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -10, 1, 0)
+titleLabel.Size = UDim2.new(0.6, 0, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.Text = "NZ-IS"
 titleLabel.TextColor3 = themes.Default.accent
@@ -143,7 +143,22 @@ titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.BackgroundTransparency = 1
 titleLabel.Parent = titleBar
 
--- ========== MINIMIZED SQUARE (hidden by default) ==========
+-- ========== MINIMIZE BUTTON (next to title) ==========
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 30, 0, 30)
+minBtn.Position = UDim2.new(1, -38, 0, 7)
+minBtn.Text = "─"
+minBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+minBtn.TextSize = 18
+minBtn.Font = Enum.Font.GothamBold
+minBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+minBtn.BackgroundTransparency = 0.2
+minBtn.Parent = titleBar
+minBtn.AutoButtonColor = true
+local minCorner = Instance.new("UICorner", minBtn)
+minCorner.CornerRadius = UDim.new(0, 6)
+
+-- ========== MINIMIZED SQUARE ==========
 local miniFrame = Instance.new("Frame")
 miniFrame.Size = UDim2.new(0, 60, 0, 60)
 miniFrame.Position = UDim2.new(0.5, -30, 0.5, -30)
@@ -174,14 +189,14 @@ miniLabel.Parent = miniFrame
 
 -- ========== TABS ==========
 local tabContainer = Instance.new("Frame")
-tabContainer.Size = UDim2.new(1, -10, 0, 26)
+tabContainer.Size = UDim2.new(1, -10, 0, 28)
 tabContainer.Position = UDim2.new(0, 5, 0, 48)
 tabContainer.BackgroundTransparency = 1
 tabContainer.Parent = frame
 
 local function createTab(name, x)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 95, 1, 0)
+    btn.Size = UDim2.new(0, 75, 1, 0)
     btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 210)
@@ -197,14 +212,15 @@ local function createTab(name, x)
 end
 
 local tabMods = createTab("Mods", 0)
-local tabGraphics = createTab("Graphics", 100)
-local tabTheme = createTab("Theme", 200)
+local tabGraphics = createTab("Graphics", 80)
+local tabTheme = createTab("Theme", 160)
+local tabOthers = createTab("Others", 240)
 
 -- ========== PAGES ==========
 local function createPage()
     local pg = Instance.new("ScrollingFrame")
-    pg.Size = UDim2.new(1, -10, 1, -82)
-    pg.Position = UDim2.new(0, 5, 0, 78)
+    pg.Size = UDim2.new(1, -10, 1, -84)
+    pg.Position = UDim2.new(0, 5, 0, 80)
     pg.BackgroundTransparency = 1
     pg.CanvasSize = UDim2.new(0, 0, 0, 350)
     pg.ScrollBarThickness = 3
@@ -217,6 +233,7 @@ end
 local modsPage = createPage()
 local graphicsPage = createPage()
 local themePage = createPage()
+local othersPage = createPage()
 
 local function makeLabel(text, y, parent, w)
     w = w or 100
@@ -246,6 +263,23 @@ local function makeToggle(y, parent)
     btn.AutoButtonColor = true
     local c = Instance.new("UICorner", btn)
     c.CornerRadius = UDim.new(0, 4)
+    return btn
+end
+
+local function makeButton(text, y, parent, color)
+    color = color or Color3.fromRGB(60, 30, 30)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 150, 0, 32)
+    btn.Position = UDim2.new(0.5, -75, 0, y)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 13
+    btn.Font = Enum.Font.GothamBold
+    btn.BackgroundColor3 = color
+    btn.Parent = parent
+    btn.AutoButtonColor = true
+    local c = Instance.new("UICorner", btn)
+    c.CornerRadius = UDim.new(0, 6)
     return btn
 end
 
@@ -344,9 +378,10 @@ local function createThemeButton(name, y, color)
         statusLabel.TextColor3 = t.accent
         miniFrame.BackgroundColor3 = t.accent
         miniStroke.Color = t.accent
+        minBtn.TextColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= rtxBtn and child ~= futureBtn then
-                if child.Text == "Mods" or child.Text == "Graphics" or child.Text == "Theme" then
+            if child:IsA("TextButton") and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= rtxBtn and child ~= futureBtn and child ~= minBtn then
+                if child.Text == "Mods" or child.Text == "Graphics" or child.Text == "Theme" or child.Text == "Others" then
                     child.TextColor3 = t.accent
                 end
             end
@@ -389,6 +424,59 @@ for _, t in ipairs(themeColors) do
     createThemeButton(t.name, themeY, t.color)
     themeY = themeY + 33
 end
+
+-- ========== OTHERS PAGE ==========
+local oY = 10
+
+local destroyBtn = makeButton("🗑 Destroy GUI", oY, othersPage, Color3.fromRGB(80, 20, 20))
+oY = oY + 40
+
+local creditsLabel = Instance.new("TextLabel")
+creditsLabel.Size = UDim2.new(1, -10, 0, 20)
+creditsLabel.Position = UDim2.new(0, 0, 0, oY)
+creditsLabel.Text = "NZ-IS v6"
+creditsLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
+creditsLabel.TextSize = 10
+creditsLabel.Font = Enum.Font.Gotham
+creditsLabel.BackgroundTransparency = 1
+creditsLabel.TextXAlignment = Enum.TextXAlignment.Center
+creditsLabel.Parent = othersPage
+oY = oY + 30
+
+othersPage.CanvasSize = UDim2.new(0, 0, 0, oY + 10)
+
+-- ========== DESTROY FUNCTION ==========
+local function destroyGUI()
+    if infectConnection then
+        pcall(function() infectConnection:Disconnect() end)
+        infectConnection = nil
+    end
+    if killConnection then
+        pcall(function() killConnection:Disconnect() end)
+        killConnection = nil
+    end
+    if doorsConnection then
+        pcall(function() doorsConnection:Disconnect() end)
+        doorsConnection = nil
+    end
+    if espConnection then
+        pcall(function() espConnection:Disconnect() end)
+        espConnection = nil
+    end
+    for target, data in pairs(espObjects) do
+        pcall(function()
+            if data.Highlight then data.Highlight:Destroy() end
+            if data.Box then data.Box:Destroy() end
+            if data.Line then data.Line:Destroy() end
+        end)
+    end
+    espObjects = {}
+    root:Destroy()
+    blur:Destroy()
+end
+
+destroyBtn.MouseButton1Click:Connect(destroyGUI)
+destroyBtn.TouchTap:Connect(destroyGUI)
 
 -- ========== CORE FUNCTIONS ==========
 
@@ -1069,27 +1157,44 @@ local function switchToMods()
     modsPage.Visible = true
     graphicsPage.Visible = false
     themePage.Visible = false
+    othersPage.Visible = false
     tabMods.TextColor3 = themes[currentTheme].accent
     tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
 
 local function switchToGraphics()
     modsPage.Visible = false
     graphicsPage.Visible = true
     themePage.Visible = false
+    othersPage.Visible = false
     tabGraphics.TextColor3 = themes[currentTheme].accent
     tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
 
 local function switchToTheme()
     modsPage.Visible = false
     graphicsPage.Visible = false
     themePage.Visible = true
+    othersPage.Visible = false
     tabTheme.TextColor3 = themes[currentTheme].accent
     tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+end
+
+local function switchToOthers()
+    modsPage.Visible = false
+    graphicsPage.Visible = false
+    themePage.Visible = false
+    othersPage.Visible = true
+    tabOthers.TextColor3 = themes[currentTheme].accent
+    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabGraphics.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
 
 tabMods.MouseButton1Click:Connect(switchToMods)
@@ -1098,55 +1203,26 @@ tabGraphics.MouseButton1Click:Connect(switchToGraphics)
 tabGraphics.TouchTap:Connect(switchToGraphics)
 tabTheme.MouseButton1Click:Connect(switchToTheme)
 tabTheme.TouchTap:Connect(switchToTheme)
+tabOthers.MouseButton1Click:Connect(switchToOthers)
+tabOthers.TouchTap:Connect(switchToOthers)
 
 modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
-
--- ========== ARROW BUTTON (OPEN/CLOSE ONLY) ==========
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 50, 0, 50)
-toggleBtn.Position = UDim2.new(0, 10, 1, -65)
-toggleBtn.Text = "◀"
-toggleBtn.TextSize = 22
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
-toggleBtn.Parent = root
-toggleBtn.AutoButtonColor = true
-toggleBtn.ZIndex = 999
-toggleBtn.Active = true
-
-local toggleCorner = Instance.new("UICorner", toggleBtn)
-toggleCorner.CornerRadius = UDim.new(1, 0)
-
-local toggleStroke = Instance.new("UIStroke", toggleBtn)
-toggleStroke.Color = Color3.fromRGB(255, 255, 255)
-toggleStroke.Thickness = 2
-toggleStroke.Transparency = 0.2
-
--- Arrow button ONLY opens/closes (no drag)
-local function onToggleClick()
-    if isOpen then closeGUI() else openGUI() end
-end
-
-toggleBtn.MouseButton1Click:Connect(onToggleClick)
-toggleBtn.TouchTap:Connect(onToggleClick)
 
 -- ========== MINIMIZE FUNCTIONS ==========
 local function minimizeGUI()
     if isMinimized then return end
     isMinimized = true
     
-    -- Hide main frame, show mini square
     frame.Visible = false
     miniFrame.Visible = true
     
-    -- Position mini square where the frame was
     local framePos = frame.Position
     miniFrame.Position = UDim2.new(
         framePos.X.Scale,
-        framePos.X.Offset + 160 - 30,
+        framePos.X.Offset + 170 - 30,
         framePos.Y.Scale,
-        framePos.Y.Offset + 140 - 30
+        framePos.Y.Offset + 150 - 30
     )
     
     blur.Size = 0
@@ -1156,23 +1232,26 @@ local function unminimizeGUI()
     if not isMinimized then return end
     isMinimized = false
     
-    -- Show main frame, hide mini square
     frame.Visible = true
     miniFrame.Visible = false
     
     blur.Size = 3
 end
 
--- ========== TITLE BAR TAP TO MINIMIZE ==========
+-- ========== MINIMIZE BUTTON ==========
+minBtn.MouseButton1Click:Connect(minimizeGUI)
+minBtn.TouchTap:Connect(minimizeGUI)
+
+-- Title bar also minimizes
 titleBar.MouseButton1Click:Connect(minimizeGUI)
 titleBar.TouchTap:Connect(minimizeGUI)
 
--- ========== MINI SQUARE TAP TO UNMINIMIZE + DRAG ==========
+-- ========== MINI SQUARE CONTROLS ==========
 -- Tap to unminimize
 miniFrame.MouseButton1Click:Connect(unminimizeGUI)
 miniFrame.TouchTap:Connect(unminimizeGUI)
 
--- Drag the mini square (hold and drag)
+-- Drag to move
 local miniDragData = {
     dragging = false,
     startPos = nil,
@@ -1225,31 +1304,21 @@ miniFrame.MouseButton1Up:Connect(function()
     miniDragData.frameStart = nil
 end)
 
--- ========== OPEN/CLOSE FUNCTIONS ==========
-local function openGUI()
-    isOpen = true
-    frame.Visible = true
-    toggleBtn.Text = "◀"
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
-    if not isMinimized then
-        blur.Size = 3
-    end
-end
-
-local function closeGUI()
-    isOpen = false
-    frame.Visible = false
-    miniFrame.Visible = false
-    toggleBtn.Text = "▶"
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
-    blur.Size = 0
-end
-
 -- ========== HOTKEY ==========
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.Insert then
-        if isOpen then closeGUI() else openGUI() end
+        if isOpen then
+            isOpen = false
+            frame.Visible = false
+            miniFrame.Visible = false
+        else
+            isOpen = true
+            frame.Visible = true
+            if not isMinimized then
+                blur.Size = 3
+            end
+        end
     end
 end)
 
@@ -1257,10 +1326,9 @@ end)
 task.wait(0.3)
 frame.Visible = true
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 320, 0, 280)
-frame.Position = UDim2.new(0.5, -160, 0.5, -140)
+frame.Size = UDim2.new(0, 340, 0, 300)
+frame.Position = UDim2.new(0.5, -170, 0.5, -150)
 blur.Size = 3
-toggleBtn.Text = "◀"
 miniFrame.Visible = false
 
-print("NZ-IS v6 - Tap title bar to minimize, tap mini square to restore, drag mini square to move!")
+print("NZ-IS v6 - Arrow button next to title, Others tab with Destroy GUI added!")
