@@ -143,7 +143,7 @@ titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.BackgroundTransparency = 1
 titleLabel.Parent = titleBar
 
--- ========== MINIMIZE BUTTON (next to title) ==========
+-- ========== MINIMIZE BUTTON ==========
 local minBtn = Instance.new("TextButton")
 minBtn.Size = UDim2.new(0, 30, 0, 30)
 minBtn.Position = UDim2.new(1, -38, 0, 7)
@@ -1242,66 +1242,99 @@ end
 minBtn.MouseButton1Click:Connect(minimizeGUI)
 minBtn.TouchTap:Connect(minimizeGUI)
 
--- Title bar also minimizes
 titleBar.MouseButton1Click:Connect(minimizeGUI)
 titleBar.TouchTap:Connect(minimizeGUI)
 
--- ========== MINI SQUARE CONTROLS ==========
--- Tap to unminimize
-miniFrame.MouseButton1Click:Connect(unminimizeGUI)
-miniFrame.TouchTap:Connect(unminimizeGUI)
-
--- Drag to move
-local miniDragData = {
-    dragging = false,
-    startPos = nil,
-    frameStart = nil
+-- ========== MINI SQUARE CONTROLS (FIXED) ==========
+local miniState = {
+    touchStart = nil,
+    posStart = nil,
+    isDragging = false,
+    hasMoved = false,
+    tapTimer = nil
 }
 
+-- TOUCH EVENTS (MOBILE)
 miniFrame.TouchBegan:Connect(function(input)
-    miniDragData.dragging = true
-    miniDragData.startPos = input.Position
-    miniDragData.frameStart = miniFrame.Position
+    miniState.touchStart = input.Position
+    miniState.posStart = miniFrame.Position
+    miniState.isDragging = false
+    miniState.hasMoved = false
+    miniState.tapTimer = tick()
 end)
 
 miniFrame.TouchMoved:Connect(function(input)
-    if not miniDragData.dragging or not miniDragData.startPos then return end
-    local delta = input.Position - miniDragData.startPos
-    miniFrame.Position = UDim2.new(
-        miniDragData.frameStart.X.Scale,
-        miniDragData.frameStart.X.Offset + delta.X,
-        miniDragData.frameStart.Y.Scale,
-        miniDragData.frameStart.Y.Offset + delta.Y
-    )
+    if not miniState.touchStart or not miniState.posStart then return end
+    
+    local delta = input.Position - miniState.touchStart
+    local distance = math.sqrt(delta.X^2 + delta.Y^2)
+    
+    if distance > 10 then
+        miniState.hasMoved = true
+        miniState.isDragging = true
+        miniFrame.Position = UDim2.new(
+            miniState.posStart.X.Scale,
+            miniState.posStart.X.Offset + delta.X,
+            miniState.posStart.Y.Scale,
+            miniState.posStart.Y.Offset + delta.Y
+        )
+    end
 end)
 
 miniFrame.TouchEnded:Connect(function()
-    miniDragData.dragging = false
-    miniDragData.startPos = nil
-    miniDragData.frameStart = nil
+    local holdTime = tick() - (miniState.tapTimer or tick())
+    miniState.tapTimer = nil
+    
+    -- If it was a tap (not a drag, held for less than 0.4 seconds)
+    if not miniState.isDragging and not miniState.hasMoved and holdTime < 0.4 then
+        unminimizeGUI()
+    end
+    
+    miniState.isDragging = false
+    miniState.hasMoved = false
+    miniState.touchStart = nil
+    miniState.posStart = nil
 end)
 
+-- MOUSE EVENTS (PC)
 miniFrame.MouseButton1Down:Connect(function(input)
-    miniDragData.dragging = true
-    miniDragData.startPos = input.Position
-    miniDragData.frameStart = miniFrame.Position
+    miniState.touchStart = input.Position
+    miniState.posStart = miniFrame.Position
+    miniState.isDragging = false
+    miniState.hasMoved = false
+    miniState.tapTimer = tick()
 end)
 
 miniFrame.MouseMoved:Connect(function(input)
-    if not miniDragData.dragging or not miniDragData.startPos then return end
-    local delta = input.Position - miniDragData.startPos
-    miniFrame.Position = UDim2.new(
-        miniDragData.frameStart.X.Scale,
-        miniDragData.frameStart.X.Offset + delta.X,
-        miniDragData.frameStart.Y.Scale,
-        miniDragData.frameStart.Y.Offset + delta.Y
-    )
+    if not miniState.touchStart or not miniState.posStart then return end
+    
+    local delta = input.Position - miniState.touchStart
+    local distance = math.sqrt(delta.X^2 + delta.Y^2)
+    
+    if distance > 3 then
+        miniState.hasMoved = true
+        miniState.isDragging = true
+        miniFrame.Position = UDim2.new(
+            miniState.posStart.X.Scale,
+            miniState.posStart.X.Offset + delta.X,
+            miniState.posStart.Y.Scale,
+            miniState.posStart.Y.Offset + delta.Y
+        )
+    end
 end)
 
 miniFrame.MouseButton1Up:Connect(function()
-    miniDragData.dragging = false
-    miniDragData.startPos = nil
-    miniDragData.frameStart = nil
+    local holdTime = tick() - (miniState.tapTimer or tick())
+    miniState.tapTimer = nil
+    
+    if not miniState.isDragging and not miniState.hasMoved and holdTime < 0.4 then
+        unminimizeGUI()
+    end
+    
+    miniState.isDragging = false
+    miniState.hasMoved = false
+    miniState.touchStart = nil
+    miniState.posStart = nil
 end)
 
 -- ========== HOTKEY ==========
@@ -1331,4 +1364,4 @@ frame.Position = UDim2.new(0.5, -170, 0.5, -150)
 blur.Size = 3
 miniFrame.Visible = false
 
-print("NZ-IS v6 - Arrow button next to title, Others tab with Destroy GUI added!")
+print("NZ-IS v6 - Mini square FIXED! Tap to restore, hold + drag to move.")
