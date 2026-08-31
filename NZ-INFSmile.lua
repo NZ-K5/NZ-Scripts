@@ -1,4 +1,3 @@
--- NZ-INFSmile.lua - WORKING VERSION (based on your original)
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -20,10 +19,10 @@ root.Name = "InfectiousRoot"
 root.Parent = guiParent
 root.ResetOnSpawn = false
 root.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-root.IgnoreGuiInset = true -- Mobile fix
+root.IgnoreGuiInset = true
 
 local blur = Instance.new("BlurEffect", Lighting)
-blur.Size = 6
+blur.Size = 4
 
 local themes = {
     Default = {
@@ -88,10 +87,10 @@ local deletedKill = {}
 local deletedDoors = {}
 local espObjects = {}
 
--- ===== MAIN FRAME =====
+-- ===== MAIN FRAME (SMALLER - MOBILE FRIENDLY) =====
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 580, 0, 420)
-frame.Position = UDim2.new(0.5, -290, 0.5, -210)
+frame.Size = UDim2.new(0, 340, 0, 280)
+frame.Position = UDim2.new(0.5, -170, 0.5, -140)
 frame.BackgroundColor3 = themes.Default.background
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -100,7 +99,7 @@ frame.Visible = true
 frame.ZIndex = 10
 
 local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 12)
+corner.CornerRadius = UDim.new(0, 10)
 
 local stroke = Instance.new("UIStroke", frame)
 stroke.Color = themes.Default.stroke
@@ -113,29 +112,55 @@ grad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 15))
 })
 
+-- ===== MINI SQUARE (top-right corner) =====
+local miniFrame = Instance.new("Frame")
+miniFrame.Size = UDim2.new(0, 55, 0, 55)
+miniFrame.Position = UDim2.new(1, -30, 0, 10)
+miniFrame.BackgroundColor3 = themes.Default.accent
+miniFrame.BackgroundTransparency = 0.15
+miniFrame.ClipsDescendants = true
+miniFrame.Parent = root
+miniFrame.Visible = false
+miniFrame.ZIndex = 999
+local miniCorner = Instance.new("UICorner", miniFrame)
+miniCorner.CornerRadius = UDim.new(0, 12)
+local miniStroke = Instance.new("UIStroke", miniFrame)
+miniStroke.Color = themes.Default.accent
+miniStroke.Thickness = 2
+miniStroke.Transparency = 0.3
+local miniLabel = Instance.new("TextLabel")
+miniLabel.Size = UDim2.new(1, 0, 1, 0)
+miniLabel.Text = "NZ"
+miniLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+miniLabel.TextSize = 14
+miniLabel.Font = Enum.Font.GothamBold
+miniLabel.BackgroundTransparency = 1
+miniLabel.Parent = miniFrame
+
 -- ===== TITLE BAR =====
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.Size = UDim2.new(1, 0, 0, 36)
 titleBar.BackgroundTransparency = 1
 titleBar.Parent = frame
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(0.7, 0, 1, 0)
-titleLabel.Position = UDim2.new(0, 12, 0, 0)
-titleLabel.Text = "NZ Infectious Smile"
+titleLabel.Size = UDim2.new(0.6, 0, 1, 0)
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.Text = "NZ-IS"
 titleLabel.TextColor3 = themes.Default.accent
-titleLabel.TextSize = 18
+titleLabel.TextSize = 16
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.BackgroundTransparency = 1
 titleLabel.Parent = titleBar
 
+-- Minimize Button
 local minimizeBtn = Instance.new("TextButton")
-minimizeBtn.Size = UDim2.new(0, 32, 0, 32)
-minimizeBtn.Position = UDim2.new(1, -80, 0, 4)
-minimizeBtn.Text = "-"
+minimizeBtn.Size = UDim2.new(0, 28, 0, 28)
+minimizeBtn.Position = UDim2.new(1, -68, 0, 4)
+minimizeBtn.Text = "─"
 minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-minimizeBtn.TextSize = 20
+minimizeBtn.TextSize = 18
 minimizeBtn.Font = Enum.Font.GothamBold
 minimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 minimizeBtn.BackgroundTransparency = 0.2
@@ -152,12 +177,13 @@ minimizeBtn.MouseLeave:Connect(function()
     minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
 end)
 
+-- Close/Open Button
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 32, 0, 32)
-closeBtn.Position = UDim2.new(1, -40, 0, 4)
+closeBtn.Size = UDim2.new(0, 28, 0, 28)
+closeBtn.Position = UDim2.new(1, -38, 0, 4)
 closeBtn.Text = "X"
 closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-closeBtn.TextSize = 18
+closeBtn.TextSize = 14
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 closeBtn.BackgroundTransparency = 0.2
@@ -174,59 +200,20 @@ closeBtn.MouseLeave:Connect(function()
     closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
 end)
 
--- Close button functionality (with confirm)
-closeBtn.MouseButton1Click:Connect(function()
-    local confirm = Instance.new("TextButton")
-    confirm.Size = UDim2.new(0, 120, 0, 30)
-    confirm.Position = UDim2.new(0.5, -60, 0.5, -15)
-    confirm.Text = "Confirm Close?"
-    confirm.TextColor3 = Color3.fromRGB(255, 255, 255)
-    confirm.TextSize = 14
-    confirm.Font = Enum.Font.GothamBold
-    confirm.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
-    confirm.Parent = frame
-    local cCorner = Instance.new("UICorner", confirm)
-    cCorner.CornerRadius = UDim.new(0, 6)
-    confirm.ZIndex = 999
-
-    local function destroyAll()
-        confirm:Destroy()
-        if infectConnection then pcall(function() infectConnection:Disconnect() end); infectConnection = nil end
-        if killConnection then pcall(function() killConnection:Disconnect() end); killConnection = nil end
-        if doorsConnection then pcall(function() doorsConnection:Disconnect() end); doorsConnection = nil end
-        if espConnection then pcall(function() espConnection:Disconnect() end); espConnection = nil end
-        for _, data in pairs(espObjects) do
-            pcall(function()
-                if data.Highlight then data.Highlight:Destroy() end
-                if data.Box then data.Box:Destroy() end
-                if data.Line then data.Line:Destroy() end
-            end)
-        end
-        espObjects = {}
-        root:Destroy()
-        blur:Destroy()
-    end
-
-    confirm.MouseButton1Click:Connect(destroyAll)
-    confirm.TouchTap:Connect(destroyAll)
-    task.wait(3)
-    confirm:Destroy()
-end)
-
 -- ===== TABS =====
 local tabContainer = Instance.new("Frame")
-tabContainer.Size = UDim2.new(1, -20, 0, 35)
-tabContainer.Position = UDim2.new(0, 10, 0, 45)
+tabContainer.Size = UDim2.new(1, -10, 0, 30)
+tabContainer.Position = UDim2.new(0, 5, 0, 40)
 tabContainer.BackgroundTransparency = 1
 tabContainer.Parent = frame
 
 local function createTab(name, x)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 150, 1, 0)
+    btn.Size = UDim2.new(0, 140, 1, 0)
     btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 210)
-    btn.TextSize = 13
+    btn.TextSize = 12
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     btn.BackgroundTransparency = 0.3
@@ -237,16 +224,16 @@ local function createTab(name, x)
 end
 
 local tabMods = createTab("Mods", 0)
-local tabOthers = createTab("Others", 160)
+local tabTheme = createTab("Theme", 150)
 
 -- ===== PAGES =====
 local function createPage()
     local pg = Instance.new("ScrollingFrame")
-    pg.Size = UDim2.new(1, -20, 1, -95)
-    pg.Position = UDim2.new(0, 10, 0, 85)
+    pg.Size = UDim2.new(1, -10, 1, -84)
+    pg.Position = UDim2.new(0, 5, 0, 74)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 350)
-    pg.ScrollBarThickness = 4
+    pg.CanvasSize = UDim2.new(0, 0, 0, 280)
+    pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = themes.Default.accent
     pg.Parent = frame
     pg.Visible = false
@@ -254,17 +241,17 @@ local function createPage()
 end
 
 local modsPage = createPage()
-local othersPage = createPage()
+local themePage = createPage()
 
 -- ===== UI HELPERS =====
 local function makeLabel(text, y, parent, w)
-    w = w or 140
+    w = w or 120
     local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(0, w, 0, 30)
+    l.Size = UDim2.new(0, w, 0, 26)
     l.Position = UDim2.new(0, 0, 0, y)
     l.Text = text
     l.TextColor3 = themes.Default.text
-    l.TextSize = 13
+    l.TextSize = 12
     l.Font = Enum.Font.Gotham
     l.BackgroundTransparency = 1
     l.TextXAlignment = Enum.TextXAlignment.Left
@@ -274,11 +261,11 @@ end
 
 local function makeToggle(y, parent)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 80, 0, 28)
-    btn.Position = UDim2.new(0, 220, 0, y)
+    btn.Size = UDim2.new(0, 70, 0, 24)
+    btn.Position = UDim2.new(0, 190, 0, y)
     btn.Text = "OFF"
     btn.TextColor3 = Color3.fromRGB(255, 100, 100)
-    btn.TextSize = 12
+    btn.TextSize = 11
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
     btn.Parent = parent
@@ -287,74 +274,194 @@ local function makeToggle(y, parent)
     return btn
 end
 
-local function makeButton(text, y, parent, color)
-    color = color or Color3.fromRGB(60, 30, 30)
+local function makeThemeButton(name, y, color)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 150, 0, 35)
-    btn.Position = UDim2.new(0.5, -75, 0, y)
-    btn.Text = text
+    btn.Size = UDim2.new(0, 140, 0, 32)
+    btn.Position = UDim2.new(0, 0, 0, y)
+    btn.Text = name
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 14
+    btn.TextSize = 13
     btn.Font = Enum.Font.GothamBold
-    btn.BackgroundColor3 = color
-    btn.Parent = parent
+    btn.BackgroundColor3 = color or Color3.fromRGB(30, 30, 50)
+    btn.Parent = themePage
     local c = Instance.new("UICorner", btn)
     c.CornerRadius = UDim.new(0, 6)
+
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.2}):Play()
+    end)
+
+    btn.MouseButton1Click:Connect(function()
+        currentTheme = name
+        local t = themes[name]
+        frame.BackgroundColor3 = t.background
+        stroke.Color = t.stroke
+        titleLabel.TextColor3 = t.accent
+        statusLabel.TextColor3 = t.accent
+        miniFrame.BackgroundColor3 = t.accent
+        miniStroke.Color = t.accent
+        for _, child in pairs(frame:GetDescendants()) do
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn then
+                if child.Text == "Mods" or child.Text == "Theme" then
+                    child.TextColor3 = t.accent
+                end
+            end
+            if child:IsA("ScrollingFrame") then
+                child.ScrollBarImageColor3 = t.accent
+            end
+        end
+        closeBtn.BackgroundColor3 = t.button
+        minimizeBtn.BackgroundColor3 = t.button
+        minimizeBtn.TextColor3 = t.accent
+        if deleteInfectActive then
+            infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            infectBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        if deleteKillActive then
+            killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            killBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        if deleteDoorsActive then
+            doorsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            doorsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            doorsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            doorsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        if espActive then
+            espBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            espBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            espBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            espBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    end)
+
+    btn.TouchTap:Connect(function()
+        currentTheme = name
+        local t = themes[name]
+        frame.BackgroundColor3 = t.background
+        stroke.Color = t.stroke
+        titleLabel.TextColor3 = t.accent
+        statusLabel.TextColor3 = t.accent
+        miniFrame.BackgroundColor3 = t.accent
+        miniStroke.Color = t.accent
+        for _, child in pairs(frame:GetDescendants()) do
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn then
+                if child.Text == "Mods" or child.Text == "Theme" then
+                    child.TextColor3 = t.accent
+                end
+            end
+            if child:IsA("ScrollingFrame") then
+                child.ScrollBarImageColor3 = t.accent
+            end
+        end
+        closeBtn.BackgroundColor3 = t.button
+        minimizeBtn.BackgroundColor3 = t.button
+        minimizeBtn.TextColor3 = t.accent
+        if deleteInfectActive then
+            infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            infectBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        if deleteKillActive then
+            killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            killBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        if deleteDoorsActive then
+            doorsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            doorsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            doorsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            doorsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        if espActive then
+            espBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            espBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            espBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            espBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    end)
+
     return btn
 end
 
 -- ===== MODS PAGE =====
-local yOff = 10
+local yOff = 6
 
-makeLabel("Delete Infected Parts", yOff, modsPage, 170)
+makeLabel("Delete Infected Parts", yOff, modsPage, 140)
 local infectBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 38
+yOff = yOff + 32
 
-makeLabel("Disable Kill Parts/Scripts", yOff, modsPage, 170)
+makeLabel("Disable Kill Parts", yOff, modsPage, 140)
 local killBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 38
+yOff = yOff + 32
 
-makeLabel("Disable Doors/Gates", yOff, modsPage, 170)
+makeLabel("Disable Doors/Gates", yOff, modsPage, 140)
 local doorsBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 38
+yOff = yOff + 32
 
-makeLabel("TEAM ESP", yOff, modsPage, 170)
+makeLabel("TEAM ESP", yOff, modsPage, 140)
 local espBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 42
+yOff = yOff + 36
 
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -20, 0, 30)
+statusLabel.Size = UDim2.new(1, -10, 0, 24)
 statusLabel.Position = UDim2.new(0, 0, 0, yOff)
 statusLabel.Text = "Status: Ready"
 statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-statusLabel.TextSize = 14
+statusLabel.TextSize = 12
 statusLabel.Font = Enum.Font.GothamBold
 statusLabel.BackgroundTransparency = 1
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = modsPage
-yOff = yOff + 40
+yOff = yOff + 32
 
-modsPage.CanvasSize = UDim2.new(0, 0, 0, yOff + 20)
+modsPage.CanvasSize = UDim2.new(0, 0, 0, yOff + 10)
 
--- ===== OTHERS PAGE =====
-local oY = 20
+-- ===== THEME PAGE =====
+local themeY = 10
+local themeLabel = Instance.new("TextLabel")
+themeLabel.Size = UDim2.new(1, -10, 0, 26)
+themeLabel.Position = UDim2.new(0, 0, 0, themeY)
+themeLabel.Text = "SELECT INTERFACE THEME"
+themeLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
+themeLabel.TextSize = 13
+themeLabel.Font = Enum.Font.GothamBold
+themeLabel.BackgroundTransparency = 1
+themeLabel.TextXAlignment = Enum.TextXAlignment.Left
+themeLabel.Parent = themePage
+themeY = themeY + 34
 
-local destroyBtn = makeButton("Destroy GUI", oY, othersPage, Color3.fromRGB(80, 20, 20))
-oY = oY + 50
+local themeColors = {
+    {name = "Default", color = Color3.fromRGB(30, 20, 25)},
+    {name = "Crimson", color = Color3.fromRGB(35, 15, 20)},
+    {name = "Cyber", color = Color3.fromRGB(10, 15, 40)},
+    {name = "Amber", color = Color3.fromRGB(35, 25, 15)},
+    {name = "Violet", color = Color3.fromRGB(25, 15, 40)}
+}
 
-local creditLabel = Instance.new("TextLabel")
-creditLabel.Size = UDim2.new(1, -20, 0, 25)
-creditLabel.Position = UDim2.new(0, 0, 0, oY)
-creditLabel.Text = "NZ-IS v6"
-creditLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
-creditLabel.TextSize = 12
-creditLabel.Font = Enum.Font.Gotham
-creditLabel.BackgroundTransparency = 1
-creditLabel.TextXAlignment = Enum.TextXAlignment.Center
-creditLabel.Parent = othersPage
-oY = oY + 35
+for _, t in ipairs(themeColors) do
+    makeThemeButton(t.name, themeY, t.color)
+    themeY = themeY + 40
+end
 
-othersPage.CanvasSize = UDim2.new(0, 0, 0, oY + 20)
+themePage.CanvasSize = UDim2.new(0, 0, 0, themeY + 10)
 
 -- ===== CORE FUNCTIONS =====
 local function restoreInfect()
@@ -404,10 +511,10 @@ local function scanAndDeleteInfect()
         end
     end
     if #found > 0 then
-        statusLabel.Text = "Deleted " .. #found .. " infected parts"
+        statusLabel.Text = "Deleted " .. #found .. " infected"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     elseif deleteInfectActive then
-        statusLabel.Text = "No infected parts found"
+        statusLabel.Text = "No infected found"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
@@ -593,7 +700,7 @@ local function toggleInfect()
         infectBtn.Text = "ON"
         infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning for infected parts..."
+        statusLabel.Text = "Scanning..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         if infectConnection then pcall(function() infectConnection:Disconnect() end); infectConnection = nil end
         scanAndDeleteInfect()
@@ -606,7 +713,7 @@ local function toggleInfect()
         infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         if infectConnection then pcall(function() infectConnection:Disconnect() end); infectConnection = nil end
         restoreInfect()
-        statusLabel.Text = "Infected parts restored"
+        statusLabel.Text = "Infected restored"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
@@ -620,7 +727,7 @@ local function toggleKill()
         killBtn.Text = "ON"
         killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning for kill parts..."
+        statusLabel.Text = "Scanning..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         if killConnection then pcall(function() killConnection:Disconnect() end); killConnection = nil end
         scanAndDeleteKill()
@@ -633,7 +740,7 @@ local function toggleKill()
         killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         if killConnection then pcall(function() killConnection:Disconnect() end); killConnection = nil end
         restoreKill()
-        statusLabel.Text = "Kill parts restored"
+        statusLabel.Text = "Kill restored"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
@@ -647,7 +754,7 @@ local function toggleDoors()
         doorsBtn.Text = "ON"
         doorsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         doorsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning for doors/gates..."
+        statusLabel.Text = "Scanning..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         if doorsConnection then pcall(function() doorsConnection:Disconnect() end); doorsConnection = nil end
         scanAndDeleteDoors()
@@ -660,7 +767,7 @@ local function toggleDoors()
         doorsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         if doorsConnection then pcall(function() doorsConnection:Disconnect() end); doorsConnection = nil end
         restoreDoors()
-        statusLabel.Text = "Doors/gates restored"
+        statusLabel.Text = "Doors restored"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
@@ -723,117 +830,105 @@ end
 espBtn.MouseButton1Click:Connect(toggleEsp)
 espBtn.TouchTap:Connect(toggleEsp)
 
--- ===== DESTROY BUTTON =====
-destroyBtn.MouseButton1Click:Connect(function()
-    if infectConnection then pcall(function() infectConnection:Disconnect() end) end
-    if killConnection then pcall(function() killConnection:Disconnect() end) end
-    if doorsConnection then pcall(function() doorsConnection:Disconnect() end) end
-    if espConnection then pcall(function() espConnection:Disconnect() end) end
-    for _, data in pairs(espObjects) do
-        pcall(function()
-            if data.Highlight then data.Highlight:Destroy() end
-            if data.Box then data.Box:Destroy() end
-            if data.Line then data.Line:Destroy() end
-        end)
-    end
-    espObjects = {}
-    root:Destroy()
-    blur:Destroy()
-end)
-
-destroyBtn.TouchTap:Connect(function()
-    if infectConnection then pcall(function() infectConnection:Disconnect() end) end
-    if killConnection then pcall(function() killConnection:Disconnect() end) end
-    if doorsConnection then pcall(function() doorsConnection:Disconnect() end) end
-    if espConnection then pcall(function() espConnection:Disconnect() end) end
-    for _, data in pairs(espObjects) do
-        pcall(function()
-            if data.Highlight then data.Highlight:Destroy() end
-            if data.Box then data.Box:Destroy() end
-            if data.Line then data.Line:Destroy() end
-        end)
-    end
-    espObjects = {}
-    root:Destroy()
-    blur:Destroy()
-end)
-
 -- ===== TAB SWITCHING =====
 tabMods.MouseButton1Click:Connect(function()
     modsPage.Visible = true
-    othersPage.Visible = false
+    themePage.Visible = false
     tabMods.TextColor3 = themes[currentTheme].accent
-    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
     TweenService:Create(tabMods, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
 end)
 
 tabMods.TouchTap:Connect(function()
     modsPage.Visible = true
-    othersPage.Visible = false
+    themePage.Visible = false
     tabMods.TextColor3 = themes[currentTheme].accent
-    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
     TweenService:Create(tabMods, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
 end)
 
-tabOthers.MouseButton1Click:Connect(function()
+tabTheme.MouseButton1Click:Connect(function()
     modsPage.Visible = false
-    othersPage.Visible = true
-    tabOthers.TextColor3 = themes[currentTheme].accent
+    themePage.Visible = true
+    tabTheme.TextColor3 = themes[currentTheme].accent
     tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-    TweenService:Create(tabOthers, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(tabTheme, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
 end)
 
-tabOthers.TouchTap:Connect(function()
+tabTheme.TouchTap:Connect(function()
     modsPage.Visible = false
-    othersPage.Visible = true
-    tabOthers.TextColor3 = themes[currentTheme].accent
+    themePage.Visible = true
+    tabTheme.TextColor3 = themes[currentTheme].accent
     tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-    TweenService:Create(tabOthers, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(tabTheme, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
 end)
 
 modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
 tabMods.BackgroundTransparency = 0
 
--- ===== MINIMIZE FUNCTIONS =====
+-- ===== MINIMIZE / RESTORE =====
 local function minimizeGUI()
+    if isMinimized then return end
     isMinimized = true
-    frame.Size = UDim2.new(0, 180, 0, 40)
-    frame.Position = UDim2.new(0.5, -90, 0.5, -20)
-    tabContainer.Visible = false
-    modsPage.Visible = false
-    othersPage.Visible = false
-    closeBtn.Visible = true
-    minimizeBtn.Text = "+"
-    minimizeBtn.TextColor3 = Color3.fromRGB(255, 50, 80)
-    titleLabel.Text = "NZ-IS"
-    titleLabel.TextSize = 16
+    frame.Visible = false
+    miniFrame.Visible = true
     blur.Size = 0
 end
 
-local function maximizeGUI()
+local function restoreGUI()
+    if not isMinimized then return end
     isMinimized = false
-    frame.Size = UDim2.new(0, 580, 0, 420)
-    frame.Position = UDim2.new(0.5, -290, 0.5, -210)
-    tabContainer.Visible = true
-    modsPage.Visible = true
-    othersPage.Visible = false
-    closeBtn.Visible = true
-    minimizeBtn.Text = "-"
-    minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-    titleLabel.Text = "NZ Infectious Smile"
-    titleLabel.TextSize = 18
-    blur.Size = 6
-    tabMods.TextColor3 = themes[currentTheme].accent
-    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+    frame.Visible = true
+    miniFrame.Visible = false
+    blur.Size = 4
 end
 
 minimizeBtn.MouseButton1Click:Connect(function()
-    if isMinimized then maximizeGUI() else minimizeGUI() end
+    if isMinimized then restoreGUI() else minimizeGUI() end
 end)
 
 minimizeBtn.TouchTap:Connect(function()
-    if isMinimized then maximizeGUI() else minimizeGUI() end
+    if isMinimized then restoreGUI() else minimizeGUI() end
+end)
+
+-- Tap mini square to restore
+miniFrame.MouseButton1Click:Connect(restoreGUI)
+miniFrame.TouchTap:Connect(restoreGUI)
+
+-- ===== CLOSE/OPEN BUTTON =====
+closeBtn.MouseButton1Click:Connect(function()
+    if isOpen then
+        isOpen = false
+        frame.Visible = false
+        miniFrame.Visible = false
+        closeBtn.Text = "▶"
+        closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        blur.Size = 0
+    else
+        isOpen = true
+        frame.Visible = true
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+        if not isMinimized then blur.Size = 4 end
+    end
+end)
+
+closeBtn.TouchTap:Connect(function()
+    if isOpen then
+        isOpen = false
+        frame.Visible = false
+        miniFrame.Visible = false
+        closeBtn.Text = "▶"
+        closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        blur.Size = 0
+    else
+        isOpen = true
+        frame.Visible = true
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+        if not isMinimized then blur.Size = 4 end
+    end
 end)
 
 -- ===== DRAG SYSTEM =====
@@ -869,153 +964,17 @@ end)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.Insert then
-        if isMinimized then maximizeGUI() else minimizeGUI() end
+        if isMinimized then restoreGUI() else minimizeGUI() end
     end
 end)
-
--- ===== THEME BUTTONS =====
-local themeContainer = Instance.new("Frame")
-themeContainer.Size = UDim2.new(0, 220, 0, 30)
-themeContainer.Position = UDim2.new(0.5, -110, 0, 82)
-themeContainer.BackgroundTransparency = 1
-themeContainer.Parent = frame
-
-local function addThemeButton(name, color, x)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 38, 1, 0)
-    btn.Position = UDim2.new(0, x, 0, 0)
-    btn.Text = name:sub(1,1)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 12
-    btn.Font = Enum.Font.GothamBold
-    btn.BackgroundColor3 = color
-    btn.Parent = themeContainer
-    local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 6)
-
-    btn.MouseButton1Click:Connect(function()
-        currentTheme = name
-        local t = themes[name]
-        frame.BackgroundColor3 = t.background
-        stroke.Color = t.stroke
-        titleLabel.TextColor3 = t.accent
-        statusLabel.TextColor3 = t.accent
-        for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= destroyBtn then
-                if child.Text == "Mods" or child.Text == "Others" then
-                    child.TextColor3 = t.accent
-                end
-            end
-            if child:IsA("ScrollingFrame") then
-                child.ScrollBarImageColor3 = t.accent
-            end
-        end
-        closeBtn.BackgroundColor3 = t.button
-        minimizeBtn.BackgroundColor3 = t.button
-        minimizeBtn.TextColor3 = t.accent
-        if deleteInfectActive then
-            infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-            infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            infectBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-            infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        end
-        if deleteKillActive then
-            killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-            killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            killBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-            killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        end
-        if deleteDoorsActive then
-            doorsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-            doorsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            doorsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-            doorsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        end
-        if espActive then
-            espBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-            espBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            espBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-            espBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        end
-    end)
-
-    btn.TouchTap:Connect(function()
-        currentTheme = name
-        local t = themes[name]
-        frame.BackgroundColor3 = t.background
-        stroke.Color = t.stroke
-        titleLabel.TextColor3 = t.accent
-        statusLabel.TextColor3 = t.accent
-        for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= destroyBtn then
-                if child.Text == "Mods" or child.Text == "Others" then
-                    child.TextColor3 = t.accent
-                end
-            end
-            if child:IsA("ScrollingFrame") then
-                child.ScrollBarImageColor3 = t.accent
-            end
-        end
-        closeBtn.BackgroundColor3 = t.button
-        minimizeBtn.BackgroundColor3 = t.button
-        minimizeBtn.TextColor3 = t.accent
-        if deleteInfectActive then
-            infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-            infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            infectBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-            infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        end
-        if deleteKillActive then
-            killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-            killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            killBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-            killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        end
-        if deleteDoorsActive then
-            doorsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-            doorsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            doorsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-            doorsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        end
-        if espActive then
-            espBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-            espBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            espBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-            espBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        end
-    end)
-    return btn
-end
-
-local themeColors2 = {
-    {name = "Default", color = Color3.fromRGB(30, 20, 25)},
-    {name = "Crimson", color = Color3.fromRGB(35, 15, 20)},
-    {name = "Cyber", color = Color3.fromRGB(10, 15, 40)},
-    {name = "Amber", color = Color3.fromRGB(35, 25, 15)},
-    {name = "Violet", color = Color3.fromRGB(25, 15, 40)}
-}
-
-local tx = 0
-for _, t in pairs(themeColors2) do
-    addThemeButton(t.name, t.color, tx)
-    tx = tx + 44
-end
 
 -- ===== FORCE VISIBILITY =====
 frame.BackgroundTransparency = 1
 frame.Size = UDim2.new(0, 0, 0, 0)
 TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-    Size = UDim2.new(0, 580, 0, 420),
+    Size = UDim2.new(0, 340, 0, 280),
     BackgroundTransparency = 0.08
 }):Play()
-blur.Size = 6
+blur.Size = 4
 
-print("NZ-IS v6 - LOADED SUCCESSFULLY!")
+print("NZ-IS v6 - LOADED! (Smaller, mobile-friendly)")
