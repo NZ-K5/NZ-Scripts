@@ -76,15 +76,19 @@ local deleteInfectActive = false
 local deleteKillActive = false
 local deleteDoorsActive = false
 local deleteAntiHackActive = false
+local deleteSpearsActive = false
+local deleteFireLavaActive = false
+local deleteSeismicActive = false
 local espActive = false
 
 local deletedInfect = {}
 local deletedKill = {}
 local deletedDoors = {}
 local deletedAntiHack = {}
+local deletedSpears = {}
+local deletedFireLava = {}
+local deletedSeismic = {}
 local espObjects = {}
-local espRebindTimer = nil
-local espConnection = nil
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
@@ -229,7 +233,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -74)
     pg.Position = UDim2.new(0, 5, 0, 65)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 250)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 310)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = themes.Default.accent
     pg.Parent = frame
@@ -312,7 +316,7 @@ local function makeThemeButton(name, y, color)
         miniStroke.Color = t.accent
         reopenBtn.BackgroundColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= antiHackBtn and child ~= espBtn then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= antiHackBtn and child ~= spearsBtn and child ~= fireLavaBtn and child ~= seismicBtn and child ~= espBtn then
                 if child.Text == "Mods" or child.Text == "Theme" or child.Text == "Others" then
                     child.TextColor3 = t.accent
                 end
@@ -337,7 +341,7 @@ local function makeThemeButton(name, y, color)
         miniStroke.Color = t.accent
         reopenBtn.BackgroundColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
-            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= antiHackBtn and child ~= espBtn then
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= antiHackBtn and child ~= spearsBtn and child ~= fireLavaBtn and child ~= seismicBtn and child ~= espBtn then
                 if child.Text == "Mods" or child.Text == "Theme" or child.Text == "Others" then
                     child.TextColor3 = t.accent
                 end
@@ -371,6 +375,18 @@ yOff = yOff + 28
 
 makeLabel("Disable Anti-Hack", yOff, modsPage, 110)
 local antiHackBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Disable Spears", yOff, modsPage, 110)
+local spearsBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Disable Fire/Lava", yOff, modsPage, 110)
+local fireLavaBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Disable SeismicRockWall", yOff, modsPage, 110)
+local seismicBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
 makeLabel("TEAM ESP", yOff, modsPage, 110)
@@ -440,99 +456,318 @@ oY = oY + 30
 
 othersPage.CanvasSize = UDim2.new(0, 0, 0, oY + 10)
 
--- ===== DELETE FUNCTIONS =====
-local function deleteItems(found, storage)
-    for _, v in pairs(found) do
-        if v and v.Parent then
-            table.insert(storage, {Item = v, Parent = v.Parent})
-            pcall(function() v.Parent = nil end)
-        end
-    end
-end
+-- ===== SINGLE-SCAN DELETE FUNCTIONS =====
 
 local function restoreItems(storage)
     local count = 0
-    local toRemove = {}
-    for i, data in pairs(storage) do
-        if data and data.Item and not data.Item.Parent then
+    for _, item in pairs(storage) do
+        if item and not item.Parent then
             pcall(function()
-                if data.Parent and data.Parent ~= nil then
-                    data.Item.Parent = data.Parent
-                else
-                    data.Item.Parent = Workspace
-                end
+                item.Parent = Workspace
                 count = count + 1
-                table.insert(toRemove, i)
             end)
-        else
-            table.insert(toRemove, i)
         end
-    end
-    table.sort(toRemove, function(a, b) return a > b end)
-    for _, i in pairs(toRemove) do
-        table.remove(storage, i)
     end
     return count
 end
 
 -- INFECTED
-local function restoreInfect() local c = restoreItems(deletedInfect); if c > 0 then statusLabel.Text = "Restored "..c.." infected"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No infected to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
+local function restoreInfect()
+    local count = restoreItems(deletedInfect)
+    deletedInfect = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " infected"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No infected to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
 local function scanAndDeleteInfect()
     if not deleteInfectActive then restoreInfect(); return end
     local found = {}
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            if v.Name and string.lower(v.Name):find("infect") then table.insert(found, v) end
+            if v.Name and string.lower(v.Name):find("infect") then
+                table.insert(found, v)
+            end
         end
     end
-    deleteItems(found, deletedInfect)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." infected", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No infected found", Color3.fromRGB(0,255,150) end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedInfect, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " infected"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No infected found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
 end
 
 -- KILL
-local function restoreKill() local c = restoreItems(deletedKill); if c > 0 then statusLabel.Text = "Restored "..c.." kill items"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No kill items to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
+local function restoreKill()
+    local count = restoreItems(deletedKill)
+    deletedKill = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " kill items"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No kill items to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
 local function scanAndDeleteKill()
     if not deleteKillActive then restoreKill(); return end
     local found = {}
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            if v.Name and string.lower(v.Name):find("kill") then table.insert(found, v) end
+            if v.Name and string.lower(v.Name):find("kill") then
+                table.insert(found, v)
+            end
         end
     end
-    deleteItems(found, deletedKill)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." kill items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No kill items found", Color3.fromRGB(0,255,150) end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedKill, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " kill items"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No kill items found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
 end
 
--- DOORS
-local function restoreDoors() local c = restoreItems(deletedDoors); if c > 0 then statusLabel.Text = "Restored "..c.." doors/gates"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No doors/gates to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
+-- DOORS/GATES
+local function restoreDoors()
+    local count = restoreItems(deletedDoors)
+    deletedDoors = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " doors/gates"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No doors/gates to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
 local function scanAndDeleteDoors()
     if not deleteDoorsActive then restoreDoors(); return end
     local found = {}
-    local keywords = {"door","gate","portal","doorway","entrance","exit"}
+    local keywords = {"door", "gate", "portal", "doorway", "entrance", "exit"}
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
-            local nl = string.lower(v.Name)
-            for _, kw in pairs(keywords) do if nl:find(kw) then table.insert(found, v); break end end
+            local nameLower = string.lower(v.Name)
+            for _, kw in pairs(keywords) do
+                if nameLower:find(kw) then
+                    table.insert(found, v)
+                    break
+                end
+            end
         end
     end
-    deleteItems(found, deletedDoors)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." doors/gates", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No doors/gates found", Color3.fromRGB(0,255,150) end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedDoors, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " doors/gates"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No doors/gates found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
 end
 
 -- ANTI-HACK
-local function restoreAntiHack() local c = restoreItems(deletedAntiHack); if c > 0 then statusLabel.Text = "Restored "..c.." anti-hack items"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No anti-hack items to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
+local function restoreAntiHack()
+    local count = restoreItems(deletedAntiHack)
+    deletedAntiHack = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " anti-hack items"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No anti-hack items to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
 local function scanAndDeleteAntiHack()
     if not deleteAntiHackActive then restoreAntiHack(); return end
     local found = {}
-    local keywords = {"anti","hack","anticheat","anti-cheat","cheat","exploit","bypass","security"}
+    local keywords = {"anti", "hack", "anticheat", "anti-cheat", "cheat", "exploit", "bypass", "security"}
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
-            local nl = string.lower(v.Name)
-            for _, kw in pairs(keywords) do if nl:find(kw) then table.insert(found, v); break end end
+            local nameLower = string.lower(v.Name)
+            for _, kw in pairs(keywords) do
+                if nameLower:find(kw) then
+                    table.insert(found, v)
+                    break
+                end
+            end
         end
     end
-    deleteItems(found, deletedAntiHack)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." anti-hack items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No anti-hack items found", Color3.fromRGB(0,255,150) end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedAntiHack, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " anti-hack items"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No anti-hack items found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+-- SPEARS
+local function restoreSpears()
+    local count = restoreItems(deletedSpears)
+    deletedSpears = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " spears"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No spears to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
+local function scanAndDeleteSpears()
+    if not deleteSpearsActive then restoreSpears(); return end
+    local found = {}
+    local keywords = {"spear", "javelin", "lance", "pike", "harpoon"}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
+            local nameLower = string.lower(v.Name)
+            for _, kw in pairs(keywords) do
+                if nameLower:find(kw) then
+                    table.insert(found, v)
+                    break
+                end
+            end
+        end
+    end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedSpears, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " spears"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No spears found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+-- FIRE/LAVA
+local function restoreFireLava()
+    local count = restoreItems(deletedFireLava)
+    deletedFireLava = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " fire/lava items"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No fire/lava items to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
+local function scanAndDeleteFireLava()
+    if not deleteFireLavaActive then restoreFireLava(); return end
+    local found = {}
+    local keywords = {"fire", "lava", "flame", "burn", "ignite", "molten", "magma", "combust", "pyro"}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
+            local nameLower = string.lower(v.Name)
+            for _, kw in pairs(keywords) do
+                if nameLower:find(kw) then
+                    table.insert(found, v)
+                    break
+                end
+            end
+        end
+    end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedFireLava, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " fire/lava items"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No fire/lava items found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+-- SEISMIC ROCKWALL (MODELS ONLY)
+local function restoreSeismic()
+    local count = restoreItems(deletedSeismic)
+    deletedSeismic = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " seismic rock walls"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No seismic rock walls to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
+local function scanAndDeleteSeismic()
+    if not deleteSeismicActive then restoreSeismic(); return end
+    local found = {}
+    local keywords = {"weight", "seismic", "rockwall", "rock_wall", "seismicwall", "weighted"}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        -- ONLY MODELS
+        if v:IsA("Model") and v.Name then
+            local nameLower = string.lower(v.Name)
+            for _, kw in pairs(keywords) do
+                if nameLower:find(kw) then
+                    table.insert(found, v)
+                    break
+                end
+            end
+        end
+    end
+    for _, v in pairs(found) do
+        if v.Parent then
+            table.insert(deletedSeismic, v)
+            pcall(function() v.Parent = nil end)
+        end
+    end
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " seismic rock walls"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No seismic rock walls found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
 end
 
 -- ===== ESP =====
@@ -548,68 +783,53 @@ local function createEsp(target)
     local rootPart = target.Character.HumanoidRootPart
     local teamColor = getTeamColor(target)
 
-    if espObjects[target] then
-        pcall(function()
-            if espObjects[target].H then espObjects[target].H:Destroy() end
-            if espObjects[target].B then espObjects[target].B:Destroy() end
-            if espObjects[target].N then espObjects[target].N:Destroy() end
-            if espObjects[target].L then espObjects[target].L:Destroy() end
-        end)
-        espObjects[target] = nil
-    end
-
     local highlight = Instance.new("Highlight")
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0.2
+    highlight.FillTransparency = 0.6
+    highlight.OutlineTransparency = 0.3
     highlight.FillColor = teamColor
     highlight.OutlineColor = teamColor
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.Parent = target.Character
 
     local box = Instance.new("Frame")
     box.Size = UDim2.new(0, 30, 0, 60)
     box.Position = UDim2.new(0.5, -15, 0.5, -30)
-    box.BackgroundTransparency = 0.3
+    box.BackgroundTransparency = 0.5
     box.BackgroundColor3 = teamColor
     box.BorderSizePixel = 2
     box.BorderColor3 = teamColor
-    box.Parent = root
-    box.Visible = true
-    box.ZIndex = 999
+    box.Parent = rootPart
+    box.Visible = false
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(0, 150, 0, 20)
-    nameLabel.Position = UDim2.new(0.5, -75, 0.5, -50)
+    nameLabel.Size = UDim2.new(1, 0, 0, 16)
+    nameLabel.Position = UDim2.new(0, 0, 0, -18)
     nameLabel.Text = target.Name
-    nameLabel.TextColor3 = teamColor
-    nameLabel.TextSize = 14
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextSize = 10
     nameLabel.Font = Enum.Font.GothamBold
     nameLabel.BackgroundTransparency = 1
     nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    nameLabel.TextStrokeTransparency = 0.2
-    nameLabel.TextXAlignment = Enum.TextXAlignment.Center
-    nameLabel.Parent = root
-    nameLabel.Visible = true
-    nameLabel.ZIndex = 999
+    nameLabel.TextStrokeTransparency = 0.3
+    nameLabel.Parent = box
 
     local line = Instance.new("Frame")
     line.Size = UDim2.new(0, 1, 0, 1)
-    line.BackgroundTransparency = 0.4
+    line.BackgroundTransparency = 0.6
     line.BackgroundColor3 = teamColor
-    line.Parent = root
-    line.Visible = true
-    line.ZIndex = 999
+    line.Parent = rootPart
+    line.Visible = false
 
-    espObjects[target] = {H = highlight, B = box, N = nameLabel, L = line, R = rootPart, C = target.Character}
+    espObjects[target] = {Highlight = highlight, Box = box, Name = nameLabel, Line = line, Root = rootPart}
 end
 
 local function updateEsp()
     if not espActive then
-        for _, d in pairs(espObjects) do
+        for _, data in pairs(espObjects) do
             pcall(function()
-                if d.H then d.H:Destroy() end
-                if d.B then d.B:Destroy() end
-                if d.N then d.N:Destroy() end
-                if d.L then d.L:Destroy() end
+                if data.Highlight then data.Highlight:Destroy() end
+                if data.Box then data.Box:Destroy() end
+                if data.Line then data.Line:Destroy() end
             end)
         end
         espObjects = {}
@@ -621,160 +841,203 @@ local function updateEsp()
     local myPos = char.HumanoidRootPart.Position
 
     for _, target in pairs(Players:GetPlayers()) do
-        if target == player then
-            if espObjects[player] == nil then
-                local selfLine = Instance.new("Frame")
-                selfLine.Size = UDim2.new(0, 1, 0, 1)
-                selfLine.BackgroundTransparency = 0.4
-                selfLine.BackgroundColor3 = getTeamColor(player)
-                selfLine.Parent = root
-                selfLine.Visible = true
-                selfLine.ZIndex = 999
-                espObjects[player] = {L = selfLine, R = char.HumanoidRootPart, C = char}
-            end
-            if espObjects[player] and espObjects[player].L and espObjects[player].R then
-                local sp, os = Camera:WorldToViewportPoint(espObjects[player].R.Position)
-                if os then
-                    local sc = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    local dx, dy = sp.X - sc.X, sp.Y - sc.Y
-                    local a = math.atan2(dy, dx)
-                    local len = math.clamp(math.sqrt(dx^2 + dy^2), 20, 300)
-                    espObjects[player].L.Size = UDim2.new(0, len, 0, 2)
-                    espObjects[player].L.Position = UDim2.new(0, sc.X, 0, sc.Y)
-                    espObjects[player].L.Rotation = math.deg(a)
-                    espObjects[player].L.BackgroundTransparency = 0.3
-                    espObjects[player].L.Visible = true
-                end
-            end
-            goto continue
-        end
-
-        if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            if not espObjects[target] or espObjects[target].C ~= target.Character then
-                createEsp(target)
-            end
-
+        if target ~= player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            if not espObjects[target] then createEsp(target) end
             local data = espObjects[target]
-            if data and data.R then
-                local targetPos = data.R.Position
-                local dist = (myPos - targetPos).Magnitude
-                local sp, os = Camera:WorldToViewportPoint(targetPos)
+            if data and data.Root then
+                local targetPos = data.Root.Position
+                local distance = (myPos - targetPos).Magnitude
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPos)
+                local fade = math.clamp((distance - 15) / 30, 0.3, 1)
 
-                if os then
-                    local bs = math.clamp(80 / dist, 20, 80)
-                    data.B.Size = UDim2.new(0, bs, 0, bs * 1.8)
-                    data.B.Position = UDim2.new(0, sp.X - bs/2, 0, sp.Y - bs * 0.9)
-                    data.B.BackgroundTransparency = 0.3
-                    data.B.Visible = true
+                if onScreen and distance < 200 then
+                    local boxSize = math.clamp(80 / distance, 20, 80)
+                    data.Box.Size = UDim2.new(0, boxSize, 0, boxSize * 1.8)
+                    data.Box.Position = UDim2.new(0, screenPos.X - boxSize/2, 0, screenPos.Y - boxSize * 0.9)
+                    data.Box.BackgroundTransparency = 0.3 + (1 - fade) * 0.5
+                    data.Box.Visible = true
 
-                    data.N.Position = UDim2.new(0, sp.X - 75, 0, sp.Y - bs * 1.1 - 20)
-                    data.N.Visible = true
+                    data.Highlight.FillTransparency = 0.4 + (1 - fade) * 0.4
+                    data.Highlight.OutlineTransparency = 0.2 + (1 - fade) * 0.3
 
-                    data.H.FillTransparency = 0.5
-                    data.H.OutlineTransparency = 0.2
+                    local centerX = screenPos.X
+                    local centerY = screenPos.Y + boxSize * 0.5
+                    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                    local dx = centerX - screenCenter.X
+                    local dy = centerY - screenCenter.Y
+                    local angle = math.atan2(dy, dx)
+                    local length = math.clamp(math.sqrt(dx^2 + dy^2), 20, 300)
 
-                    local cx, cy = sp.X, sp.Y + bs * 0.5
-                    local sc = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    local dx, dy = cx - sc.X, cy - sc.Y
-                    local a = math.atan2(dy, dx)
-                    local len = math.clamp(math.sqrt(dx^2 + dy^2), 20, 300)
-
-                    data.L.Size = UDim2.new(0, len, 0, 2)
-                    data.L.Position = UDim2.new(0, sc.X, 0, sc.Y)
-                    data.L.Rotation = math.deg(a)
-                    data.L.BackgroundTransparency = 0.3
-                    data.L.Visible = true
+                    data.Line.Size = UDim2.new(0, length, 0, 1)
+                    data.Line.Position = UDim2.new(0, screenCenter.X, 0, screenCenter.Y)
+                    data.Line.Rotation = math.deg(angle)
+                    data.Line.BackgroundTransparency = 0.4 + (1 - fade) * 0.3
+                    data.Line.Visible = true
                 else
-                    data.B.Visible = false
-                    data.N.Visible = false
-                    data.L.Visible = false
-                    data.H.FillTransparency = 0.5
-                    data.H.OutlineTransparency = 0.2
+                    data.Box.Visible = false
+                    data.Line.Visible = false
+                    data.Highlight.FillTransparency = 0.7
                 end
             end
         end
-        ::continue::
     end
 end
 
--- ===== TOGGLES =====
+-- ===== TOGGLES (SINGLE SCAN) =====
 local function toggleInfect()
     deleteInfectActive = not deleteInfectActive
     if deleteInfectActive then
-        infectBtn.Text, infectBtn.BackgroundColor3, infectBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        infectBtn.Text = "ON"
+        infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         scanAndDeleteInfect()
     else
-        infectBtn.Text, infectBtn.BackgroundColor3, infectBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        infectBtn.Text = "OFF"
+        infectBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         restoreInfect()
     end
 end
+
 infectBtn.MouseButton1Click:Connect(toggleInfect)
 infectBtn.TouchTap:Connect(toggleInfect)
 
 local function toggleKill()
     deleteKillActive = not deleteKillActive
     if deleteKillActive then
-        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        killBtn.Text = "ON"
+        killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         scanAndDeleteKill()
     else
-        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        killBtn.Text = "OFF"
+        killBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         restoreKill()
     end
 end
+
 killBtn.MouseButton1Click:Connect(toggleKill)
 killBtn.TouchTap:Connect(toggleKill)
 
 local function toggleDoors()
     deleteDoorsActive = not deleteDoorsActive
     if deleteDoorsActive then
-        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        doorsBtn.Text = "ON"
+        doorsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        doorsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         scanAndDeleteDoors()
     else
-        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        doorsBtn.Text = "OFF"
+        doorsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        doorsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         restoreDoors()
     end
 end
+
 doorsBtn.MouseButton1Click:Connect(toggleDoors)
 doorsBtn.TouchTap:Connect(toggleDoors)
 
 local function toggleAntiHack()
     deleteAntiHackActive = not deleteAntiHackActive
     if deleteAntiHackActive then
-        antiHackBtn.Text, antiHackBtn.BackgroundColor3, antiHackBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        antiHackBtn.Text = "ON"
+        antiHackBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        antiHackBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         scanAndDeleteAntiHack()
     else
-        antiHackBtn.Text, antiHackBtn.BackgroundColor3, antiHackBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        antiHackBtn.Text = "OFF"
+        antiHackBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        antiHackBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         restoreAntiHack()
     end
 end
+
 antiHackBtn.MouseButton1Click:Connect(toggleAntiHack)
 antiHackBtn.TouchTap:Connect(toggleAntiHack)
+
+local function toggleSpears()
+    deleteSpearsActive = not deleteSpearsActive
+    if deleteSpearsActive then
+        spearsBtn.Text = "ON"
+        spearsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        spearsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteSpears()
+    else
+        spearsBtn.Text = "OFF"
+        spearsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        spearsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreSpears()
+    end
+end
+
+spearsBtn.MouseButton1Click:Connect(toggleSpears)
+spearsBtn.TouchTap:Connect(toggleSpears)
+
+local function toggleFireLava()
+    deleteFireLavaActive = not deleteFireLavaActive
+    if deleteFireLavaActive then
+        fireLavaBtn.Text = "ON"
+        fireLavaBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        fireLavaBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteFireLava()
+    else
+        fireLavaBtn.Text = "OFF"
+        fireLavaBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        fireLavaBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreFireLava()
+    end
+end
+
+fireLavaBtn.MouseButton1Click:Connect(toggleFireLava)
+fireLavaBtn.TouchTap:Connect(toggleFireLava)
+
+local function toggleSeismic()
+    deleteSeismicActive = not deleteSeismicActive
+    if deleteSeismicActive then
+        seismicBtn.Text = "ON"
+        seismicBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        seismicBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteSeismic()
+    else
+        seismicBtn.Text = "OFF"
+        seismicBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        seismicBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreSeismic()
+    end
+end
+
+seismicBtn.MouseButton1Click:Connect(toggleSeismic)
+seismicBtn.TouchTap:Connect(toggleSeismic)
 
 local function toggleEsp()
     espActive = not espActive
     if espActive then
-        espBtn.Text, espBtn.BackgroundColor3, espBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "ESP ENABLED", Color3.fromRGB(0,200,255)
+        espBtn.Text = "ON"
+        espBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        espBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "ESP ENABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
 
         if espConnection then pcall(function() espConnection:Disconnect() end); espConnection = nil end
-        if espRebindTimer then pcall(function() espRebindTimer:Disconnect() end); espRebindTimer = nil end
-
         for _, target in pairs(Players:GetPlayers()) do
             if target ~= player then createEsp(target) end
         end
-
         espConnection = RunService.RenderStepped:Connect(updateEsp)
-
-        espRebindTimer = RunService.Heartbeat:Connect(function()
-            if espActive then
-                for _, target in pairs(Players:GetPlayers()) do
-                    if target ~= player then
-                        if not espObjects[target] or espObjects[target].C ~= target.Character then
-                            createEsp(target)
-                        end
-                    end
-                end
-            end
-        end)
 
         Players.PlayerAdded:Connect(function(target)
             task.wait(0.5)
@@ -784,26 +1047,26 @@ local function toggleEsp()
         Players.PlayerRemoving:Connect(function(target)
             if espObjects[target] then
                 pcall(function()
-                    if espObjects[target].H then espObjects[target].H:Destroy() end
-                    if espObjects[target].B then espObjects[target].B:Destroy() end
-                    if espObjects[target].N then espObjects[target].N:Destroy() end
-                    if espObjects[target].L then espObjects[target].L:Destroy() end
+                    if espObjects[target].Highlight then espObjects[target].Highlight:Destroy() end
+                    if espObjects[target].Box then espObjects[target].Box:Destroy() end
+                    if espObjects[target].Line then espObjects[target].Line:Destroy() end
                 end)
                 espObjects[target] = nil
             end
         end)
     else
-        espBtn.Text, espBtn.BackgroundColor3, espBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100), "ESP DISABLED", Color3.fromRGB(255,100,100)
+        espBtn.Text = "OFF"
+        espBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        espBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        statusLabel.Text = "ESP DISABLED"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
 
         if espConnection then pcall(function() espConnection:Disconnect() end); espConnection = nil end
-        if espRebindTimer then pcall(function() espRebindTimer:Disconnect() end); espRebindTimer = nil end
-
         for _, data in pairs(espObjects) do
             pcall(function()
-                if data.H then data.H:Destroy() end
-                if data.B then data.B:Destroy() end
-                if data.N then data.N:Destroy() end
-                if data.L then data.L:Destroy() end
+                if data.Highlight then data.Highlight:Destroy() end
+                if data.Box then data.Box:Destroy() end
+                if data.Line then data.Line:Destroy() end
             end)
         end
         espObjects = {}
@@ -812,135 +1075,251 @@ local function toggleEsp()
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
+
 espBtn.MouseButton1Click:Connect(toggleEsp)
 espBtn.TouchTap:Connect(toggleEsp)
 
--- ===== DESTROY GUI =====
+-- ===== DESTROY GUI BUTTON =====
 local function destroyGUI()
     if espConnection then pcall(function() espConnection:Disconnect() end); espConnection = nil end
-    if espRebindTimer then pcall(function() espRebindTimer:Disconnect() end); espRebindTimer = nil end
     for _, data in pairs(espObjects) do
         pcall(function()
-            if data.H then data.H:Destroy() end
-            if data.B then data.B:Destroy() end
-            if data.N then data.N:Destroy() end
-            if data.L then data.L:Destroy() end
+            if data.Highlight then data.Highlight:Destroy() end
+            if data.Box then data.Box:Destroy() end
+            if data.Line then data.Line:Destroy() end
         end)
     end
     espObjects = {}
     root:Destroy()
     blur:Destroy()
 end
+
 destroyBtn.MouseButton1Click:Connect(destroyGUI)
 destroyBtn.TouchTap:Connect(destroyGUI)
 
 -- ===== TAB SWITCHING =====
 local function switchToMods()
-    modsPage.Visible, themePage.Visible, othersPage.Visible = true, false, false
-    tabMods.TextColor3, tabTheme.TextColor3, tabOthers.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
+    modsPage.Visible = true
+    themePage.Visible = false
+    othersPage.Visible = false
+    tabMods.TextColor3 = themes[currentTheme].accent
+    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
+
 local function switchToTheme()
-    modsPage.Visible, themePage.Visible, othersPage.Visible = false, true, false
-    tabTheme.TextColor3, tabMods.TextColor3, tabOthers.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
+    modsPage.Visible = false
+    themePage.Visible = true
+    othersPage.Visible = false
+    tabTheme.TextColor3 = themes[currentTheme].accent
+    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
+
 local function switchToOthers()
-    modsPage.Visible, themePage.Visible, othersPage.Visible = false, false, true
-    tabOthers.TextColor3, tabMods.TextColor3, tabTheme.TextColor3 = themes[currentTheme].accent, Color3.fromRGB(180,180,210), Color3.fromRGB(180,180,210)
+    modsPage.Visible = false
+    themePage.Visible = false
+    othersPage.Visible = true
+    tabOthers.TextColor3 = themes[currentTheme].accent
+    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
 end
+
 tabMods.MouseButton1Click:Connect(switchToMods)
 tabMods.TouchTap:Connect(switchToMods)
 tabTheme.MouseButton1Click:Connect(switchToTheme)
 tabTheme.TouchTap:Connect(switchToTheme)
 tabOthers.MouseButton1Click:Connect(switchToOthers)
 tabOthers.TouchTap:Connect(switchToOthers)
-modsPage.Visible, tabMods.TextColor3 = true, themes.Default.accent
+
+modsPage.Visible = true
+tabMods.TextColor3 = themes.Default.accent
+tabMods.BackgroundTransparency = 0
 
 -- ===== MINIMIZE / RESTORE =====
 local function minimizeGUI()
     if isMinimized then return end
     isMinimized = true
-    frame.Visible, miniBtn.Visible, reopenBtn.Visible, blur.Size = false, true, false, 0
+    frame.Visible = false
+    miniBtn.Visible = true
+    reopenBtn.Visible = false
+    blur.Size = 0
 end
+
 local function restoreGUI()
     if not isMinimized then return end
     isMinimized = false
-    frame.Visible, miniBtn.Visible, blur.Size = true, false, 3
+    frame.Visible = true
+    miniBtn.Visible = false
+    blur.Size = 3
 end
-minimizeBtn.MouseButton1Click:Connect(function() if isMinimized then restoreGUI() else minimizeGUI() end end)
-minimizeBtn.TouchTap:Connect(function() if isMinimized then restoreGUI() else minimizeGUI() end end)
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    if isMinimized then restoreGUI() else minimizeGUI() end
+end)
+
+minimizeBtn.TouchTap:Connect(function()
+    if isMinimized then restoreGUI() else minimizeGUI() end
+end)
+
 miniBtn.MouseButton1Click:Connect(restoreGUI)
 miniBtn.TouchTap:Connect(restoreGUI)
-miniBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then restoreGUI() end end)
 
--- ===== CLOSE/RE-OPEN =====
+miniBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        restoreGUI()
+    end
+end)
+
+-- ===== CLOSE/RE-OPEN BUTTON =====
 local function toggleOpenClose()
     if isOpen then
-        isOpen, frame.Visible, miniBtn.Visible, reopenBtn.Visible, closeBtn.Text, closeBtn.TextColor3, blur.Size = false, false, false, true, "▶", Color3.fromRGB(100,255,100), 0
+        isOpen = false
+        frame.Visible = false
+        miniBtn.Visible = false
+        reopenBtn.Visible = true
+        closeBtn.Text = "▶"
+        closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        blur.Size = 0
     else
-        isOpen, frame.Visible, reopenBtn.Visible, closeBtn.Text, closeBtn.TextColor3 = true, true, false, "X", Color3.fromRGB(200,200,210)
-        if not isMinimized then blur.Size = 3 end
+        isOpen = true
+        frame.Visible = true
+        reopenBtn.Visible = false
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+        if not isMinimized then
+            blur.Size = 3
+        end
     end
 end
+
 closeBtn.MouseButton1Click:Connect(toggleOpenClose)
 closeBtn.TouchTap:Connect(toggleOpenClose)
 
+-- Reopen button tap to open
 reopenBtn.MouseButton1Click:Connect(function()
     if not isOpen then
-        isOpen, frame.Visible, reopenBtn.Visible, closeBtn.Text, closeBtn.TextColor3 = true, true, false, "X", Color3.fromRGB(200,200,210)
-        if not isMinimized then blur.Size = 3 end
+        isOpen = true
+        frame.Visible = true
+        reopenBtn.Visible = false
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+        if not isMinimized then
+            blur.Size = 3
+        end
     end
 end)
+
 reopenBtn.TouchTap:Connect(function()
     if not isOpen then
-        isOpen, frame.Visible, reopenBtn.Visible, closeBtn.Text, closeBtn.TextColor3 = true, true, false, "X", Color3.fromRGB(200,200,210)
-        if not isMinimized then blur.Size = 3 end
+        isOpen = true
+        frame.Visible = true
+        reopenBtn.Visible = false
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+        if not isMinimized then
+            blur.Size = 3
+        end
     end
 end)
 
 -- ===== DRAG SYSTEM =====
-local frameDragData = {isDragging = false, startPos = nil, frameStart = nil, hasMoved = false}
-titleBar.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        frameDragData.isDragging, frameDragData.hasMoved, frameDragData.startPos, frameDragData.frameStart = false, false, i.Position, frame.Position
-    end
-end)
-titleBar.InputChanged:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
-        if frameDragData.startPos then
-            local d = i.Position - frameDragData.startPos
-            if math.sqrt(d.X^2 + d.Y^2) > 5 then frameDragData.hasMoved, frameDragData.isDragging = true, true end
-            if frameDragData.isDragging then frame.Position = UDim2.new(frameDragData.frameStart.X.Scale, frameDragData.frameStart.X.Offset + d.X, frameDragData.frameStart.Y.Scale, frameDragData.frameStart.Y.Offset + d.Y) end
-        end
-    end
-end)
-titleBar.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then frameDragData.isDragging, frameDragData.startPos, frameDragData.frameStart = false, nil, nil end end)
+local frameDragData = {
+    isDragging = false,
+    startPos = nil,
+    frameStart = nil,
+    hasMoved = false
+}
 
-local reopenDragData = {isDragging = false, startPos = nil, btnStart = nil, hasMoved = false}
-reopenBtn.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        reopenDragData.isDragging, reopenDragData.hasMoved, reopenDragData.startPos, reopenDragData.btnStart = false, false, i.Position, reopenBtn.Position
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        frameDragData.isDragging = false
+        frameDragData.hasMoved = false
+        frameDragData.startPos = input.Position
+        frameDragData.frameStart = frame.Position
     end
 end)
-reopenBtn.InputChanged:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
-        if reopenDragData.startPos then
-            local d = i.Position - reopenDragData.startPos
-            if math.sqrt(d.X^2 + d.Y^2) > 10 then reopenDragData.hasMoved, reopenDragData.isDragging = true, true end
-            if reopenDragData.isDragging then reopenBtn.Position = UDim2.new(reopenDragData.btnStart.X.Scale, reopenDragData.btnStart.X.Offset + d.X, reopenDragData.btnStart.Y.Scale, reopenDragData.btnStart.Y.Offset + d.Y) end
+
+titleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if frameDragData.startPos then
+            local delta = input.Position - frameDragData.startPos
+            local distance = math.sqrt(delta.X^2 + delta.Y^2)
+            if distance > 5 then
+                frameDragData.hasMoved = true
+                frameDragData.isDragging = true
+            end
+            if frameDragData.isDragging then
+                frame.Position = UDim2.new(frameDragData.frameStart.X.Scale, frameDragData.frameStart.X.Offset + delta.X, frameDragData.frameStart.Y.Scale, frameDragData.frameStart.Y.Offset + delta.Y)
+            end
         end
     end
 end)
-reopenBtn.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then reopenDragData.isDragging, reopenDragData.startPos, reopenDragData.btnStart = false, nil, nil end end)
+
+titleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        frameDragData.isDragging = false
+        frameDragData.startPos = nil
+        frameDragData.frameStart = nil
+    end
+end)
+
+-- Reopen button drag
+local reopenDragData = {
+    isDragging = false,
+    startPos = nil,
+    btnStart = nil,
+    hasMoved = false
+}
+
+reopenBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        reopenDragData.isDragging = false
+        reopenDragData.hasMoved = false
+        reopenDragData.startPos = input.Position
+        reopenDragData.btnStart = reopenBtn.Position
+    end
+end)
+
+reopenBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if reopenDragData.startPos then
+            local delta = input.Position - reopenDragData.startPos
+            local distance = math.sqrt(delta.X^2 + delta.Y^2)
+            if distance > 10 then
+                reopenDragData.hasMoved = true
+                reopenDragData.isDragging = true
+            end
+            if reopenDragData.isDragging then
+                reopenBtn.Position = UDim2.new(reopenDragData.btnStart.X.Scale, reopenDragData.btnStart.X.Offset + delta.X, reopenDragData.btnStart.Y.Scale, reopenDragData.btnStart.Y.Offset + delta.Y)
+            end
+        end
+    end
+end)
+
+reopenBtn.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        reopenDragData.isDragging = false
+        reopenDragData.startPos = nil
+        reopenDragData.btnStart = nil
+    end
+end)
 
 -- ===== HOTKEY =====
-UserInputService.InputBegan:Connect(function(i, gp) if gp then return end; if i.KeyCode == Enum.KeyCode.Insert then if isMinimized then restoreGUI() else minimizeGUI() end end end)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Insert then
+        if isMinimized then restoreGUI() else minimizeGUI() end
+    end
+end)
 
 -- ===== FORCE VISIBILITY =====
-frame.BackgroundTransparency, frame.Size = 1, UDim2.new(0,0,0,0)
+frame.BackgroundTransparency = 1
+frame.Size = UDim2.new(0, 0, 0, 0)
 TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
     Size = UDim2.new(0, 280, 0, 230),
     BackgroundTransparency = 0.08
 }):Play()
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED!")
+print("NZ-IS v6 - FULLY LOADED! (Disable SeismicRockWall added - MODELS ONLY)")
