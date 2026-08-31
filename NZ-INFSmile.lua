@@ -69,6 +69,7 @@ local themes = {
 
 local currentTheme = "Default"
 local isOpen = true
+local isMinimized = false
 local deleteInfectActive = false
 local deleteKillActive = false
 local deleteDoorsActive = false
@@ -120,12 +121,13 @@ stroke.Color = themes.Default.stroke
 stroke.Thickness = 1.5
 stroke.Transparency = 0.6
 
--- ========== TITLE BAR ==========
+-- ========== TITLE BAR (TAP TO MINIMIZE) ==========
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 44)
 titleBar.BackgroundTransparency = 0.2
 titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 titleBar.Parent = frame
+titleBar.Active = true
 
 local titleCorner = Instance.new("UICorner", titleBar)
 titleCorner.CornerRadius = UDim.new(0, 8)
@@ -140,6 +142,35 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.BackgroundTransparency = 1
 titleLabel.Parent = titleBar
+
+-- ========== MINIMIZED SQUARE (hidden by default) ==========
+local miniFrame = Instance.new("Frame")
+miniFrame.Size = UDim2.new(0, 60, 0, 60)
+miniFrame.Position = UDim2.new(0.5, -30, 0.5, -30)
+miniFrame.BackgroundColor3 = themes.Default.accent
+miniFrame.BackgroundTransparency = 0.1
+miniFrame.ClipsDescendants = true
+miniFrame.Parent = root
+miniFrame.Visible = false
+miniFrame.ZIndex = 999
+miniFrame.Active = true
+
+local miniCorner = Instance.new("UICorner", miniFrame)
+miniCorner.CornerRadius = UDim.new(0, 12)
+
+local miniStroke = Instance.new("UIStroke", miniFrame)
+miniStroke.Color = themes.Default.accent
+miniStroke.Thickness = 2
+miniStroke.Transparency = 0.3
+
+local miniLabel = Instance.new("TextLabel")
+miniLabel.Size = UDim2.new(1, 0, 1, 0)
+miniLabel.Text = "NZ"
+miniLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+miniLabel.TextSize = 14
+miniLabel.Font = Enum.Font.GothamBold
+miniLabel.BackgroundTransparency = 1
+miniLabel.Parent = miniFrame
 
 -- ========== TABS ==========
 local tabContainer = Instance.new("Frame")
@@ -311,6 +342,8 @@ local function createThemeButton(name, y, color)
         stroke.Color = t.stroke
         titleLabel.TextColor3 = t.accent
         statusLabel.TextColor3 = t.accent
+        miniFrame.BackgroundColor3 = t.accent
+        miniStroke.Color = t.accent
         for _, child in pairs(frame:GetDescendants()) do
             if child:IsA("TextButton") and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn and child ~= rtxBtn and child ~= futureBtn then
                 if child.Text == "Mods" or child.Text == "Graphics" or child.Text == "Theme" then
@@ -1069,19 +1102,18 @@ tabTheme.TouchTap:Connect(switchToTheme)
 modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
 
--- ========== RE-OPEN ARROW BUTTON (MOBILE FIXED) ==========
+-- ========== ARROW BUTTON (OPEN/CLOSE ONLY) ==========
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 60, 0, 60)
-toggleBtn.Position = UDim2.new(0, 10, 1, -75)
+toggleBtn.Size = UDim2.new(0, 50, 0, 50)
+toggleBtn.Position = UDim2.new(0, 10, 1, -65)
 toggleBtn.Text = "◀"
-toggleBtn.TextSize = 26
+toggleBtn.TextSize = 22
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
 toggleBtn.Parent = root
 toggleBtn.AutoButtonColor = true
 toggleBtn.ZIndex = 999
 toggleBtn.Active = true
-toggleBtn.Selectable = true
 
 local toggleCorner = Instance.new("UICorner", toggleBtn)
 toggleCorner.CornerRadius = UDim.new(1, 0)
@@ -1091,97 +1123,106 @@ toggleStroke.Color = Color3.fromRGB(255, 255, 255)
 toggleStroke.Thickness = 2
 toggleStroke.Transparency = 0.2
 
--- ===== MOBILE-FRIENDLY BUTTON CONTROLS =====
-local btnState = {
-    touchStart = nil,
-    posStart = nil,
-    isDragging = false,
-    hasMoved = false,
-    tapTimer = nil
+-- Arrow button ONLY opens/closes (no drag)
+local function onToggleClick()
+    if isOpen then closeGUI() else openGUI() end
+end
+
+toggleBtn.MouseButton1Click:Connect(onToggleClick)
+toggleBtn.TouchTap:Connect(onToggleClick)
+
+-- ========== MINIMIZE FUNCTIONS ==========
+local function minimizeGUI()
+    if isMinimized then return end
+    isMinimized = true
+    
+    -- Hide main frame, show mini square
+    frame.Visible = false
+    miniFrame.Visible = true
+    
+    -- Position mini square where the frame was
+    local framePos = frame.Position
+    miniFrame.Position = UDim2.new(
+        framePos.X.Scale,
+        framePos.X.Offset + 160 - 30,
+        framePos.Y.Scale,
+        framePos.Y.Offset + 140 - 30
+    )
+    
+    blur.Size = 0
+end
+
+local function unminimizeGUI()
+    if not isMinimized then return end
+    isMinimized = false
+    
+    -- Show main frame, hide mini square
+    frame.Visible = true
+    miniFrame.Visible = false
+    
+    blur.Size = 3
+end
+
+-- ========== TITLE BAR TAP TO MINIMIZE ==========
+titleBar.MouseButton1Click:Connect(minimizeGUI)
+titleBar.TouchTap:Connect(minimizeGUI)
+
+-- ========== MINI SQUARE TAP TO UNMINIMIZE + DRAG ==========
+-- Tap to unminimize
+miniFrame.MouseButton1Click:Connect(unminimizeGUI)
+miniFrame.TouchTap:Connect(unminimizeGUI)
+
+-- Drag the mini square (hold and drag)
+local miniDragData = {
+    dragging = false,
+    startPos = nil,
+    frameStart = nil
 }
 
--- TOUCH EVENTS (MOBILE)
-toggleBtn.TouchBegan:Connect(function(input)
-    btnState.touchStart = input.Position
-    btnState.posStart = toggleBtn.Position
-    btnState.isDragging = false
-    btnState.hasMoved = false
-    btnState.tapTimer = tick()
+miniFrame.TouchBegan:Connect(function(input)
+    miniDragData.dragging = true
+    miniDragData.startPos = input.Position
+    miniDragData.frameStart = miniFrame.Position
 end)
 
-toggleBtn.TouchMoved:Connect(function(input)
-    if not btnState.touchStart or not btnState.posStart then return end
-    
-    local delta = input.Position - btnState.touchStart
-    local distance = math.sqrt(delta.X^2 + delta.Y^2)
-    
-    if distance > 10 then
-        btnState.hasMoved = true
-        btnState.isDragging = true
-        -- Move the button
-        toggleBtn.Position = UDim2.new(
-            btnState.posStart.X.Scale,
-            btnState.posStart.X.Offset + delta.X,
-            btnState.posStart.Y.Scale,
-            btnState.posStart.Y.Offset + delta.Y
-        )
-    end
+miniFrame.TouchMoved:Connect(function(input)
+    if not miniDragData.dragging or not miniDragData.startPos then return end
+    local delta = input.Position - miniDragData.startPos
+    miniFrame.Position = UDim2.new(
+        miniDragData.frameStart.X.Scale,
+        miniDragData.frameStart.X.Offset + delta.X,
+        miniDragData.frameStart.Y.Scale,
+        miniDragData.frameStart.Y.Offset + delta.Y
+    )
 end)
 
-toggleBtn.TouchEnded:Connect(function()
-    local holdTime = tick() - (btnState.tapTimer or tick())
-    btnState.tapTimer = nil
-    
-    -- If it was a tap (not a drag, and held for less than 0.4 seconds)
-    if not btnState.isDragging and not btnState.hasMoved and holdTime < 0.4 then
-        if isOpen then closeGUI() else openGUI() end
-    end
-    
-    btnState.isDragging = false
-    btnState.hasMoved = false
-    btnState.touchStart = nil
-    btnState.posStart = nil
+miniFrame.TouchEnded:Connect(function()
+    miniDragData.dragging = false
+    miniDragData.startPos = nil
+    miniDragData.frameStart = nil
 end)
 
--- MOUSE EVENTS (PC)
-toggleBtn.MouseButton1Down:Connect(function(input)
-    btnState.touchStart = input.Position
-    btnState.posStart = toggleBtn.Position
-    btnState.isDragging = false
-    btnState.hasMoved = false
-    btnState.tapTimer = tick()
+miniFrame.MouseButton1Down:Connect(function(input)
+    miniDragData.dragging = true
+    miniDragData.startPos = input.Position
+    miniDragData.frameStart = miniFrame.Position
 end)
 
-toggleBtn.MouseMoved:Connect(function(input)
-    if not btnState.touchStart or not btnState.posStart then return end
-    
-    local delta = input.Position - btnState.touchStart
-    local distance = math.sqrt(delta.X^2 + delta.Y^2)
-    
-    if distance > 3 then
-        btnState.hasMoved = true
-        btnState.isDragging = true
-        toggleBtn.Position = UDim2.new(
-            btnState.posStart.X.Scale,
-            btnState.posStart.X.Offset + delta.X,
-            btnState.posStart.Y.Scale,
-            btnState.posStart.Y.Offset + delta.Y
-        )
-    end
+miniFrame.MouseMoved:Connect(function(input)
+    if not miniDragData.dragging or not miniDragData.startPos then return end
+    local delta = input.Position - miniDragData.startPos
+    miniFrame.Position = UDim2.new(
+        miniDragData.frameStart.X.Scale,
+        miniDragData.frameStart.X.Offset + delta.X,
+        miniDragData.frameStart.Y.Scale,
+        miniDragData.frameStart.Y.Offset + delta.Y
+    )
 end)
 
-toggleBtn.MouseButton1Up:Connect(function()
-    local holdTime = tick() - (btnState.tapTimer or tick())
-    btnState.tapTimer = nil
-    
-    if not btnState.isDragging and not btnState.hasMoved and holdTime < 0.4 then
-        if isOpen then closeGUI() else openGUI() end
-    end
-    
-    btnState.isDragging = false
-    btnState.hasMoved = false
-    btnState.touchStart = nil
-    btnState.posStart = nil
+miniFrame.MouseButton1Up:Connect(function()
+    miniDragData.dragging = false
+    miniDragData.startPos = nil
+    miniDragData.frameStart = nil
 end)
 
 -- ========== OPEN/CLOSE FUNCTIONS ==========
@@ -1190,12 +1231,15 @@ local function openGUI()
     frame.Visible = true
     toggleBtn.Text = "◀"
     toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
-    blur.Size = 3
+    if not isMinimized then
+        blur.Size = 3
+    end
 end
 
 local function closeGUI()
     isOpen = false
     frame.Visible = false
+    miniFrame.Visible = false
     toggleBtn.Text = "▶"
     toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
     blur.Size = 0
@@ -1217,5 +1261,6 @@ frame.Size = UDim2.new(0, 320, 0, 280)
 frame.Position = UDim2.new(0.5, -160, 0.5, -140)
 blur.Size = 3
 toggleBtn.Text = "◀"
+miniFrame.Visible = false
 
-print("NZ-IS v5 - Mobile button FULLY FIXED! Tap to open/close, drag to move.")
+print("NZ-IS v6 - Tap title bar to minimize, tap mini square to restore, drag mini square to move!")
