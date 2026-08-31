@@ -87,7 +87,7 @@ local deletedKill = {}
 local deletedDoors = {}
 local espObjects = {}
 
--- ===== MAIN FRAME (SMALL - 280x230) =====
+-- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 280, 0, 230)
 frame.Position = UDim2.new(0.5, -140, 0.5, -115)
@@ -106,7 +106,7 @@ stroke.Color = themes.Default.stroke
 stroke.Thickness = 1.5
 stroke.Transparency = 0.6
 
--- ===== MINI SQUARE (top-right corner) =====
+-- ===== MINI SQUARE =====
 local miniFrame = Instance.new("Frame")
 miniFrame.Size = UDim2.new(0, 50, 0, 50)
 miniFrame.Position = UDim2.new(1, -25, 0, 10)
@@ -162,7 +162,7 @@ minimizeBtn.Parent = titleBar
 local minCorner = Instance.new("UICorner", minimizeBtn)
 minCorner.CornerRadius = UDim.new(0, 5)
 
--- Close/Open Button
+-- Close/Re-Open Button
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 26, 0, 26)
 closeBtn.Position = UDim2.new(1, -34, 0, 3)
@@ -795,9 +795,10 @@ end)
 miniFrame.MouseButton1Click:Connect(restoreGUI)
 miniFrame.TouchTap:Connect(restoreGUI)
 
--- ===== CLOSE/OPEN BUTTON =====
-closeBtn.MouseButton1Click:Connect(function()
+-- ===== CLOSE/RE-OPEN BUTTON (FIXED) =====
+local function toggleOpenClose()
     if isOpen then
+        -- Close GUI
         isOpen = false
         frame.Visible = false
         miniFrame.Visible = false
@@ -805,30 +806,19 @@ closeBtn.MouseButton1Click:Connect(function()
         closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         blur.Size = 0
     else
+        -- Re-open GUI
         isOpen = true
         frame.Visible = true
         closeBtn.Text = "X"
         closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-        if not isMinimized then blur.Size = 3 end
+        if not isMinimized then
+            blur.Size = 3
+        end
     end
-end)
+end
 
-closeBtn.TouchTap:Connect(function()
-    if isOpen then
-        isOpen = false
-        frame.Visible = false
-        miniFrame.Visible = false
-        closeBtn.Text = "▶"
-        closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        blur.Size = 0
-    else
-        isOpen = true
-        frame.Visible = true
-        closeBtn.Text = "X"
-        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-        if not isMinimized then blur.Size = 3 end
-    end
-end)
+closeBtn.MouseButton1Click:Connect(toggleOpenClose)
+closeBtn.TouchTap:Connect(toggleOpenClose)
 
 -- ===== DRAG SYSTEM =====
 local dragging, dragInput, dragStart, startPos
