@@ -33,6 +33,7 @@ local deleteSpearsActive = false
 local deleteFireLavaActive = false
 local deleteSeismicActive = false
 local antiInfectionActive = false
+local deleteOrbActive = false
 
 local deletedInfect = {}
 local deletedKill = {}
@@ -41,13 +42,14 @@ local deletedAntiHack = {}
 local deletedSpears = {}
 local deletedFireLava = {}
 local deletedSeismic = {}
+local deletedOrb = {}
 local duplicatedSadWater = nil
 local originalSadWater = nil
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 250)
-frame.Position = UDim2.new(0.5, -140, 0.5, -125)
+frame.Size = UDim2.new(0, 280, 0, 270)
+frame.Position = UDim2.new(0.5, -140, 0.5, -135)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -148,7 +150,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -74)
     pg.Position = UDim2.new(0, 5, 0, 65)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 350)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 380)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 80)
     pg.Parent = frame
@@ -239,6 +241,10 @@ yOff = yOff + 28
 
 makeLabel("Anti-Infection", yOff, modsPage, 110)
 local antiInfectionBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Delete Orb", yOff, modsPage, 110)
+local deleteOrbBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 32
 
 local statusLabel = Instance.new("TextLabel")
@@ -420,7 +426,6 @@ end
 
 -- ===== ANTI-INFECTION =====
 local function enableAntiInfection()
-    -- Find SadWater
     local sadWater = nil
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") and v.Name and string.lower(v.Name):find("sadwater") then
@@ -437,27 +442,21 @@ local function enableAntiInfection()
     
     originalSadWater = sadWater
     
-    -- Duplicate SadWater
     local newSadWater = sadWater:Clone()
     newSadWater.Name = "SadWater_AntiInfection"
     newSadWater.Parent = Workspace
     
-    -- Make it HUGE (covers entire map)
-    local mapSize = 5000 -- Big enough for most maps
+    local mapSize = 5000
     newSadWater.Size = Vector3.new(mapSize, mapSize, mapSize)
     newSadWater.Position = Vector3.new(0, 0, 0)
-    
-    -- Disable shadows so map isn't dark
     newSadWater.CastShadow = false
     
-    -- Also disable shadows on any child parts
     for _, child in pairs(newSadWater:GetDescendants()) do
         if child:IsA("BasePart") then
             child.CastShadow = false
         end
     end
     
-    -- Store reference for disabling
     duplicatedSadWater = newSadWater
     
     statusLabel.Text = "Anti-Infection ENABLED!"
@@ -497,6 +496,57 @@ end
 
 antiInfectionBtn.MouseButton1Click:Connect(toggleAntiInfection)
 antiInfectionBtn.TouchTap:Connect(toggleAntiInfection)
+
+-- ===== DELETE ORB =====
+local function restoreOrb()
+    local count = restoreItems(deletedOrb)
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " orbs"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No orbs to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
+local function scanAndDeleteOrb()
+    if not deleteOrbActive then restoreOrb(); return end
+    local found = {}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Model") and v.Name and string.lower(v.Name) == "orb" then
+            table.insert(found, v)
+        end
+    end
+    deleteItems(found, deletedOrb)
+    if #found > 0 then
+        statusLabel.Text = "Deleted " .. #found .. " orbs"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No orbs found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+local function toggleDeleteOrb()
+    deleteOrbActive = not deleteOrbActive
+    if deleteOrbActive then
+        deleteOrbBtn.Text = "ON"
+        deleteOrbBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        deleteOrbBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteOrb()
+    else
+        deleteOrbBtn.Text = "OFF"
+        deleteOrbBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        deleteOrbBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreOrb()
+    end
+end
+
+deleteOrbBtn.MouseButton1Click:Connect(toggleDeleteOrb)
+deleteOrbBtn.TouchTap:Connect(toggleDeleteOrb)
 
 -- ===== TOGGLES =====
 local function toggleInfect()
@@ -681,7 +731,7 @@ UserInputService.InputBegan:Connect(function(i, gp) if gp then return end; if i.
 
 -- ===== FORCE VISIBILITY =====
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 280, 0, 250)
+frame.Size = UDim2.new(0, 280, 0, 270)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Anti-Infection mod added)")
+print("NZ-IS v6 - LOADED! (Delete Orb mod added)")
