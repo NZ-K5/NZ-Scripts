@@ -106,45 +106,28 @@ stroke.Color = themes.Default.stroke
 stroke.Thickness = 1.5
 stroke.Transparency = 0.6
 
--- ===== MINI SQUARE (FIXED - FULLY CLICKABLE) =====
-local miniFrame = Instance.new("Frame")
-miniFrame.Size = UDim2.new(0, 50, 0, 50)
-miniFrame.Position = UDim2.new(1, -60, 0, 10)
-miniFrame.BackgroundColor3 = themes.Default.accent
-miniFrame.BackgroundTransparency = 0.15
-miniFrame.ClipsDescendants = true
-miniFrame.Parent = root
-miniFrame.Visible = false
-miniFrame.ZIndex = 999
-miniFrame.Active = true
-miniFrame.Selectable = true
+-- ===== MINI SQUARE (TEXTBUTTON - 100% CLICKABLE) =====
+local miniBtn = Instance.new("TextButton")
+miniBtn.Size = UDim2.new(0, 50, 0, 50)
+miniBtn.Position = UDim2.new(1, -60, 0, 10)
+miniBtn.Text = "NZ"
+miniBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+miniBtn.TextSize = 13
+miniBtn.Font = Enum.Font.GothamBold
+miniBtn.BackgroundColor3 = themes.Default.accent
+miniBtn.BackgroundTransparency = 0.15
+miniBtn.Parent = root
+miniBtn.Visible = false
+miniBtn.ZIndex = 999
+miniBtn.AutoButtonColor = true
 
-local miniCorner = Instance.new("UICorner", miniFrame)
+local miniCorner = Instance.new("UICorner", miniBtn)
 miniCorner.CornerRadius = UDim.new(0, 12)
 
-local miniStroke = Instance.new("UIStroke", miniFrame)
+local miniStroke = Instance.new("UIStroke", miniBtn)
 miniStroke.Color = themes.Default.accent
 miniStroke.Thickness = 2
 miniStroke.Transparency = 0.3
-
-local miniLabel = Instance.new("TextLabel")
-miniLabel.Size = UDim2.new(1, 0, 1, 0)
-miniLabel.Text = "NZ"
-miniLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-miniLabel.TextSize = 13
-miniLabel.Font = Enum.Font.GothamBold
-miniLabel.BackgroundTransparency = 1
-miniLabel.Parent = miniFrame
-
--- ===== HIDDEN CLICK DETECTOR FOR MINI SQUARE (EXTRA RELIABLE) =====
-local miniClickDetector = Instance.new("TextButton")
-miniClickDetector.Size = UDim2.new(1.5, 0, 1.5, 0)
-miniClickDetector.Position = UDim2.new(-0.25, 0, -0.25, 0)
-miniClickDetector.BackgroundTransparency = 1
-miniClickDetector.Text = ""
-miniClickDetector.Parent = miniFrame
-miniClickDetector.ZIndex = 999
-miniClickDetector.AutoButtonColor = false
 
 -- ===== TITLE BAR =====
 local titleBar = Instance.new("Frame")
@@ -285,7 +268,7 @@ local function makeThemeButton(name, y, color)
         stroke.Color = t.stroke
         titleLabel.TextColor3 = t.accent
         statusLabel.TextColor3 = t.accent
-        miniFrame.BackgroundColor3 = t.accent
+        miniBtn.BackgroundColor3 = t.accent
         miniStroke.Color = t.accent
         for _, child in pairs(frame:GetDescendants()) do
             if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn then
@@ -309,7 +292,7 @@ local function makeThemeButton(name, y, color)
         stroke.Color = t.stroke
         titleLabel.TextColor3 = t.accent
         statusLabel.TextColor3 = t.accent
-        miniFrame.BackgroundColor3 = t.accent
+        miniBtn.BackgroundColor3 = t.accent
         miniStroke.Color = t.accent
         for _, child in pairs(frame:GetDescendants()) do
             if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn then
@@ -782,12 +765,12 @@ modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
 tabMods.BackgroundTransparency = 0
 
--- ===== MINIMIZE / RESTORE (FIXED) =====
+-- ===== MINIMIZE / RESTORE (FIXED - USING TEXTBUTTON) =====
 local function minimizeGUI()
     if isMinimized then return end
     isMinimized = true
     frame.Visible = false
-    miniFrame.Visible = true
+    miniBtn.Visible = true
     blur.Size = 0
 end
 
@@ -795,7 +778,7 @@ local function restoreGUI()
     if not isMinimized then return end
     isMinimized = false
     frame.Visible = true
-    miniFrame.Visible = false
+    miniBtn.Visible = false
     blur.Size = 3
 end
 
@@ -807,16 +790,12 @@ minimizeBtn.TouchTap:Connect(function()
     if isMinimized then restoreGUI() else minimizeGUI() end
 end)
 
--- PRIMARY: Click on the mini frame itself
-miniFrame.MouseButton1Click:Connect(restoreGUI)
-miniFrame.TouchTap:Connect(restoreGUI)
+-- TEXTBUTTON = 100% CLICKABLE ON BOTH PC AND MOBILE
+miniBtn.MouseButton1Click:Connect(restoreGUI)
+miniBtn.TouchTap:Connect(restoreGUI)
 
--- SECONDARY: Click on the hidden detector (covers the entire square + more)
-miniClickDetector.MouseButton1Click:Connect(restoreGUI)
-miniClickDetector.TouchTap:Connect(restoreGUI)
-
--- TERTIARY: InputBegan fallback
-miniFrame.InputBegan:Connect(function(input)
+-- Also catch InputBegan as fallback
+miniBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         restoreGUI()
     end
@@ -827,7 +806,7 @@ local function toggleOpenClose()
     if isOpen then
         isOpen = false
         frame.Visible = false
-        miniFrame.Visible = false
+        miniBtn.Visible = false
         closeBtn.Text = "▶"
         closeBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         blur.Size = 0
@@ -891,4 +870,4 @@ TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.Easing
 }):Play()
 blur.Size = 3
 
-print("NZ-IS v6 - ULTRA COMPACT LOADED! (Square FULLY FIXED)")
+print("NZ-IS v6 - ULTRA COMPACT LOADED! (SQUARE IS A TEXTBUTTON - 100% CLICKABLE)")
