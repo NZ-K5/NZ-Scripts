@@ -111,7 +111,6 @@ frame.Parent = root
 frame.Visible = true
 frame.ZIndex = 10
 frame.Active = true
--- REMOVED DRAGGABILITY FROM FRAME
 
 local corner = Instance.new("UICorner", frame)
 corner.CornerRadius = UDim.new(0, 8)
@@ -121,7 +120,7 @@ stroke.Color = themes.Default.stroke
 stroke.Thickness = 1.5
 stroke.Transparency = 0.6
 
--- ========== TITLE BAR (NO X BUTTON) ==========
+-- ========== TITLE BAR ==========
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 44)
 titleBar.BackgroundTransparency = 0.2
@@ -707,7 +706,7 @@ end
 espBtn.MouseButton1Click:Connect(toggleEsp)
 espBtn.TouchTap:Connect(toggleEsp)
 
--- ========== LIGHTING TOGGLE (Future/Realistic) ==========
+-- ========== LIGHTING TOGGLE ==========
 local function toggleFuture()
     futureActive = not futureActive
     
@@ -720,7 +719,6 @@ local function toggleFuture()
         
         originalLighting.Technology = Lighting.Technology
         
-        -- Try Future first, fallback to Realistic
         pcall(function()
             Lighting.Technology = Enum.Technology.Future
         end)
@@ -753,7 +751,7 @@ end
 futureBtn.MouseButton1Click:Connect(toggleFuture)
 futureBtn.TouchTap:Connect(toggleFuture)
 
--- ========== RTX FUNCTION (Day/Night Aware) ==========
+-- ========== RTX FUNCTION ==========
 local function toggleRTX()
     rtxActive = not rtxActive
     
@@ -776,7 +774,6 @@ local function toggleRTX()
         originalLighting.ShadowSoftness = Lighting.ShadowSoftness
         originalLighting.Technology = Lighting.Technology
         
-        -- Try Future first, fallback to Realistic
         pcall(function()
             Lighting.Technology = Enum.Technology.Future
         end)
@@ -1072,18 +1069,19 @@ tabTheme.TouchTap:Connect(switchToTheme)
 modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
 
--- ========== RE-OPEN ARROW BUTTON (FIXED) ==========
+-- ========== RE-OPEN ARROW BUTTON (MOBILE FIXED) ==========
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 55, 0, 55)
-toggleBtn.Position = UDim2.new(0, 10, 1, -70)
+toggleBtn.Size = UDim2.new(0, 60, 0, 60)
+toggleBtn.Position = UDim2.new(0, 10, 1, -75)
 toggleBtn.Text = "◀"
-toggleBtn.TextSize = 24
+toggleBtn.TextSize = 26
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
 toggleBtn.Parent = root
 toggleBtn.AutoButtonColor = true
 toggleBtn.ZIndex = 999
 toggleBtn.Active = true
+toggleBtn.Selectable = true
 
 local toggleCorner = Instance.new("UICorner", toggleBtn)
 toggleCorner.CornerRadius = UDim.new(1, 0)
@@ -1093,105 +1091,97 @@ toggleStroke.Color = Color3.fromRGB(255, 255, 255)
 toggleStroke.Thickness = 2
 toggleStroke.Transparency = 0.2
 
--- ===== SEPARATE TAP AND HOLD FOR BUTTON =====
-local btnHoldTimer = nil
-local isHolding = false
-local isDragging = false
-local dragStartPos = nil
-local dragBtnStart = nil
-local hasMoved = false
+-- ===== MOBILE-FRIENDLY BUTTON CONTROLS =====
+local btnState = {
+    touchStart = nil,
+    posStart = nil,
+    isDragging = false,
+    hasMoved = false,
+    tapTimer = nil
+}
 
--- TAP = OPEN/CLOSE
--- HOLD = DRAG
-
-local function handleTap()
-    if not isDragging and not hasMoved then
-        if isOpen then closeGUI() else openGUI() end
-    end
-end
-
--- TOUCH EVENTS
+-- TOUCH EVENTS (MOBILE)
 toggleBtn.TouchBegan:Connect(function(input)
-    btnHoldTimer = tick()
-    isHolding = false
-    isDragging = false
-    hasMoved = false
-    dragStartPos = input.Position
-    dragBtnStart = toggleBtn.Position
+    btnState.touchStart = input.Position
+    btnState.posStart = toggleBtn.Position
+    btnState.isDragging = false
+    btnState.hasMoved = false
+    btnState.tapTimer = tick()
 end)
 
 toggleBtn.TouchMoved:Connect(function(input)
-    if not dragStartPos or not dragBtnStart then return end
-    local delta = input.Position - dragStartPos
+    if not btnState.touchStart or not btnState.posStart then return end
+    
+    local delta = input.Position - btnState.touchStart
     local distance = math.sqrt(delta.X^2 + delta.Y^2)
     
-    if distance > 15 then
-        hasMoved = true
-        isDragging = true
-        -- Drag the button
+    if distance > 10 then
+        btnState.hasMoved = true
+        btnState.isDragging = true
+        -- Move the button
         toggleBtn.Position = UDim2.new(
-            dragBtnStart.X.Scale,
-            dragBtnStart.X.Offset + delta.X,
-            dragBtnStart.Y.Scale,
-            dragBtnStart.Y.Offset + delta.Y
+            btnState.posStart.X.Scale,
+            btnState.posStart.X.Offset + delta.X,
+            btnState.posStart.Y.Scale,
+            btnState.posStart.Y.Offset + delta.Y
         )
     end
 end)
 
 toggleBtn.TouchEnded:Connect(function()
-    local holdTime = tick() - (btnHoldTimer or tick())
-    btnHoldTimer = nil
+    local holdTime = tick() - (btnState.tapTimer or tick())
+    btnState.tapTimer = nil
     
-    if not isDragging and not hasMoved and holdTime < 0.5 then
-        -- It was a tap (short press, no movement)
-        handleTap()
+    -- If it was a tap (not a drag, and held for less than 0.4 seconds)
+    if not btnState.isDragging and not btnState.hasMoved and holdTime < 0.4 then
+        if isOpen then closeGUI() else openGUI() end
     end
     
-    isDragging = false
-    hasMoved = false
-    dragStartPos = nil
-    dragBtnStart = nil
+    btnState.isDragging = false
+    btnState.hasMoved = false
+    btnState.touchStart = nil
+    btnState.posStart = nil
 end)
 
--- MOUSE EVENTS
+-- MOUSE EVENTS (PC)
 toggleBtn.MouseButton1Down:Connect(function(input)
-    btnHoldTimer = tick()
-    isHolding = false
-    isDragging = false
-    hasMoved = false
-    dragStartPos = input.Position
-    dragBtnStart = toggleBtn.Position
+    btnState.touchStart = input.Position
+    btnState.posStart = toggleBtn.Position
+    btnState.isDragging = false
+    btnState.hasMoved = false
+    btnState.tapTimer = tick()
 end)
 
 toggleBtn.MouseMoved:Connect(function(input)
-    if not dragStartPos or not dragBtnStart then return end
-    local delta = input.Position - dragStartPos
+    if not btnState.touchStart or not btnState.posStart then return end
+    
+    local delta = input.Position - btnState.touchStart
     local distance = math.sqrt(delta.X^2 + delta.Y^2)
     
-    if distance > 5 then
-        hasMoved = true
-        isDragging = true
+    if distance > 3 then
+        btnState.hasMoved = true
+        btnState.isDragging = true
         toggleBtn.Position = UDim2.new(
-            dragBtnStart.X.Scale,
-            dragBtnStart.X.Offset + delta.X,
-            dragBtnStart.Y.Scale,
-            dragBtnStart.Y.Offset + delta.Y
+            btnState.posStart.X.Scale,
+            btnState.posStart.X.Offset + delta.X,
+            btnState.posStart.Y.Scale,
+            btnState.posStart.Y.Offset + delta.Y
         )
     end
 end)
 
 toggleBtn.MouseButton1Up:Connect(function()
-    local holdTime = tick() - (btnHoldTimer or tick())
-    btnHoldTimer = nil
+    local holdTime = tick() - (btnState.tapTimer or tick())
+    btnState.tapTimer = nil
     
-    if not isDragging and not hasMoved and holdTime < 0.5 then
-        handleTap()
+    if not btnState.isDragging and not btnState.hasMoved and holdTime < 0.4 then
+        if isOpen then closeGUI() else openGUI() end
     end
     
-    isDragging = false
-    hasMoved = false
-    dragStartPos = nil
-    dragBtnStart = nil
+    btnState.isDragging = false
+    btnState.hasMoved = false
+    btnState.touchStart = nil
+    btnState.posStart = nil
 end)
 
 -- ========== OPEN/CLOSE FUNCTIONS ==========
@@ -1228,4 +1218,4 @@ frame.Position = UDim2.new(0.5, -160, 0.5, -140)
 blur.Size = 3
 toggleBtn.Text = "◀"
 
-print("NZ-IS v4 - Fixed arrow button (tap to open/close, hold to drag)!")
+print("NZ-IS v5 - Mobile button FULLY FIXED! Tap to open/close, drag to move.")
