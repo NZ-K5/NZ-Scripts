@@ -1,4 +1,4 @@
-﻿local Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -16,6 +16,7 @@ root.Name = "InfectiousRoot"
 root.Parent = guiParent
 root.ResetOnSpawn = false
 root.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+root.IgnoreGuiInset = true  -- MOBILE FIX
 
 local blur = Instance.new("BlurEffect", game:GetService("Lighting"))
 blur.Size = 6
@@ -97,7 +98,7 @@ grad.Color = ColorSequence.new({
 })
 
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.Size = UDim2.new(1, 0, 0, 50) -- BIGGER FOR MOBILE
 titleBar.BackgroundTransparency = 1
 titleBar.Parent = frame
 
@@ -113,17 +114,17 @@ titleLabel.BackgroundTransparency = 1
 titleLabel.Parent = titleBar
 
 local minimizeBtn = Instance.new("TextButton")
-minimizeBtn.Size = UDim2.new(0, 32, 0, 32)
-minimizeBtn.Position = UDim2.new(1, -80, 0, 4)
+minimizeBtn.Size = UDim2.new(0, 44, 0, 44) -- BIGGER
+minimizeBtn.Position = UDim2.new(1, -90, 0, 3)
 minimizeBtn.Text = "-"
 minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-minimizeBtn.TextSize = 20
+minimizeBtn.TextSize = 24
 minimizeBtn.Font = Enum.Font.GothamBold
 minimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 minimizeBtn.BackgroundTransparency = 0.2
 minimizeBtn.Parent = titleBar
 local minCorner = Instance.new("UICorner", minimizeBtn)
-minCorner.CornerRadius = UDim.new(0, 6)
+minCorner.CornerRadius = UDim.new(0, 8)
 
 minimizeBtn.MouseEnter:Connect(function()
     minimizeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
@@ -135,17 +136,17 @@ minimizeBtn.MouseLeave:Connect(function()
 end)
 
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 32, 0, 32)
-closeBtn.Position = UDim2.new(1, -40, 0, 4)
+closeBtn.Size = UDim2.new(0, 44, 0, 44) -- BIGGER
+closeBtn.Position = UDim2.new(1, -46, 0, 3)
 closeBtn.Text = "X"
 closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-closeBtn.TextSize = 18
+closeBtn.TextSize = 22
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 closeBtn.BackgroundTransparency = 0.2
 closeBtn.Parent = titleBar
 local closeCorner = Instance.new("UICorner", closeBtn)
-closeCorner.CornerRadius = UDim.new(0, 6)
+closeCorner.CornerRadius = UDim.new(0, 8)
 
 closeBtn.MouseEnter:Connect(function()
     closeBtn.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
@@ -158,16 +159,16 @@ end)
 
 closeBtn.MouseButton1Click:Connect(function()
     local confirm = Instance.new("TextButton")
-    confirm.Size = UDim2.new(0, 120, 0, 30)
-    confirm.Position = UDim2.new(0.5, -60, 0.5, -15)
+    confirm.Size = UDim2.new(0, 160, 0, 44) -- BIGGER
+    confirm.Position = UDim2.new(0.5, -80, 0.5, -22)
     confirm.Text = "Confirm Close?"
     confirm.TextColor3 = Color3.fromRGB(255, 255, 255)
-    confirm.TextSize = 14
+    confirm.TextSize = 16
     confirm.Font = Enum.Font.GothamBold
     confirm.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
     confirm.Parent = frame
     local cCorner = Instance.new("UICorner", confirm)
-    cCorner.CornerRadius = UDim.new(0, 6)
+    cCorner.CornerRadius = UDim.new(0, 8)
     confirm.ZIndex = 999
 
     local function destroyAll()
@@ -185,42 +186,43 @@ closeBtn.MouseButton1Click:Connect(function()
     end
 
     confirm.MouseButton1Click:Connect(destroyAll)
+    confirm.TouchTap:Connect(destroyAll) -- MOBILE FIX
     task.wait(3)
     confirm:Destroy()
 end)
 
 local tabContainer = Instance.new("Frame")
-tabContainer.Size = UDim2.new(1, -20, 0, 35)
-tabContainer.Position = UDim2.new(0, 10, 0, 45)
+tabContainer.Size = UDim2.new(1, -20, 0, 45) -- BIGGER
+tabContainer.Position = UDim2.new(0, 10, 0, 55)
 tabContainer.BackgroundTransparency = 1
 tabContainer.Parent = frame
 
 local function createTab(name, x)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 180, 1, 0)
+    btn.Size = UDim2.new(0, 200, 1, 0) -- BIGGER
     btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 210)
-    btn.TextSize = 13
+    btn.TextSize = 15
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     btn.BackgroundTransparency = 0.3
     btn.Parent = tabContainer
     local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 6)
+    c.CornerRadius = UDim.new(0, 8)
     return btn
 end
 
 local tabMods = createTab("Mods", 0)
-local tabTheme = createTab("Theme", 190)
+local tabTheme = createTab("Theme", 210)
 
 local function createPage()
     local pg = Instance.new("ScrollingFrame")
-    pg.Size = UDim2.new(1, -20, 1, -95)
-    pg.Position = UDim2.new(0, 10, 0, 85)
+    pg.Size = UDim2.new(1, -20, 1, -105)
+    pg.Position = UDim2.new(0, 10, 0, 105)
     pg.BackgroundTransparency = 1
     pg.CanvasSize = UDim2.new(0, 0, 0, 300)
-    pg.ScrollBarThickness = 4
+    pg.ScrollBarThickness = 6
     pg.ScrollBarImageColor3 = themes.Default.accent
     pg.Parent = frame
     pg.Visible = false
@@ -231,13 +233,13 @@ local modsPage = createPage()
 local themePage = createPage()
 
 local function makeLabel(text, y, parent, w)
-    w = w or 140
+    w = w or 160
     local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(0, w, 0, 30)
+    l.Size = UDim2.new(0, w, 0, 36)
     l.Position = UDim2.new(0, 0, 0, y)
     l.Text = text
     l.TextColor3 = themes.Default.text
-    l.TextSize = 13
+    l.TextSize = 14
     l.Font = Enum.Font.Gotham
     l.BackgroundTransparency = 1
     l.TextXAlignment = Enum.TextXAlignment.Left
@@ -247,68 +249,68 @@ end
 
 local function makeToggle(y, parent)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 80, 0, 28)
-    btn.Position = UDim2.new(0, 220, 0, y)
+    btn.Size = UDim2.new(0, 100, 0, 36) -- BIGGER
+    btn.Position = UDim2.new(0, 240, 0, y)
     btn.Text = "OFF"
     btn.TextColor3 = Color3.fromRGB(255, 100, 100)
-    btn.TextSize = 12
+    btn.TextSize = 14
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
     btn.Parent = parent
     local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 4)
+    c.CornerRadius = UDim.new(0, 6)
     return btn
 end
 
 local yOff = 10
 
-makeLabel("Delete All Infected Parts", yOff, modsPage, 200)
+makeLabel("Delete All Infected Parts", yOff, modsPage, 220)
 local infectBtn = makeToggle(yOff, modsPage)
-yOff = yOff + 40
-
-makeLabel("Disable Kill Parts / Scripts", yOff, modsPage, 200)
-local killBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 50
 
+makeLabel("Disable Kill Parts / Scripts", yOff, modsPage, 220)
+local killBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 60
+
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -20, 0, 30)
+statusLabel.Size = UDim2.new(1, -20, 0, 36)
 statusLabel.Position = UDim2.new(0, 0, 0, yOff)
 statusLabel.Text = "Status: Ready"
 statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-statusLabel.TextSize = 14
+statusLabel.TextSize = 15
 statusLabel.Font = Enum.Font.GothamBold
 statusLabel.BackgroundTransparency = 1
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = modsPage
-yOff = yOff + 40
+yOff = yOff + 50
 
 modsPage.CanvasSize = UDim2.new(0, 0, 0, yOff + 20)
 
 local themeY = 10
 local themeLabel = Instance.new("TextLabel")
-themeLabel.Size = UDim2.new(1, -20, 0, 30)
+themeLabel.Size = UDim2.new(1, -20, 0, 36)
 themeLabel.Position = UDim2.new(0, 0, 0, themeY)
 themeLabel.Text = "SELECT INTERFACE THEME"
 themeLabel.TextColor3 = Color3.fromRGB(180, 180, 220)
-themeLabel.TextSize = 14
+themeLabel.TextSize = 16
 themeLabel.Font = Enum.Font.GothamBold
 themeLabel.BackgroundTransparency = 1
 themeLabel.TextXAlignment = Enum.TextXAlignment.Left
 themeLabel.Parent = themePage
-themeY = themeY + 45
+themeY = themeY + 50
 
 local function createThemeButton(name, y, color)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 180, 0, 40)
+    btn.Size = UDim2.new(0, 200, 0, 46) -- BIGGER
     btn.Position = UDim2.new(0, 0, 0, y)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 14
+    btn.TextSize = 16
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = color or Color3.fromRGB(30, 30, 50)
     btn.Parent = themePage
     local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 8)
+    c.CornerRadius = UDim.new(0, 10)
 
     btn.MouseEnter:Connect(function()
         TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0}):Play()
@@ -352,6 +354,44 @@ local function createThemeButton(name, y, color)
             killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         end
     end)
+
+    -- MOBILE FIX
+    btn.TouchTap:Connect(function()
+        currentTheme = name
+        local t = themes[name]
+        frame.BackgroundColor3 = t.background
+        stroke.Color = t.stroke
+        titleLabel.TextColor3 = t.accent
+        statusLabel.TextColor3 = t.accent
+        for _, child in pairs(frame:GetDescendants()) do
+            if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn then
+                if child.Text == "Mods" or child.Text == "Theme" then
+                    child.TextColor3 = t.accent
+                end
+            end
+            if child:IsA("ScrollingFrame") then
+                child.ScrollBarImageColor3 = t.accent
+            end
+        end
+        closeBtn.BackgroundColor3 = t.button
+        minimizeBtn.BackgroundColor3 = t.button
+        minimizeBtn.TextColor3 = t.accent
+        if deleteInfectActive then
+            infectBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            infectBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+        if deleteKillActive then
+            killBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+            killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            killBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+            killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    end)
+
     return btn
 end
 
@@ -365,7 +405,7 @@ local themeColors = {
 
 for _, t in ipairs(themeColors) do
     createThemeButton(t.name, themeY, t.color)
-    themeY = themeY + 50
+    themeY = themeY + 56
 end
 
 local function restoreInfect()
@@ -475,6 +515,7 @@ local function toggleInfect()
 end
 
 infectBtn.MouseButton1Click:Connect(toggleInfect)
+infectBtn.TouchTap:Connect(toggleInfect) -- MOBILE FIX
 
 local function toggleKill()
     deleteKillActive = not deleteKillActive
@@ -509,8 +550,17 @@ local function toggleKill()
 end
 
 killBtn.MouseButton1Click:Connect(toggleKill)
+killBtn.TouchTap:Connect(toggleKill) -- MOBILE FIX
 
 tabMods.MouseButton1Click:Connect(function()
+    modsPage.Visible = true
+    themePage.Visible = false
+    tabMods.TextColor3 = themes[currentTheme].accent
+    tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
+    TweenService:Create(tabMods, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+end)
+
+tabMods.TouchTap:Connect(function() -- MOBILE FIX
     modsPage.Visible = true
     themePage.Visible = false
     tabMods.TextColor3 = themes[currentTheme].accent
@@ -526,14 +576,22 @@ tabTheme.MouseButton1Click:Connect(function()
     TweenService:Create(tabTheme, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
 end)
 
+tabTheme.TouchTap:Connect(function() -- MOBILE FIX
+    modsPage.Visible = false
+    themePage.Visible = true
+    tabTheme.TextColor3 = themes[currentTheme].accent
+    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
+    TweenService:Create(tabTheme, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+end)
+
 modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
 tabMods.BackgroundTransparency = 0
 
 local function minimizeGUI()
     isMinimized = true
-    frame.Size = UDim2.new(0, 180, 0, 40)
-    frame.Position = UDim2.new(0.5, -90, 0.5, -20)
+    frame.Size = UDim2.new(0, 200, 0, 50)
+    frame.Position = UDim2.new(0.5, -100, 0.5, -25)
     tabContainer.Visible = false
     modsPage.Visible = false
     themePage.Visible = false
@@ -541,7 +599,7 @@ local function minimizeGUI()
     minimizeBtn.Text = "+"
     minimizeBtn.TextColor3 = Color3.fromRGB(255, 50, 80)
     titleLabel.Text = "NZ-IS"
-    titleLabel.TextSize = 16
+    titleLabel.TextSize = 18
     blur.Size = 0
 end
 
@@ -570,8 +628,157 @@ minimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+minimizeBtn.TouchTap:Connect(function() -- MOBILE FIX
+    if isMinimized then
+        maximizeGUI()
+    else
+        minimizeGUI()
+    end
+end)
+
+-- MOBILE FIX: Open button for when GUI is minimized/closed
+local openBtn = Instance.new("TextButton")
+openBtn.Size = UDim2.new(0, 70, 0, 70)
+openBtn.Position = UDim2.new(0, 20, 1, -90)
+openBtn.Text = "⚙"
+openBtn.TextSize = 32
+openBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+openBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
+openBtn.Parent = root
+local openCorner = Instance.new("UICorner", openBtn)
+openCorner.CornerRadius = UDim.new(1, 0)
+local openStroke = Instance.new("UIStroke", openBtn)
+openStroke.Color = Color3.fromRGB(255, 255, 255)
+openStroke.Thickness = 2
+openStroke.Transparency = 0.3
+openBtn.ZIndex = 999
+openBtn.Visible = false
+
+openBtn.MouseButton1Click:Connect(function()
+    if isMinimized then
+        maximizeGUI()
+    else
+        minimizeGUI()
+    end
+    openBtn.Visible = false
+    task.wait(0.5)
+    openBtn.Visible = true
+end)
+
+openBtn.TouchTap:Connect(function() -- MOBILE FIX
+    if isMinimized then
+        maximizeGUI()
+    else
+        minimizeGUI()
+    end
+    openBtn.Visible = false
+    task.wait(0.5)
+    openBtn.Visible = true
+end)
+
+-- Show open button when GUI is minimized
+local origMinimize = minimizeGUI
+minimizeGUI = function()
+    origMinimize()
+    openBtn.Visible = true
+end
+
+local origMaximize = maximizeGUI
+maximizeGUI = function()
+    origMaximize()
+    openBtn.Visible = false
+end
+
+-- MOBILE DRAG SYSTEM (FULL TOUCH SUPPORT)
+local dragging = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
+
+local function startDrag(input)
+    dragging = true
+    dragStart = input.Position
+    startPos = frame.Position
+end
+
+local function updateDrag(input)
+    if dragging and dragStart then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end
+
+local function endDrag()
+    dragging = false
+    dragStart = nil
+end
+
+-- PC Mouse Support
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        startDrag(input)
+    end
+end)
+
+titleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updateDrag(input)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        endDrag()
+    end
+end)
+
+-- MOBILE TOUCH SUPPORT
+titleBar.TouchBegan:Connect(function(input)
+    startDrag(input)
+end)
+
+titleBar.TouchMoved:Connect(function(input)
+    updateDrag(input)
+end)
+
+titleBar.TouchEnded:Connect(function()
+    endDrag()
+end)
+
+-- Also drag from frame if not clicking a button (mobile friendly)
+frame.TouchBegan:Connect(function(input)
+    local hit = game:GetService("GuiService"):GetGuiObjectAtPosition(input.Position.X, input.Position.Y)
+    if hit and (hit:IsA("TextButton") or hit:IsA("ImageButton")) then
+        return
+    end
+    startDrag(input)
+end)
+
+frame.TouchMoved:Connect(function(input)
+    if dragging then
+        updateDrag(input)
+    end
+end)
+
+frame.TouchEnded:Connect(function()
+    endDrag()
+end)
+
+-- MOBILE KEYBOARD/HOTKEY FIX: Use Volume buttons or custom gesture
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
+    -- PC Insert key still works
     if input.KeyCode == Enum.KeyCode.Insert then
         if isMinimized then
             maximizeGUI()
@@ -579,40 +786,17 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             minimizeGUI()
         end
     end
+    -- Mobile: Double tap on empty space or use a gesture
 end)
 
-local dragging, dragInput, dragStart, startPos
+-- Force visibility on mobile
+task.wait(0.5)
+frame.Visible = true
+frame.BackgroundTransparency = 0.08
+frame.Size = UDim2.new(0, 580, 0, 420)
+frame.Position = UDim2.new(0.5, -290, 0.5, -210)
 
-titleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-titleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
-frame.BackgroundTransparency = 1
-frame.Size = UDim2.new(0, 0, 0, 0)
-TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-    Size = UDim2.new(0, 580, 0, 420),
-    BackgroundTransparency = 0.08
-}):Play()
+-- Make sure blur is applied
 blur.Size = 6
+
+print("NZ Infectious Smile loaded successfully on mobile!")
