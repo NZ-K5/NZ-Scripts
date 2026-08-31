@@ -1,6 +1,5 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
@@ -23,7 +22,6 @@ root.IgnoreGuiInset = true
 local blur = Instance.new("BlurEffect", Lighting)
 blur.Size = 3
 
-local currentTheme = "Default"
 local isOpen = true
 
 -- Mods
@@ -535,7 +533,7 @@ local function toggleOpenClose()
         isOpen, frame.Visible, reopenBtn.Visible, closeBtn.Text, closeBtn.TextColor3, blur.Size = false, false, true, "▶", Color3.fromRGB(100,255,100), 0
     else
         isOpen, frame.Visible, reopenBtn.Visible, closeBtn.Text, closeBtn.TextColor3 = true, true, false, "X", Color3.fromRGB(200,200,210)
-        if true then blur.Size = 3 end
+        blur.Size = 3
     end
 end
 closeBtn.MouseButton1Click:Connect(toggleOpenClose)
@@ -590,14 +588,11 @@ end)
 reopenBtn.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then reopenDragData.isDragging, reopenDragData.startPos, reopenDragData.btnStart = false, nil, nil end end)
 
 -- ===== HOTKEY =====
-UserInputService.InputBegan:Connect(function(i, gp) if gp then return end; if i.KeyCode == Enum.KeyCode.Insert then if isOpen then toggleOpenClose() else toggleOpenClose() end end end)
+UserInputService.InputBegan:Connect(function(i, gp) if gp then return end; if i.KeyCode == Enum.KeyCode.Insert then toggleOpenClose() end end)
 
 -- ===== FORCE VISIBILITY =====
-frame.BackgroundTransparency, frame.Size = 1, UDim2.new(0,0,0,0)
-TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-    Size = UDim2.new(0, 280, 0, 230),
-    BackgroundTransparency = 0.08
-}):Play()
+frame.BackgroundTransparency = 0.08
+frame.Size = UDim2.new(0, 280, 0, 230)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (No ESP, No Theme, No Minimize)")
+print("NZ-IS v6 - LOADED! (No animations)")
