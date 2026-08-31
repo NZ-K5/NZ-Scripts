@@ -106,7 +106,7 @@ stroke.Color = themes.Default.stroke
 stroke.Thickness = 1.5
 stroke.Transparency = 0.6
 
--- ===== MINI SQUARE =====
+-- ===== MINI SQUARE (FIXED - FULLY CLICKABLE) =====
 local miniFrame = Instance.new("Frame")
 miniFrame.Size = UDim2.new(0, 50, 0, 50)
 miniFrame.Position = UDim2.new(1, -60, 0, 10)
@@ -135,6 +135,16 @@ miniLabel.TextSize = 13
 miniLabel.Font = Enum.Font.GothamBold
 miniLabel.BackgroundTransparency = 1
 miniLabel.Parent = miniFrame
+
+-- ===== HIDDEN CLICK DETECTOR FOR MINI SQUARE (EXTRA RELIABLE) =====
+local miniClickDetector = Instance.new("TextButton")
+miniClickDetector.Size = UDim2.new(1.5, 0, 1.5, 0)
+miniClickDetector.Position = UDim2.new(-0.25, 0, -0.25, 0)
+miniClickDetector.BackgroundTransparency = 1
+miniClickDetector.Text = ""
+miniClickDetector.Parent = miniFrame
+miniClickDetector.ZIndex = 999
+miniClickDetector.AutoButtonColor = false
 
 -- ===== TITLE BAR =====
 local titleBar = Instance.new("Frame")
@@ -772,7 +782,7 @@ modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
 tabMods.BackgroundTransparency = 0
 
--- ===== MINIMIZE / RESTORE =====
+-- ===== MINIMIZE / RESTORE (FIXED) =====
 local function minimizeGUI()
     if isMinimized then return end
     isMinimized = true
@@ -797,8 +807,20 @@ minimizeBtn.TouchTap:Connect(function()
     if isMinimized then restoreGUI() else minimizeGUI() end
 end)
 
+-- PRIMARY: Click on the mini frame itself
 miniFrame.MouseButton1Click:Connect(restoreGUI)
 miniFrame.TouchTap:Connect(restoreGUI)
+
+-- SECONDARY: Click on the hidden detector (covers the entire square + more)
+miniClickDetector.MouseButton1Click:Connect(restoreGUI)
+miniClickDetector.TouchTap:Connect(restoreGUI)
+
+-- TERTIARY: InputBegan fallback
+miniFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        restoreGUI()
+    end
+end)
 
 -- ===== CLOSE/RE-OPEN BUTTON =====
 local function toggleOpenClose()
@@ -869,4 +891,4 @@ TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.Easing
 }):Play()
 blur.Size = 3
 
-print("NZ-IS v6 - ULTRA COMPACT LOADED!")
+print("NZ-IS v6 - ULTRA COMPACT LOADED! (Square FULLY FIXED)")
