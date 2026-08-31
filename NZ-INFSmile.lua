@@ -77,11 +77,6 @@ local deleteKillActive = false
 local deleteDoorsActive = false
 local espActive = false
 
-local infectConnection = nil
-local killConnection = nil
-local doorsConnection = nil
-local espConnection = nil
-
 local deletedInfect = {}
 local deletedKill = {}
 local deletedDoors = {}
@@ -129,7 +124,7 @@ miniStroke.Color = themes.Default.accent
 miniStroke.Thickness = 2
 miniStroke.Transparency = 0.3
 
--- ===== RE-OPEN BUTTON (with tap/hold) =====
+-- ===== RE-OPEN BUTTON =====
 local reopenBtn = Instance.new("TextButton")
 reopenBtn.Size = UDim2.new(0, 50, 0, 50)
 reopenBtn.Position = UDim2.new(0, 10, 1, -65)
@@ -206,11 +201,11 @@ tabContainer.Parent = frame
 
 local function createTab(name, x)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 120, 1, 0)
+    btn.Size = UDim2.new(0, 85, 1, 0)
     btn.Position = UDim2.new(0, x, 0, 0)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(200, 200, 210)
-    btn.TextSize = 11
+    btn.TextSize = 10
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     btn.BackgroundTransparency = 0.3
@@ -221,7 +216,8 @@ local function createTab(name, x)
 end
 
 local tabMods = createTab("Mods", 0)
-local tabTheme = createTab("Theme", 130)
+local tabTheme = createTab("Theme", 90)
+local tabOthers = createTab("Others", 180)
 
 -- ===== PAGES =====
 local function createPage()
@@ -239,6 +235,7 @@ end
 
 local modsPage = createPage()
 local themePage = createPage()
+local othersPage = createPage()
 
 -- ===== UI HELPERS =====
 local function makeLabel(text, y, parent, w)
@@ -271,6 +268,22 @@ local function makeToggle(y, parent)
     return btn
 end
 
+local function makeButton(text, y, parent, color)
+    color = color or Color3.fromRGB(60, 30, 30)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 140, 0, 30)
+    btn.Position = UDim2.new(0.5, -70, 0, y)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamBold
+    btn.BackgroundColor3 = color
+    btn.Parent = parent
+    local c = Instance.new("UICorner", btn)
+    c.CornerRadius = UDim.new(0, 6)
+    return btn
+end
+
 local function makeThemeButton(name, y, color)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 120, 0, 28)
@@ -296,7 +309,7 @@ local function makeThemeButton(name, y, color)
         reopenBtn.BackgroundColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
             if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn then
-                if child.Text == "Mods" or child.Text == "Theme" then
+                if child.Text == "Mods" or child.Text == "Theme" or child.Text == "Others" then
                     child.TextColor3 = t.accent
                 end
             end
@@ -321,7 +334,7 @@ local function makeThemeButton(name, y, color)
         reopenBtn.BackgroundColor3 = t.accent
         for _, child in pairs(frame:GetDescendants()) do
             if child:IsA("TextButton") and child ~= closeBtn and child ~= minimizeBtn and child ~= infectBtn and child ~= killBtn and child ~= doorsBtn and child ~= espBtn then
-                if child.Text == "Mods" or child.Text == "Theme" then
+                if child.Text == "Mods" or child.Text == "Theme" or child.Text == "Others" then
                     child.TextColor3 = t.accent
                 end
             end
@@ -399,36 +412,87 @@ end
 
 themePage.CanvasSize = UDim2.new(0, 0, 0, themeY + 10)
 
--- ===== CORE FUNCTIONS =====
+-- ===== OTHERS PAGE =====
+local oY = 20
+
+local destroyBtn = makeButton("Destroy GUI", oY, othersPage, Color3.fromRGB(80, 20, 20))
+oY = oY + 40
+
+local creditLabel = Instance.new("TextLabel")
+creditLabel.Size = UDim2.new(1, -10, 0, 20)
+creditLabel.Position = UDim2.new(0, 0, 0, oY)
+creditLabel.Text = "NZ-IS v6"
+creditLabel.TextColor3 = Color3.fromRGB(100, 100, 120)
+creditLabel.TextSize = 10
+creditLabel.Font = Enum.Font.Gotham
+creditLabel.BackgroundTransparency = 1
+creditLabel.TextXAlignment = Enum.TextXAlignment.Center
+creditLabel.Parent = othersPage
+oY = oY + 30
+
+othersPage.CanvasSize = UDim2.new(0, 0, 0, oY + 10)
+
+-- ===== SINGLE-SCAN DELETE FUNCTIONS =====
+
 local function restoreInfect()
+    local count = 0
     for _, item in pairs(deletedInfect) do
         if item and not item.Parent then
-            pcall(function() item.Parent = Workspace end)
+            pcall(function() item.Parent = Workspace; count = count + 1 end)
         end
     end
     deletedInfect = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " infected"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No infected to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
 end
 
 local function restoreKill()
+    local count = 0
     for _, item in pairs(deletedKill) do
         if item and not item.Parent then
-            pcall(function() item.Parent = Workspace end)
+            pcall(function() item.Parent = Workspace; count = count + 1 end)
         end
     end
     deletedKill = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " kill parts"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No kill parts to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
 end
 
 local function restoreDoors()
+    local count = 0
     for _, item in pairs(deletedDoors) do
         if item and not item.Parent then
-            pcall(function() item.Parent = Workspace end)
+            pcall(function() item.Parent = Workspace; count = count + 1 end)
         end
     end
     deletedDoors = {}
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " doors/gates"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No doors/gates to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
 end
 
 local function scanAndDeleteInfect()
-    if not deleteInfectActive then restoreInfect(); return end
+    if not deleteInfectActive then
+        restoreInfect()
+        return
+    end
     local found = {}
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
@@ -446,14 +510,17 @@ local function scanAndDeleteInfect()
     if #found > 0 then
         statusLabel.Text = "Deleted " .. #found .. " infected"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    elseif deleteInfectActive then
+    else
         statusLabel.Text = "No infected found"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
 
 local function scanAndDeleteKill()
-    if not deleteKillActive then restoreKill(); return end
+    if not deleteKillActive then
+        restoreKill()
+        return
+    end
     local found = {}
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
@@ -471,14 +538,17 @@ local function scanAndDeleteKill()
     if #found > 0 then
         statusLabel.Text = "Deleted " .. #found .. " kill parts"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    elseif deleteKillActive then
+    else
         statusLabel.Text = "No kill parts found"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
 
 local function scanAndDeleteDoors()
-    if not deleteDoorsActive then restoreDoors(); return end
+    if not deleteDoorsActive then
+        restoreDoors()
+        return
+    end
     local found = {}
     local keywords = {"door", "gate", "portal", "doorway", "entrance", "exit"}
     for _, v in pairs(Workspace:GetDescendants()) do
@@ -501,7 +571,7 @@ local function scanAndDeleteDoors()
     if #found > 0 then
         statusLabel.Text = "Deleted " .. #found .. " doors/gates"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    elseif deleteDoorsActive then
+    else
         statusLabel.Text = "No doors/gates found"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
@@ -620,7 +690,7 @@ local function updateEsp()
     end
 end
 
--- ===== TOGGLES =====
+-- ===== TOGGLES (SINGLE SCAN) =====
 local function toggleInfect()
     deleteInfectActive = not deleteInfectActive
     if deleteInfectActive then
@@ -629,19 +699,12 @@ local function toggleInfect()
         infectBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         statusLabel.Text = "Scanning..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        if infectConnection then pcall(function() infectConnection:Disconnect() end); infectConnection = nil end
         scanAndDeleteInfect()
-        infectConnection = RunService.Heartbeat:Connect(function()
-            if deleteInfectActive then scanAndDeleteInfect() end
-        end)
     else
         infectBtn.Text = "OFF"
         infectBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         infectBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        if infectConnection then pcall(function() infectConnection:Disconnect() end); infectConnection = nil end
         restoreInfect()
-        statusLabel.Text = "Infected restored"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
 
@@ -656,19 +719,12 @@ local function toggleKill()
         killBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         statusLabel.Text = "Scanning..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        if killConnection then pcall(function() killConnection:Disconnect() end); killConnection = nil end
         scanAndDeleteKill()
-        killConnection = RunService.Heartbeat:Connect(function()
-            if deleteKillActive then scanAndDeleteKill() end
-        end)
     else
         killBtn.Text = "OFF"
         killBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         killBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        if killConnection then pcall(function() killConnection:Disconnect() end); killConnection = nil end
         restoreKill()
-        statusLabel.Text = "Kill restored"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
 
@@ -683,19 +739,12 @@ local function toggleDoors()
         doorsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         statusLabel.Text = "Scanning..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        if doorsConnection then pcall(function() doorsConnection:Disconnect() end); doorsConnection = nil end
         scanAndDeleteDoors()
-        doorsConnection = RunService.Heartbeat:Connect(function()
-            if deleteDoorsActive then scanAndDeleteDoors() end
-        end)
     else
         doorsBtn.Text = "OFF"
         doorsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         doorsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        if doorsConnection then pcall(function() doorsConnection:Disconnect() end); doorsConnection = nil end
         restoreDoors()
-        statusLabel.Text = "Doors restored"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
 
@@ -757,34 +806,58 @@ end
 espBtn.MouseButton1Click:Connect(toggleEsp)
 espBtn.TouchTap:Connect(toggleEsp)
 
+-- ===== DESTROY GUI BUTTON =====
+local function destroyGUI()
+    if espConnection then pcall(function() espConnection:Disconnect() end); espConnection = nil end
+    for _, data in pairs(espObjects) do
+        pcall(function()
+            if data.Highlight then data.Highlight:Destroy() end
+            if data.Box then data.Box:Destroy() end
+            if data.Line then data.Line:Destroy() end
+        end)
+    end
+    espObjects = {}
+    root:Destroy()
+    blur:Destroy()
+end
+
+destroyBtn.MouseButton1Click:Connect(destroyGUI)
+destroyBtn.TouchTap:Connect(destroyGUI)
+
 -- ===== TAB SWITCHING =====
-tabMods.MouseButton1Click:Connect(function()
+local function switchToMods()
     modsPage.Visible = true
     themePage.Visible = false
+    othersPage.Visible = false
     tabMods.TextColor3 = themes[currentTheme].accent
     tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
-end)
+    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+end
 
-tabMods.TouchTap:Connect(function()
-    modsPage.Visible = true
+local function switchToTheme()
+    modsPage.Visible = false
+    themePage.Visible = true
+    othersPage.Visible = false
+    tabTheme.TextColor3 = themes[currentTheme].accent
+    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
+    tabOthers.TextColor3 = Color3.fromRGB(180, 180, 210)
+end
+
+local function switchToOthers()
+    modsPage.Visible = false
     themePage.Visible = false
-    tabMods.TextColor3 = themes[currentTheme].accent
+    othersPage.Visible = true
+    tabOthers.TextColor3 = themes[currentTheme].accent
+    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
     tabTheme.TextColor3 = Color3.fromRGB(180, 180, 210)
-end)
+end
 
-tabTheme.MouseButton1Click:Connect(function()
-    modsPage.Visible = false
-    themePage.Visible = true
-    tabTheme.TextColor3 = themes[currentTheme].accent
-    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-end)
-
-tabTheme.TouchTap:Connect(function()
-    modsPage.Visible = false
-    themePage.Visible = true
-    tabTheme.TextColor3 = themes[currentTheme].accent
-    tabMods.TextColor3 = Color3.fromRGB(180, 180, 210)
-end)
+tabMods.MouseButton1Click:Connect(switchToMods)
+tabMods.TouchTap:Connect(switchToMods)
+tabTheme.MouseButton1Click:Connect(switchToTheme)
+tabTheme.TouchTap:Connect(switchToTheme)
+tabOthers.MouseButton1Click:Connect(switchToOthers)
+tabOthers.TouchTap:Connect(switchToOthers)
 
 modsPage.Visible = true
 tabMods.TextColor3 = themes.Default.accent
@@ -850,16 +923,39 @@ end
 closeBtn.MouseButton1Click:Connect(toggleOpenClose)
 closeBtn.TouchTap:Connect(toggleOpenClose)
 
--- ===== DRAG SYSTEM WITH TAP/HOLD DETECTION =====
+-- Reopen button tap to open
+reopenBtn.MouseButton1Click:Connect(function()
+    if not isOpen then
+        isOpen = true
+        frame.Visible = true
+        reopenBtn.Visible = false
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+        if not isMinimized then
+            blur.Size = 3
+        end
+    end
+end)
 
--- FRAME DRAG (title bar only - hold to drag, tap does nothing)
+reopenBtn.TouchTap:Connect(function()
+    if not isOpen then
+        isOpen = true
+        frame.Visible = true
+        reopenBtn.Visible = false
+        closeBtn.Text = "X"
+        closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
+        if not isMinimized then
+            blur.Size = 3
+        end
+    end
+end)
+
+-- ===== DRAG SYSTEM =====
 local frameDragData = {
     isDragging = false,
     startPos = nil,
     frameStart = nil,
-    hasMoved = false,
-    touchStart = nil,
-    isTap = false
+    hasMoved = false
 }
 
 titleBar.InputBegan:Connect(function(input)
@@ -868,8 +964,6 @@ titleBar.InputBegan:Connect(function(input)
         frameDragData.hasMoved = false
         frameDragData.startPos = input.Position
         frameDragData.frameStart = frame.Position
-        frameDragData.touchStart = tick()
-        frameDragData.isTap = true
     end
 end)
 
@@ -881,7 +975,6 @@ titleBar.InputChanged:Connect(function(input)
             if distance > 5 then
                 frameDragData.hasMoved = true
                 frameDragData.isDragging = true
-                frameDragData.isTap = false
             end
             if frameDragData.isDragging then
                 frame.Position = UDim2.new(frameDragData.frameStart.X.Scale, frameDragData.frameStart.X.Offset + delta.X, frameDragData.frameStart.Y.Scale, frameDragData.frameStart.Y.Offset + delta.Y)
@@ -898,14 +991,12 @@ titleBar.InputEnded:Connect(function(input)
     end
 end)
 
--- RE-OPEN BUTTON DRAG (tap to open, hold to drag)
+-- Reopen button drag
 local reopenDragData = {
     isDragging = false,
     startPos = nil,
     btnStart = nil,
-    hasMoved = false,
-    touchStart = nil,
-    isTap = false
+    hasMoved = false
 }
 
 reopenBtn.InputBegan:Connect(function(input)
@@ -914,8 +1005,6 @@ reopenBtn.InputBegan:Connect(function(input)
         reopenDragData.hasMoved = false
         reopenDragData.startPos = input.Position
         reopenDragData.btnStart = reopenBtn.Position
-        reopenDragData.touchStart = tick()
-        reopenDragData.isTap = true
     end
 end)
 
@@ -927,7 +1016,6 @@ reopenBtn.InputChanged:Connect(function(input)
             if distance > 10 then
                 reopenDragData.hasMoved = true
                 reopenDragData.isDragging = true
-                reopenDragData.isTap = false
             end
             if reopenDragData.isDragging then
                 reopenBtn.Position = UDim2.new(reopenDragData.btnStart.X.Scale, reopenDragData.btnStart.X.Offset + delta.X, reopenDragData.btnStart.Y.Scale, reopenDragData.btnStart.Y.Offset + delta.Y)
@@ -938,27 +1026,9 @@ end)
 
 reopenBtn.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        -- Only trigger tap if it was a tap (not a drag)
-        if reopenDragData.isTap and not reopenDragData.hasMoved and reopenDragData.touchStart then
-            local holdTime = tick() - reopenDragData.touchStart
-            if holdTime < 0.3 then
-                -- Tap detected - open GUI
-                if not isOpen then
-                    isOpen = true
-                    frame.Visible = true
-                    reopenBtn.Visible = false
-                    closeBtn.Text = "X"
-                    closeBtn.TextColor3 = Color3.fromRGB(200, 200, 210)
-                    if not isMinimized then
-                        blur.Size = 3
-                    end
-                end
-            end
-        end
         reopenDragData.isDragging = false
         reopenDragData.startPos = nil
         reopenDragData.btnStart = nil
-        reopenDragData.isTap = false
     end
 end)
 
@@ -979,4 +1049,4 @@ TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.Easing
 }):Play()
 blur.Size = 3
 
-print("NZ-IS v6 - TAP TO OPEN, HOLD TO DRAG!")
+print("NZ-IS v6 - FULLY LOADED! (Mods, Theme, Others tabs)")
