@@ -26,6 +26,17 @@ blur.Size = 3
 
 local isOpen = true
 
+-- Debounce table to prevent double-firing on mobile
+local debounce = {}
+
+local function safeToggle(toggleFunc, key)
+    if debounce[key] then return end
+    debounce[key] = true
+    pcall(toggleFunc)
+    task.wait(0.15)
+    debounce[key] = false
+end
+
 -- Mods
 local deleteInfectActive = false
 local deleteKillActive = false
@@ -428,6 +439,19 @@ local function scanAndDeleteInfect()
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." infected", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No infected found", Color3.fromRGB(0,255,150) end
 end
 
+local function toggleInfect()
+    deleteInfectActive = not deleteInfectActive
+    if deleteInfectActive then
+        infectBtn.Text, infectBtn.BackgroundColor3, infectBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        scanAndDeleteInfect()
+    else
+        infectBtn.Text, infectBtn.BackgroundColor3, infectBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        restoreInfect()
+    end
+end
+infectBtn.MouseButton1Click:Connect(function() safeToggle(toggleInfect, "infect") end)
+infectBtn.TouchTap:Connect(function() safeToggle(toggleInfect, "infect") end)
+
 -- KILL
 local function restoreKill() local c = restoreItems(deletedKill); if c > 0 then statusLabel.Text = "Restored "..c.." kill items"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No kill items to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
 local function scanAndDeleteKill()
@@ -441,6 +465,19 @@ local function scanAndDeleteKill()
     deleteItems(found, deletedKill)
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." kill items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No kill items found", Color3.fromRGB(0,255,150) end
 end
+
+local function toggleKill()
+    deleteKillActive = not deleteKillActive
+    if deleteKillActive then
+        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        scanAndDeleteKill()
+    else
+        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        restoreKill()
+    end
+end
+killBtn.MouseButton1Click:Connect(function() safeToggle(toggleKill, "kill") end)
+killBtn.TouchTap:Connect(function() safeToggle(toggleKill, "kill") end)
 
 -- DOORS
 local function restoreDoors() local c = restoreItems(deletedDoors); if c > 0 then statusLabel.Text = "Restored "..c.." doors/gates"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No doors/gates to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
@@ -458,6 +495,19 @@ local function scanAndDeleteDoors()
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." doors/gates", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No doors/gates found", Color3.fromRGB(0,255,150) end
 end
 
+local function toggleDoors()
+    deleteDoorsActive = not deleteDoorsActive
+    if deleteDoorsActive then
+        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        scanAndDeleteDoors()
+    else
+        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        restoreDoors()
+    end
+end
+doorsBtn.MouseButton1Click:Connect(function() safeToggle(toggleDoors, "doors") end)
+doorsBtn.TouchTap:Connect(function() safeToggle(toggleDoors, "doors") end)
+
 -- ANTI-HACK
 local function restoreAntiHack() local c = restoreItems(deletedAntiHack); if c > 0 then statusLabel.Text = "Restored "..c.." anti-hack items"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No anti-hack items to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
 local function scanAndDeleteAntiHack()
@@ -473,6 +523,19 @@ local function scanAndDeleteAntiHack()
     deleteItems(found, deletedAntiHack)
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." anti-hack items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No anti-hack items found", Color3.fromRGB(0,255,150) end
 end
+
+local function toggleAntiHack()
+    deleteAntiHackActive = not deleteAntiHackActive
+    if deleteAntiHackActive then
+        antiHackBtn.Text, antiHackBtn.BackgroundColor3, antiHackBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        scanAndDeleteAntiHack()
+    else
+        antiHackBtn.Text, antiHackBtn.BackgroundColor3, antiHackBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        restoreAntiHack()
+    end
+end
+antiHackBtn.MouseButton1Click:Connect(function() safeToggle(toggleAntiHack, "antihack") end)
+antiHackBtn.TouchTap:Connect(function() safeToggle(toggleAntiHack, "antihack") end)
 
 -- SPEARS
 local function restoreSpears() local c = restoreItems(deletedSpears); if c > 0 then statusLabel.Text = "Restored "..c.." spears"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No spears to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
@@ -490,6 +553,19 @@ local function scanAndDeleteSpears()
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." spears", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No spears found", Color3.fromRGB(0,255,150) end
 end
 
+local function toggleSpears()
+    deleteSpearsActive = not deleteSpearsActive
+    if deleteSpearsActive then
+        spearsBtn.Text, spearsBtn.BackgroundColor3, spearsBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        scanAndDeleteSpears()
+    else
+        spearsBtn.Text, spearsBtn.BackgroundColor3, spearsBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        restoreSpears()
+    end
+end
+spearsBtn.MouseButton1Click:Connect(function() safeToggle(toggleSpears, "spears") end)
+spearsBtn.TouchTap:Connect(function() safeToggle(toggleSpears, "spears") end)
+
 -- FIRE/LAVA
 local function restoreFireLava() local c = restoreItems(deletedFireLava); if c > 0 then statusLabel.Text = "Restored "..c.." fire/lava items"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No fire/lava items to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
 local function scanAndDeleteFireLava()
@@ -505,6 +581,19 @@ local function scanAndDeleteFireLava()
     deleteItems(found, deletedFireLava)
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." fire/lava items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No fire/lava items found", Color3.fromRGB(0,255,150) end
 end
+
+local function toggleFireLava()
+    deleteFireLavaActive = not deleteFireLavaActive
+    if deleteFireLavaActive then
+        fireLavaBtn.Text, fireLavaBtn.BackgroundColor3, fireLavaBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        scanAndDeleteFireLava()
+    else
+        fireLavaBtn.Text, fireLavaBtn.BackgroundColor3, fireLavaBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        restoreFireLava()
+    end
+end
+fireLavaBtn.MouseButton1Click:Connect(function() safeToggle(toggleFireLava, "firelava") end)
+fireLavaBtn.TouchTap:Connect(function() safeToggle(toggleFireLava, "firelava") end)
 
 -- SEISMIC
 local function restoreSeismic()
@@ -539,6 +628,25 @@ local function scanAndDeleteSeismic()
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
+
+local function toggleSeismic()
+    deleteSeismicActive = not deleteSeismicActive
+    if deleteSeismicActive then
+        seismicBtn.Text = "ON"
+        seismicBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        seismicBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteSeismic()
+    else
+        seismicBtn.Text = "OFF"
+        seismicBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        seismicBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreSeismic()
+    end
+end
+seismicBtn.MouseButton1Click:Connect(function() safeToggle(toggleSeismic, "seismic") end)
+seismicBtn.TouchTap:Connect(function() safeToggle(toggleSeismic, "seismic") end)
 
 -- ===== ANTI-INFECTION =====
 local function enableAntiInfection()
@@ -611,9 +719,8 @@ local function toggleAntiInfection()
         disableAntiInfection()
     end
 end
-
-antiInfectionBtn.MouseButton1Click:Connect(toggleAntiInfection)
-antiInfectionBtn.TouchTap:Connect(toggleAntiInfection)
+antiInfectionBtn.MouseButton1Click:Connect(function() safeToggle(toggleAntiInfection, "antiinfection") end)
+antiInfectionBtn.TouchTap:Connect(function() safeToggle(toggleAntiInfection, "antiinfection") end)
 
 -- ===== DELETE ORB =====
 local function restoreOrb()
@@ -662,11 +769,10 @@ local function toggleDeleteOrb()
         restoreOrb()
     end
 end
+deleteOrbBtn.MouseButton1Click:Connect(function() safeToggle(toggleDeleteOrb, "deleteorb") end)
+deleteOrbBtn.TouchTap:Connect(function() safeToggle(toggleDeleteOrb, "deleteorb") end)
 
-deleteOrbBtn.MouseButton1Click:Connect(toggleDeleteOrb)
-deleteOrbBtn.TouchTap:Connect(toggleDeleteOrb)
-
--- ===== TOOL COOLDOWN (WITH PERSISTENT LOOP) =====
+-- ===== TOOL COOLDOWN =====
 local function applyToolCooldown(value)
     local count = 0
     local containers = {
@@ -743,8 +849,8 @@ local function toggleToolCooldown()
     end
 end
 
-cooldownBtn.MouseButton1Click:Connect(toggleToolCooldown)
-cooldownBtn.TouchTap:Connect(toggleToolCooldown)
+cooldownBtn.MouseButton1Click:Connect(function() safeToggle(toggleToolCooldown, "toolcooldown") end)
+cooldownBtn.TouchTap:Connect(function() safeToggle(toggleToolCooldown, "toolcooldown") end)
 
 cooldownTextBox.FocusLost:Connect(function(enterPressed)
     if enterPressed and toolCooldownActive then
@@ -875,105 +981,6 @@ tpTextBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- ===== TOGGLES =====
-local function toggleInfect()
-    deleteInfectActive = not deleteInfectActive
-    if deleteInfectActive then
-        infectBtn.Text, infectBtn.BackgroundColor3, infectBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
-        scanAndDeleteInfect()
-    else
-        infectBtn.Text, infectBtn.BackgroundColor3, infectBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        restoreInfect()
-    end
-end
-infectBtn.MouseButton1Click:Connect(toggleInfect)
-infectBtn.TouchTap:Connect(toggleInfect)
-
-local function toggleKill()
-    deleteKillActive = not deleteKillActive
-    if deleteKillActive then
-        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
-        scanAndDeleteKill()
-    else
-        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        restoreKill()
-    end
-end
-killBtn.MouseButton1Click:Connect(toggleKill)
-killBtn.TouchTap:Connect(toggleKill)
-
-local function toggleDoors()
-    deleteDoorsActive = not deleteDoorsActive
-    if deleteDoorsActive then
-        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
-        scanAndDeleteDoors()
-    else
-        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        restoreDoors()
-    end
-end
-doorsBtn.MouseButton1Click:Connect(toggleDoors)
-doorsBtn.TouchTap:Connect(toggleDoors)
-
-local function toggleAntiHack()
-    deleteAntiHackActive = not deleteAntiHackActive
-    if deleteAntiHackActive then
-        antiHackBtn.Text, antiHackBtn.BackgroundColor3, antiHackBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
-        scanAndDeleteAntiHack()
-    else
-        antiHackBtn.Text, antiHackBtn.BackgroundColor3, antiHackBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        restoreAntiHack()
-    end
-end
-antiHackBtn.MouseButton1Click:Connect(toggleAntiHack)
-antiHackBtn.TouchTap:Connect(toggleAntiHack)
-
-local function toggleSpears()
-    deleteSpearsActive = not deleteSpearsActive
-    if deleteSpearsActive then
-        spearsBtn.Text, spearsBtn.BackgroundColor3, spearsBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
-        scanAndDeleteSpears()
-    else
-        spearsBtn.Text, spearsBtn.BackgroundColor3, spearsBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        restoreSpears()
-    end
-end
-spearsBtn.MouseButton1Click:Connect(toggleSpears)
-spearsBtn.TouchTap:Connect(toggleSpears)
-
-local function toggleFireLava()
-    deleteFireLavaActive = not deleteFireLavaActive
-    if deleteFireLavaActive then
-        fireLavaBtn.Text, fireLavaBtn.BackgroundColor3, fireLavaBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
-        scanAndDeleteFireLava()
-    else
-        fireLavaBtn.Text, fireLavaBtn.BackgroundColor3, fireLavaBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        restoreFireLava()
-    end
-end
-fireLavaBtn.MouseButton1Click:Connect(toggleFireLava)
-fireLavaBtn.TouchTap:Connect(toggleFireLava)
-
-local function toggleSeismic()
-    deleteSeismicActive = not deleteSeismicActive
-    if deleteSeismicActive then
-        seismicBtn.Text = "ON"
-        seismicBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        seismicBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        scanAndDeleteSeismic()
-    else
-        seismicBtn.Text = "OFF"
-        seismicBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        seismicBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        restoreSeismic()
-    end
-end
-
-seismicBtn.MouseButton1Click:Connect(toggleSeismic)
-seismicBtn.TouchTap:Connect(toggleSeismic)
-
 -- ===== DESTROY GUI =====
 local function destroyGUI()
     if duplicatedSadWater then
@@ -1072,4 +1079,4 @@ frame.BackgroundTransparency = 0.08
 frame.Size = UDim2.new(0, 350, 0, 340)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Tool Cooldown now has persistent loop)")
+print("NZ-IS v6 - LOADED! (Mobile debounce fixed)")
