@@ -236,7 +236,7 @@ makeLabel("Disable InfectParts", yOff, modsPage, 110)
 local infectBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
-makeLabel("Disable Kill (KillBricks)", yOff, modsPage, 110)
+makeLabel("Disable Kill (KillBricks/KillZone)", yOff, modsPage, 110)
 local killBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
@@ -503,14 +503,14 @@ end
 infectBtn.MouseButton1Click:Connect(function() safeToggle(toggleInfect, "infect") end)
 infectBtn.TouchTap:Connect(function() safeToggle(toggleInfect, "infect") end)
 
--- ===== DISABLE KILL =====
+-- ===== DISABLE KILL (UPDATED - Targets "KillBricks" folder AND "KillZone" parts) =====
 local function restoreKill()
     local c = restoreItems(deletedKill)
     if c > 0 then
-        statusLabel.Text = "Restored "..c.." KillBricks folder(s)"
+        statusLabel.Text = "Restored "..c.." KillBricks/KillZone items"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     else
-        statusLabel.Text = "No KillBricks folders to restore"
+        statusLabel.Text = "No KillBricks/KillZone items to restore"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
     return c
@@ -519,17 +519,25 @@ end
 local function scanAndDeleteKill()
     if not deleteKillActive then restoreKill(); return end
     local found = {}
+    
     for _, v in pairs(Workspace:GetDescendants()) do
+        -- Check for "KillBricks" folder (exact name match)
         if v:IsA("Folder") and v.Name and string.lower(v.Name) == "killbricks" then
             table.insert(found, v)
         end
+        
+        -- Check for "KillZone" parts (exact name match, case-insensitive)
+        if v:IsA("BasePart") and v.Name and string.lower(v.Name) == "killzone" then
+            table.insert(found, v)
+        end
     end
+    
     deleteItems(found, deletedKill)
     if #found > 0 then
-        statusLabel.Text = "Deleted "..#found.." KillBricks folder(s)"
+        statusLabel.Text = "Deleted "..#found.." KillBricks/KillZone items"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     else
-        statusLabel.Text = "No KillBricks folders found"
+        statusLabel.Text = "No KillBricks or KillZone items found"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
@@ -537,7 +545,7 @@ end
 local function toggleKill()
     deleteKillActive = not deleteKillActive
     if deleteKillActive then
-        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning for KillBricks...", Color3.fromRGB(0,255,100)
+        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning for KillBricks/KillZone...", Color3.fromRGB(0,255,100)
         scanAndDeleteKill()
     else
         killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
@@ -763,7 +771,6 @@ local function scanAndDeleteSeismic()
         if v:IsA("Model") and v.Name then
             local nl = string.lower(v.Name)
             if nl:find("seismic") or nl:find("water") then
-                -- Check if already in storage (to avoid duplicates)
                 local alreadyDeleted = false
                 for _, data in pairs(deletedSeismic) do
                     if data.Item == v then
@@ -1376,4 +1383,4 @@ frame.BackgroundTransparency = 0.08
 frame.Size = UDim2.new(0, 350, 0, 400)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Seismic now has persistent loop)")
+print("NZ-IS v6 - LOADED! (Kill now targets KillBricks folder AND KillZone parts)")
