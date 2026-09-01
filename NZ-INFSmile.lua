@@ -3,7 +3,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService") -- For smoother TP (optional)
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local guiParent = player:WaitForChild("PlayerGui")
 local Camera = Workspace.CurrentCamera
@@ -211,22 +211,6 @@ local function makeButton(text, y, parent, color)
     return btn
 end
 
-local function makeOneShotButton(text, y, parent, color)
-    color = color or Color3.fromRGB(40, 80, 40)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 150, 0, 30)
-    btn.Position = UDim2.new(0.5, -75, 0, y)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 11
-    btn.Font = Enum.Font.GothamBold
-    btn.BackgroundColor3 = color
-    btn.Parent = parent
-    local c = Instance.new("UICorner", btn)
-    c.CornerRadius = UDim.new(0, 6)
-    return btn
-end
-
 -- ===== MODS PAGE =====
 local yOff = 4
 
@@ -301,11 +285,34 @@ tpTextBox.Parent = modsPage
 local tpCorner = Instance.new("UICorner", tpTextBox)
 tpCorner.CornerRadius = UDim.new(0, 4)
 
-local tpBtn = makeOneShotButton("TP to Model", yOff + 28, modsPage, Color3.fromRGB(40, 80, 120))
-yOff = yOff + 32
+-- TP Button
+local tpBtn = Instance.new("TextButton")
+tpBtn.Size = UDim2.new(0, 65, 0, 30)
+tpBtn.Position = UDim2.new(0, 85, 0, yOff + 28)
+tpBtn.Text = "TP →"
+tpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+tpBtn.TextSize = 12
+tpBtn.Font = Enum.Font.GothamBold
+tpBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 140)
+tpBtn.Parent = modsPage
+tpBtn.AutoButtonColor = true
+local tpCorner2 = Instance.new("UICorner", tpBtn)
+tpCorner2.CornerRadius = UDim.new(0, 6)
 
--- Scan Collections button
-local scanBtn = makeOneShotButton("Scan Collections", yOff, modsPage, Color3.fromRGB(80, 60, 40))
+-- Scan Collections Button
+local scanBtn = Instance.new("TextButton")
+scanBtn.Size = UDim2.new(0, 65, 0, 30)
+scanBtn.Position = UDim2.new(0, 155, 0, yOff + 28)
+scanBtn.Text = "Scan"
+scanBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+scanBtn.TextSize = 12
+scanBtn.Font = Enum.Font.GothamBold
+scanBtn.BackgroundColor3 = Color3.fromRGB(200, 160, 40)
+scanBtn.Parent = modsPage
+scanBtn.AutoButtonColor = true
+local scanCorner = Instance.new("UICorner", scanBtn)
+scanCorner.CornerRadius = UDim.new(0, 6)
+
 yOff = yOff + 36
 
 -- Collection List display
@@ -484,14 +491,14 @@ local function scanAndDeleteFireLava()
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." fire/lava items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No fire/lava items found", Color3.fromRGB(0,255,150) end
 end
 
--- SEISMIC
+-- SEISMIC (deletes "seismic" AND "water" models)
 local function restoreSeismic()
     local c = restoreItems(deletedSeismic)
     if c > 0 then
-        statusLabel.Text = "Restored "..c.." seismic models"
+        statusLabel.Text = "Restored "..c.." seismic/water models"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     else
-        statusLabel.Text = "No seismic models to restore"
+        statusLabel.Text = "No seismic/water models to restore"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
     return c
@@ -503,22 +510,22 @@ local function scanAndDeleteSeismic()
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("Model") and v.Name then
             local nl = string.lower(v.Name)
-            if nl:find("seismic") then
+            if nl:find("seismic") or nl:find("water") then
                 table.insert(found, v)
             end
         end
     end
     deleteItems(found, deletedSeismic)
     if #found > 0 then
-        statusLabel.Text = "Deleted "..#found.." seismic models"
+        statusLabel.Text = "Deleted "..#found.." seismic/water models"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     else
-        statusLabel.Text = "No seismic models found"
+        statusLabel.Text = "No seismic/water models found"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
 
--- ===== ANTI-INFECTION =====
+-- ===== ANTI-INFECTION (FIXED SCALING) =====
 local function enableAntiInfection()
     local sadWater = nil
     for _, v in pairs(Workspace:GetDescendants()) do
@@ -547,13 +554,15 @@ local function enableAntiInfection()
     
     for _, child in pairs(newSadWater:GetDescendants()) do
         if child:IsA("BasePart") then
+            child.Size = Vector3.new(mapSize, mapSize, mapSize)
+            child.Position = Vector3.new(0, 0, 0)
             child.CastShadow = false
         end
     end
     
     duplicatedSadWater = newSadWater
     
-    statusLabel.Text = "Anti-Infection ENABLED!"
+    statusLabel.Text = "Anti-Infection ENABLED! (5000x5000x5000)"
     statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
     return true
 end
@@ -642,13 +651,15 @@ end
 deleteOrbBtn.MouseButton1Click:Connect(toggleDeleteOrb)
 deleteOrbBtn.TouchTap:Connect(toggleDeleteOrb)
 
--- ===== TOOL COOLDOWN =====
+-- ===== TOOL COOLDOWN (FIXED - checks Character too) =====
 local function applyToolCooldown(value)
     local count = 0
     local containers = {
         player:FindFirstChild("Backpack"),
         player:FindFirstChild("Inventory"),
-        player:FindFirstChild("Hotbar")
+        player:FindFirstChild("Hotbar"),
+        player:FindFirstChild("Character"),        -- Tools being held
+        player:FindFirstChild("StarterGear")       -- Some games store tools here
     }
     
     for _, container in pairs(containers) do
@@ -730,10 +741,8 @@ local function teleportToModel(modelName)
         return
     end
     
-    -- Find a PrimaryPart or any BasePart to teleport to
     local targetPart = targetModel:FindFirstChild("PrimaryPart")
     if not targetPart or not targetPart:IsA("BasePart") then
-        -- Find any BasePart in the model
         for _, v in pairs(targetModel:GetDescendants()) do
             if v:IsA("BasePart") then
                 targetPart = v
@@ -762,15 +771,12 @@ local function teleportToModel(modelName)
         return
     end
     
-    -- Teleport using CFrame (bypasses most anti-teleport systems)
-    local targetCFrame = targetPart.CFrame + Vector3.new(0, 3, 0) -- Slightly above to avoid falling into the model
+    local targetCFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
     
-    -- Method 1: Direct CFrame change (most common bypass)
     pcall(function()
         hrp.CFrame = targetCFrame
     end)
     
-    -- Method 2: Fallback with Tween (if direct fails)
     task.wait(0.1)
     pcall(function()
         hrp.CFrame = targetCFrame
@@ -780,7 +786,7 @@ local function teleportToModel(modelName)
     statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
 end
 
--- Scan Collections button
+-- Scan Collections
 local function scanCollections()
     local foundModels = {}
     for _, v in pairs(Workspace:GetDescendants()) do
@@ -808,7 +814,6 @@ end
 scanBtn.MouseButton1Click:Connect(scanCollections)
 scanBtn.TouchTap:Connect(scanCollections)
 
--- TP button
 tpBtn.MouseButton1Click:Connect(function()
     local modelName = tpTextBox.Text
     teleportToModel(modelName)
@@ -819,7 +824,6 @@ tpBtn.TouchTap:Connect(function()
     teleportToModel(modelName)
 end)
 
--- Enter key on TextBox triggers TP
 tpTextBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
         local modelName = tpTextBox.Text
@@ -1020,4 +1024,4 @@ frame.BackgroundTransparency = 0.08
 frame.Size = UDim2.new(0, 350, 0, 320)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (TP to ToolCollector added)")
+print("NZ-IS v6 - LOADED! (Tool Cooldown now checks held tools)")
