@@ -66,7 +66,6 @@ local originalSadWater = nil
 local toolCooldownLoop = nil
 local toolCooldownValue = 0
 local seismicLoop = nil
-local lastSeismicScan = 0
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
@@ -257,7 +256,7 @@ makeLabel("Disable Fire/Lava", yOff, modsPage, 110)
 local fireLavaBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
-makeLabel("Disable-SeismicFall", yOff, modsPage, 110)
+makeLabel("Disable Weight", yOff, modsPage, 110)
 local seismicBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
@@ -739,14 +738,14 @@ end
 fireLavaBtn.MouseButton1Click:Connect(function() safeToggle(toggleFireLava, "firelava") end)
 fireLavaBtn.TouchTap:Connect(function() safeToggle(toggleFireLava, "firelava") end)
 
--- ===== DISABLE SEISMIC (WITH 5-SECOND LOOP) =====
+-- ===== DISABLE WEIGHT (UPDATED - only detects "Weight") =====
 local function restoreSeismic()
     local c = restoreItems(deletedSeismic)
     if c > 0 then
-        statusLabel.Text = "Restored "..c.." seismic/water models"
+        statusLabel.Text = "Restored "..c.." Weight models"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     else
-        statusLabel.Text = "No seismic/water models to restore"
+        statusLabel.Text = "No Weight models to restore"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
     return c
@@ -764,26 +763,23 @@ local function scanAndDeleteSeismic()
     
     local found = {}
     for _, v in pairs(Workspace:GetDescendants()) do
-        if v:IsA("Model") and v.Name then
-            local nl = string.lower(v.Name)
-            if nl:find("seismic") or nl:find("water") then
-                local alreadyDeleted = false
-                for _, data in pairs(deletedSeismic) do
-                    if data.Item == v then
-                        alreadyDeleted = true
-                        break
-                    end
+        if v:IsA("Model") and v.Name and string.lower(v.Name):find("weight") then
+            local alreadyDeleted = false
+            for _, data in pairs(deletedSeismic) do
+                if data.Item == v then
+                    alreadyDeleted = true
+                    break
                 end
-                if not alreadyDeleted then
-                    table.insert(found, v)
-                end
+            end
+            if not alreadyDeleted then
+                table.insert(found, v)
             end
         end
     end
     
     deleteItems(found, deletedSeismic)
     if #found > 0 then
-        statusLabel.Text = "Deleted "..#found.." seismic/water models"
+        statusLabel.Text = "Deleted "..#found.." Weight models"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
 end
@@ -797,11 +793,10 @@ local function startSeismicLoop()
     -- Run immediately once
     scanAndDeleteSeismic()
     
-    -- Then run every 5 seconds
+    -- Then run every 1 second
     seismicLoop = RunService.Heartbeat:Connect(function()
         if deleteSeismicActive then
-            -- Only run every ~5 seconds (300 frames at 60fps)
-            if tick() % 5 < 0.05 then
+            if tick() % 1 < 0.02 then
                 scanAndDeleteSeismic()
             end
         end
@@ -814,7 +809,7 @@ local function toggleSeismic()
         seismicBtn.Text = "ON"
         seismicBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         seismicBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning for seismic/water (every 5s)..."
+        statusLabel.Text = "Scanning for Weight (every 1s)..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         startSeismicLoop()
     else
@@ -826,7 +821,7 @@ local function toggleSeismic()
             seismicLoop = nil
         end
         restoreSeismic()
-        statusLabel.Text = "Seismic/Water scanning stopped"
+        statusLabel.Text = "Weight scanning stopped"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         task.wait(0.5)
         statusLabel.Text = "Ready"
@@ -836,7 +831,7 @@ end
 seismicBtn.MouseButton1Click:Connect(function() safeToggle(toggleSeismic, "seismic") end)
 seismicBtn.TouchTap:Connect(function() safeToggle(toggleSeismic, "seismic") end)
 
--- ===== ANTI-INFECTION =====
+-- ===== ANTI-INFECTION (UPDATED - finds any part with "SadWater" in the name) =====
 local function enableAntiInfection()
     local sadWater = nil
     for _, v in pairs(Workspace:GetDescendants()) do
@@ -847,7 +842,7 @@ local function enableAntiInfection()
     end
     
     if not sadWater then
-        statusLabel.Text = "Error: SadWater not found!"
+        statusLabel.Text = "Error: No part with 'SadWater' found!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
         return false
     end
@@ -873,7 +868,7 @@ local function enableAntiInfection()
     
     duplicatedSadWater = newSadWater
     
-    statusLabel.Text = "Anti-Infection ENABLED! (5000x5000x5000)"
+    statusLabel.Text = "Anti-Infection ENABLED! (Found: " .. sadWater.Name .. ")"
     statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
     return true
 end
@@ -1385,4 +1380,4 @@ frame.BackgroundTransparency = 0.08
 frame.Size = UDim2.new(0, 350, 0, 400)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Seismic scans every 5 seconds)")
+print("NZ-IS v6 - LOADED! (Anti-Infection finds SadWater, Weight mod only detects 'Weight', 1-second loop)")
