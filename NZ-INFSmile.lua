@@ -235,7 +235,7 @@ makeLabel("Disable InfectParts", yOff, modsPage, 110)
 local infectBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
-makeLabel("Disable Kill", yOff, modsPage, 110)
+makeLabel("Disable Kill (KillBricks)", yOff, modsPage, 110)
 local killBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
@@ -499,14 +499,14 @@ end
 infectBtn.MouseButton1Click:Connect(function() safeToggle(toggleInfect, "infect") end)
 infectBtn.TouchTap:Connect(function() safeToggle(toggleInfect, "infect") end)
 
--- ===== DISABLE KILL =====
+-- ===== DISABLE KILL (UPDATED - Targets "KillBricks" folder only) =====
 local function restoreKill()
     local c = restoreItems(deletedKill)
     if c > 0 then
-        statusLabel.Text = "Restored "..c.." kill items"
+        statusLabel.Text = "Restored "..c.." KillBricks folder(s)"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     else
-        statusLabel.Text = "No kill items to restore"
+        statusLabel.Text = "No KillBricks folders to restore"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
     return c
@@ -515,19 +515,20 @@ end
 local function scanAndDeleteKill()
     if not deleteKillActive then restoreKill(); return end
     local found = {}
+    
+    -- Find any folder named exactly "KillBricks" (case-insensitive)
     for _, v in pairs(Workspace:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            if v.Name and string.lower(v.Name):find("kill") then
-                table.insert(found, v)
-            end
+        if v:IsA("Folder") and v.Name and string.lower(v.Name) == "killbricks" then
+            table.insert(found, v)
         end
     end
+    
     deleteItems(found, deletedKill)
     if #found > 0 then
-        statusLabel.Text = "Deleted "..#found.." kill items"
+        statusLabel.Text = "Deleted "..#found.." KillBricks folder(s)"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     else
-        statusLabel.Text = "No kill items found"
+        statusLabel.Text = "No KillBricks folders found"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
@@ -535,7 +536,7 @@ end
 local function toggleKill()
     deleteKillActive = not deleteKillActive
     if deleteKillActive then
-        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning for KillBricks...", Color3.fromRGB(0,255,100)
         scanAndDeleteKill()
     else
         killBtn.Text, killBtn.BackgroundColor3, killBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
@@ -971,7 +972,7 @@ end
 blackHoleBtn.MouseButton1Click:Connect(function() safeToggle(toggleBlackHole, "blackhole") end)
 blackHoleBtn.TouchTap:Connect(function() safeToggle(toggleBlackHole, "blackhole") end)
 
--- ===== DISABLE LASERS (NEW) =====
+-- ===== DISABLE LASERS =====
 local function restoreLasers()
     local c = restoreItems(deletedLasers)
     if c > 0 then
@@ -1331,4 +1332,4 @@ frame.BackgroundTransparency = 0.08
 frame.Size = UDim2.new(0, 350, 0, 400)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Disable Lasers added)")
+print("NZ-IS v6 - LOADED! (Disable Kill now targets KillBricks folder)")
