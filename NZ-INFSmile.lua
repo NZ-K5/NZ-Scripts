@@ -40,7 +40,7 @@ end
 -- Mods
 local deleteInfectActive = false
 local deleteKillActive = false
-local deleteDoorsActive = false
+local deleteSmileGatesActive = false
 local deleteAntiHackActive = false
 local deleteSpearsActive = false
 local deleteFireLavaActive = false
@@ -48,24 +48,26 @@ local deleteSeismicActive = false
 local antiInfectionActive = false
 local deleteOrbActive = false
 local toolCooldownActive = false
-local toolCooldownLoop = nil
-local toolCooldownValue = 0
+local deleteBlackHoleActive = false
 
 local deletedInfect = {}
 local deletedKill = {}
-local deletedDoors = {}
+local deletedSmileGates = {}
 local deletedAntiHack = {}
 local deletedSpears = {}
 local deletedFireLava = {}
 local deletedSeismic = {}
 local deletedOrb = {}
+local deletedBlackHole = {}
 local duplicatedSadWater = nil
 local originalSadWater = nil
+local toolCooldownLoop = nil
+local toolCooldownValue = 0
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 340)
-frame.Position = UDim2.new(0.5, -175, 0.5, -170)
+frame.Size = UDim2.new(0, 350, 0, 370)
+frame.Position = UDim2.new(0.5, -175, 0.5, -185)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -166,7 +168,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -74)
     pg.Position = UDim2.new(0, 5, 0, 65)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 530)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 580)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 80)
     pg.Parent = frame
@@ -227,7 +229,7 @@ end
 -- ===== MODS PAGE =====
 local yOff = 4
 
-makeLabel("Delete Infected", yOff, modsPage, 110)
+makeLabel("Disable InfectParts", yOff, modsPage, 110)
 local infectBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
@@ -235,8 +237,8 @@ makeLabel("Disable Kill", yOff, modsPage, 110)
 local killBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
-makeLabel("Disable Doors/Gates", yOff, modsPage, 110)
-local doorsBtn = makeToggle(yOff, modsPage)
+makeLabel("Disable SmileGates", yOff, modsPage, 110)
+local smileGateBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
 makeLabel("Disable Anti-Hack", yOff, modsPage, 110)
@@ -261,6 +263,10 @@ yOff = yOff + 28
 
 makeLabel("Delete Orb", yOff, modsPage, 110)
 local deleteOrbBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Disable BlackHole", yOff, modsPage, 110)
+local blackHoleBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
 -- Tool Cooldown
@@ -425,18 +431,60 @@ local function restoreItems(storage)
     return count
 end
 
--- INFECTED
-local function restoreInfect() local c = restoreItems(deletedInfect); if c > 0 then statusLabel.Text = "Restored "..c.." infected"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No infected to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
+-- ===== DISABLE INFECTPARTS (UPDATED) =====
+local function restoreInfect()
+    local c = restoreItems(deletedInfect)
+    if c > 0 then
+        statusLabel.Text = "Restored "..c.." infected parts"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No infected parts to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return c
+end
+
 local function scanAndDeleteInfect()
     if not deleteInfectActive then restoreInfect(); return end
     local found = {}
+    
+    -- Check all descendants in Workspace
     for _, v in pairs(Workspace:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            if v.Name and string.lower(v.Name):find("infect") then table.insert(found, v) end
+        -- Check if it's a part with a script inside that has "infect" in its name
+        if v:IsA("BasePart") then
+            local hasInfectScript = false
+            for _, child in pairs(v:GetDescendants()) do
+                if (child:IsA("Script") or child:IsA("LocalScript") or child:IsA("ModuleScript")) and child.Name and string.lower(child.Name):find("infect") then
+                    hasInfectScript = true
+                    break
+                end
+            end
+            if hasInfectScript then
+                table.insert(found, v)
+            end
+        end
+        
+        -- Also check for parts/models/folders with "infect" in their own name
+        if (v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder")) and v.Name and string.lower(v.Name):find("infect") then
+            -- Avoid duplicates
+            local alreadyFound = false
+            for _, f in pairs(found) do
+                if f == v then alreadyFound = true; break end
+            end
+            if not alreadyFound then
+                table.insert(found, v)
+            end
         end
     end
+    
     deleteItems(found, deletedInfect)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." infected", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No infected found", Color3.fromRGB(0,255,150) end
+    if #found > 0 then
+        statusLabel.Text = "Deleted "..#found.." infected parts"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No infected parts found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
 end
 
 local function toggleInfect()
@@ -452,18 +500,37 @@ end
 infectBtn.MouseButton1Click:Connect(function() safeToggle(toggleInfect, "infect") end)
 infectBtn.TouchTap:Connect(function() safeToggle(toggleInfect, "infect") end)
 
--- KILL
-local function restoreKill() local c = restoreItems(deletedKill); if c > 0 then statusLabel.Text = "Restored "..c.." kill items"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No kill items to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
+-- ===== DISABLE KILL =====
+local function restoreKill()
+    local c = restoreItems(deletedKill)
+    if c > 0 then
+        statusLabel.Text = "Restored "..c.." kill items"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No kill items to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return c
+end
+
 local function scanAndDeleteKill()
     if not deleteKillActive then restoreKill(); return end
     local found = {}
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") then
-            if v.Name and string.lower(v.Name):find("kill") then table.insert(found, v) end
+            if v.Name and string.lower(v.Name):find("kill") then
+                table.insert(found, v)
+            end
         end
     end
     deleteItems(found, deletedKill)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." kill items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No kill items found", Color3.fromRGB(0,255,150) end
+    if #found > 0 then
+        statusLabel.Text = "Deleted "..#found.." kill items"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No kill items found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
 end
 
 local function toggleKill()
@@ -479,37 +546,63 @@ end
 killBtn.MouseButton1Click:Connect(function() safeToggle(toggleKill, "kill") end)
 killBtn.TouchTap:Connect(function() safeToggle(toggleKill, "kill") end)
 
--- DOORS
-local function restoreDoors() local c = restoreItems(deletedDoors); if c > 0 then statusLabel.Text = "Restored "..c.." doors/gates"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No doors/gates to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
-local function scanAndDeleteDoors()
-    if not deleteDoorsActive then restoreDoors(); return end
+-- ===== DISABLE SMILEGATES (UPDATED) =====
+local function restoreSmileGates()
+    local c = restoreItems(deletedSmileGates)
+    if c > 0 then
+        statusLabel.Text = "Restored "..c.." SmileGates"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No SmileGates to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return c
+end
+
+local function scanAndDeleteSmileGates()
+    if not deleteSmileGatesActive then restoreSmileGates(); return end
     local found = {}
-    local keywords = {"door","gate","portal","doorway","entrance","exit"}
     for _, v in pairs(Workspace:GetDescendants()) do
-        if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
-            local nl = string.lower(v.Name)
-            for _, kw in pairs(keywords) do if nl:find(kw) then table.insert(found, v); break end end
+        if (v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder")) and v.Name and string.lower(v.Name):find("smilegate") then
+            table.insert(found, v)
         end
     end
-    deleteItems(found, deletedDoors)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." doors/gates", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No doors/gates found", Color3.fromRGB(0,255,150) end
-end
-
-local function toggleDoors()
-    deleteDoorsActive = not deleteDoorsActive
-    if deleteDoorsActive then
-        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
-        scanAndDeleteDoors()
+    deleteItems(found, deletedSmileGates)
+    if #found > 0 then
+        statusLabel.Text = "Deleted "..#found.." SmileGates"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     else
-        doorsBtn.Text, doorsBtn.BackgroundColor3, doorsBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
-        restoreDoors()
+        statusLabel.Text = "No SmileGates found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
-doorsBtn.MouseButton1Click:Connect(function() safeToggle(toggleDoors, "doors") end)
-doorsBtn.TouchTap:Connect(function() safeToggle(toggleDoors, "doors") end)
 
--- ANTI-HACK
-local function restoreAntiHack() local c = restoreItems(deletedAntiHack); if c > 0 then statusLabel.Text = "Restored "..c.." anti-hack items"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No anti-hack items to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
+local function toggleSmileGates()
+    deleteSmileGatesActive = not deleteSmileGatesActive
+    if deleteSmileGatesActive then
+        smileGateBtn.Text, smileGateBtn.BackgroundColor3, smileGateBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        scanAndDeleteSmileGates()
+    else
+        smileGateBtn.Text, smileGateBtn.BackgroundColor3, smileGateBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        restoreSmileGates()
+    end
+end
+smileGateBtn.MouseButton1Click:Connect(function() safeToggle(toggleSmileGates, "smilegates") end)
+smileGateBtn.TouchTap:Connect(function() safeToggle(toggleSmileGates, "smilegates") end)
+
+-- ===== DISABLE ANTI-HACK =====
+local function restoreAntiHack()
+    local c = restoreItems(deletedAntiHack)
+    if c > 0 then
+        statusLabel.Text = "Restored "..c.." anti-hack items"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No anti-hack items to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return c
+end
+
 local function scanAndDeleteAntiHack()
     if not deleteAntiHackActive then restoreAntiHack(); return end
     local found = {}
@@ -517,11 +610,19 @@ local function scanAndDeleteAntiHack()
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
             local nl = string.lower(v.Name)
-            for _, kw in pairs(keywords) do if nl:find(kw) then table.insert(found, v); break end end
+            for _, kw in pairs(keywords) do
+                if nl:find(kw) then table.insert(found, v); break end
+            end
         end
     end
     deleteItems(found, deletedAntiHack)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." anti-hack items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No anti-hack items found", Color3.fromRGB(0,255,150) end
+    if #found > 0 then
+        statusLabel.Text = "Deleted "..#found.." anti-hack items"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No anti-hack items found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
 end
 
 local function toggleAntiHack()
@@ -537,8 +638,19 @@ end
 antiHackBtn.MouseButton1Click:Connect(function() safeToggle(toggleAntiHack, "antihack") end)
 antiHackBtn.TouchTap:Connect(function() safeToggle(toggleAntiHack, "antihack") end)
 
--- SPEARS
-local function restoreSpears() local c = restoreItems(deletedSpears); if c > 0 then statusLabel.Text = "Restored "..c.." spears"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No spears to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
+-- ===== DISABLE SPEARS =====
+local function restoreSpears()
+    local c = restoreItems(deletedSpears)
+    if c > 0 then
+        statusLabel.Text = "Restored "..c.." spears"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No spears to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return c
+end
+
 local function scanAndDeleteSpears()
     if not deleteSpearsActive then restoreSpears(); return end
     local found = {}
@@ -546,11 +658,19 @@ local function scanAndDeleteSpears()
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
             local nl = string.lower(v.Name)
-            for _, kw in pairs(keywords) do if nl:find(kw) then table.insert(found, v); break end end
+            for _, kw in pairs(keywords) do
+                if nl:find(kw) then table.insert(found, v); break end
+            end
         end
     end
     deleteItems(found, deletedSpears)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." spears", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No spears found", Color3.fromRGB(0,255,150) end
+    if #found > 0 then
+        statusLabel.Text = "Deleted "..#found.." spears"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No spears found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
 end
 
 local function toggleSpears()
@@ -566,8 +686,19 @@ end
 spearsBtn.MouseButton1Click:Connect(function() safeToggle(toggleSpears, "spears") end)
 spearsBtn.TouchTap:Connect(function() safeToggle(toggleSpears, "spears") end)
 
--- FIRE/LAVA
-local function restoreFireLava() local c = restoreItems(deletedFireLava); if c > 0 then statusLabel.Text = "Restored "..c.." fire/lava items"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No fire/lava items to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
+-- ===== DISABLE FIRE/LAVA =====
+local function restoreFireLava()
+    local c = restoreItems(deletedFireLava)
+    if c > 0 then
+        statusLabel.Text = "Restored "..c.." fire/lava items"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No fire/lava items to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return c
+end
+
 local function scanAndDeleteFireLava()
     if not deleteFireLavaActive then restoreFireLava(); return end
     local found = {}
@@ -575,11 +706,19 @@ local function scanAndDeleteFireLava()
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript") and v.Name then
             local nl = string.lower(v.Name)
-            for _, kw in pairs(keywords) do if nl:find(kw) then table.insert(found, v); break end end
+            for _, kw in pairs(keywords) do
+                if nl:find(kw) then table.insert(found, v); break end
+            end
         end
     end
     deleteItems(found, deletedFireLava)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." fire/lava items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No fire/lava items found", Color3.fromRGB(0,255,150) end
+    if #found > 0 then
+        statusLabel.Text = "Deleted "..#found.." fire/lava items"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No fire/lava items found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
 end
 
 local function toggleFireLava()
@@ -595,7 +734,7 @@ end
 fireLavaBtn.MouseButton1Click:Connect(function() safeToggle(toggleFireLava, "firelava") end)
 fireLavaBtn.TouchTap:Connect(function() safeToggle(toggleFireLava, "firelava") end)
 
--- SEISMIC
+-- ===== DISABLE SEISMIC =====
 local function restoreSeismic()
     local c = restoreItems(deletedSeismic)
     if c > 0 then
@@ -771,6 +910,67 @@ local function toggleDeleteOrb()
 end
 deleteOrbBtn.MouseButton1Click:Connect(function() safeToggle(toggleDeleteOrb, "deleteorb") end)
 deleteOrbBtn.TouchTap:Connect(function() safeToggle(toggleDeleteOrb, "deleteorb") end)
+
+-- ===== DISABLE BLACKHOLE =====
+local function restoreBlackHole()
+    local count = restoreItems(deletedBlackHole)
+    if count > 0 then
+        statusLabel.Text = "Restored " .. count .. " BlackHole"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No BlackHole to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return count
+end
+
+local function scanAndDeleteBlackHole()
+    if not deleteBlackHoleActive then restoreBlackHole(); return end
+    
+    local mapFolder = Workspace:FindFirstChild("Map")
+    if not mapFolder then
+        statusLabel.Text = "Map folder not found!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    local systemFolder = mapFolder:FindFirstChild("System")
+    if not systemFolder then
+        statusLabel.Text = "System folder not found!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    local blackHole = systemFolder:FindFirstChild("BlackHole")
+    if not blackHole then
+        statusLabel.Text = "BlackHole not found!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    deleteItems({blackHole}, deletedBlackHole)
+    statusLabel.Text = "Deleted BlackHole!"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+end
+
+local function toggleBlackHole()
+    deleteBlackHoleActive = not deleteBlackHoleActive
+    if deleteBlackHoleActive then
+        blackHoleBtn.Text = "ON"
+        blackHoleBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        blackHoleBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning for BlackHole..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteBlackHole()
+    else
+        blackHoleBtn.Text = "OFF"
+        blackHoleBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        blackHoleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreBlackHole()
+    end
+end
+blackHoleBtn.MouseButton1Click:Connect(function() safeToggle(toggleBlackHole, "blackhole") end)
+blackHoleBtn.TouchTap:Connect(function() safeToggle(toggleBlackHole, "blackhole") end)
 
 -- ===== TOOL COOLDOWN =====
 local function applyToolCooldown(value)
@@ -1076,7 +1276,7 @@ UserInputService.InputBegan:Connect(function(i, gp) if gp then return end; if i.
 
 -- ===== FORCE VISIBILITY =====
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 350, 0, 340)
+frame.Size = UDim2.new(0, 350, 0, 370)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Mobile debounce fixed)")
+print("NZ-IS v6 - LOADED! (Disable InfectParts & Disable SmileGates updated)")
