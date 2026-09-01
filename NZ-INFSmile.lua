@@ -3,8 +3,10 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService") -- For smoother TP (optional)
 local player = Players.LocalPlayer
 local guiParent = player:WaitForChild("PlayerGui")
+local Camera = Workspace.CurrentCamera
 
 pcall(function()
     if guiParent:FindFirstChild("InfectiousRoot") then
@@ -35,7 +37,6 @@ local deleteSeismicActive = false
 local antiInfectionActive = false
 local deleteOrbActive = false
 local toolCooldownActive = false
-local grabCollectionsActive = false
 
 local deletedInfect = {}
 local deletedKill = {}
@@ -50,8 +51,8 @@ local originalSadWater = nil
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 290)
-frame.Position = UDim2.new(0.5, -160, 0.5, -145)
+frame.Size = UDim2.new(0, 350, 0, 320)
+frame.Position = UDim2.new(0.5, -175, 0.5, -160)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -152,7 +153,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -74)
     pg.Position = UDim2.new(0, 5, 0, 65)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 430)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 500)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 80)
     pg.Parent = frame
@@ -211,13 +212,13 @@ local function makeButton(text, y, parent, color)
 end
 
 local function makeOneShotButton(text, y, parent, color)
-    color = color or Color3.fromRGB(40, 60, 40)
+    color = color or Color3.fromRGB(40, 80, 40)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 140, 0, 30)
-    btn.Position = UDim2.new(0.5, -70, 0, y)
+    btn.Size = UDim2.new(0, 150, 0, 30)
+    btn.Position = UDim2.new(0.5, -75, 0, y)
     btn.Text = text
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 12
+    btn.TextSize = 11
     btn.Font = Enum.Font.GothamBold
     btn.BackgroundColor3 = color
     btn.Parent = parent
@@ -284,9 +285,43 @@ cooldownCorner.CornerRadius = UDim.new(0, 4)
 local cooldownBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
--- Grab All Collections (One-shot button)
-local grabBtn = makeOneShotButton("Grab All Collections", yOff, modsPage, Color3.fromRGB(40, 80, 40))
+-- TP to ToolCollector
+makeLabel("TP to ToolCollector", yOff, modsPage, 80)
+local tpTextBox = Instance.new("TextBox")
+tpTextBox.Size = UDim2.new(0, 120, 0, 22)
+tpTextBox.Position = UDim2.new(0, 85, 0, yOff)
+tpTextBox.PlaceholderText = "Type model name..."
+tpTextBox.Text = ""
+tpTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+tpTextBox.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+tpTextBox.BackgroundTransparency = 0.3
+tpTextBox.TextSize = 11
+tpTextBox.Font = Enum.Font.Gotham
+tpTextBox.Parent = modsPage
+local tpCorner = Instance.new("UICorner", tpTextBox)
+tpCorner.CornerRadius = UDim.new(0, 4)
+
+local tpBtn = makeOneShotButton("TP to Model", yOff + 28, modsPage, Color3.fromRGB(40, 80, 120))
+yOff = yOff + 32
+
+-- Scan Collections button
+local scanBtn = makeOneShotButton("Scan Collections", yOff, modsPage, Color3.fromRGB(80, 60, 40))
 yOff = yOff + 36
+
+-- Collection List display
+local collectionListLabel = Instance.new("TextLabel")
+collectionListLabel.Size = UDim2.new(1, -10, 0, 60)
+collectionListLabel.Position = UDim2.new(0, 0, 0, yOff)
+collectionListLabel.Text = "Collection Models: None found"
+collectionListLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+collectionListLabel.TextSize = 10
+collectionListLabel.Font = Enum.Font.Gotham
+collectionListLabel.BackgroundTransparency = 1
+collectionListLabel.TextXAlignment = Enum.TextXAlignment.Left
+collectionListLabel.TextYAlignment = Enum.TextYAlignment.Top
+collectionListLabel.TextWrapped = true
+collectionListLabel.Parent = modsPage
+yOff = yOff + 68
 
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(1, -10, 0, 22)
@@ -449,7 +484,7 @@ local function scanAndDeleteFireLava()
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." fire/lava items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No fire/lava items found", Color3.fromRGB(0,255,150) end
 end
 
--- SEISMIC (UPDATED - deletes ANY model with "seismic" in the name)
+-- SEISMIC
 local function restoreSeismic()
     local c = restoreItems(deletedSeismic)
     if c > 0 then
@@ -673,53 +708,122 @@ cooldownTextBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- ===== GRAB ALL COLLECTIONS (ONE-SHOT) =====
-local function grabCollections()
-    local count = 0
-    local detectors = {}
+-- ===== TP TO TOOLCOLLECTOR =====
+local function teleportToModel(modelName)
+    if not modelName or modelName == "" then
+        statusLabel.Text = "Please enter a model name"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+        return
+    end
     
-    -- Find all ClickDetectors inside Models with "collection" in the name
-    for _, model in pairs(Workspace:GetDescendants()) do
-        if model:IsA("Model") and model.Name and string.lower(model.Name):find("collection") then
-            for _, child in pairs(model:GetDescendants()) do
-                if child:IsA("ClickDetector") then
-                    table.insert(detectors, child)
-                end
+    local targetModel = nil
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Model") and string.lower(v.Name) == string.lower(modelName) then
+            targetModel = v
+            break
+        end
+    end
+    
+    if not targetModel then
+        statusLabel.Text = "Model '" .. modelName .. "' not found!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    -- Find a PrimaryPart or any BasePart to teleport to
+    local targetPart = targetModel:FindFirstChild("PrimaryPart")
+    if not targetPart or not targetPart:IsA("BasePart") then
+        -- Find any BasePart in the model
+        for _, v in pairs(targetModel:GetDescendants()) do
+            if v:IsA("BasePart") then
+                targetPart = v
+                break
             end
         end
     end
     
-    -- Fire each ClickDetector
-    for _, detector in pairs(detectors) do
-        pcall(function()
-            -- Simulate a click on the detector
-            detector:FireClick(player)
-            count = count + 1
-        end)
+    if not targetPart then
+        statusLabel.Text = "No BasePart found in model"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
     end
     
-    return count
+    local character = player.Character
+    if not character then
+        statusLabel.Text = "Character not found"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        statusLabel.Text = "HumanoidRootPart not found"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+    
+    -- Teleport using CFrame (bypasses most anti-teleport systems)
+    local targetCFrame = targetPart.CFrame + Vector3.new(0, 3, 0) -- Slightly above to avoid falling into the model
+    
+    -- Method 1: Direct CFrame change (most common bypass)
+    pcall(function()
+        hrp.CFrame = targetCFrame
+    end)
+    
+    -- Method 2: Fallback with Tween (if direct fails)
+    task.wait(0.1)
+    pcall(function()
+        hrp.CFrame = targetCFrame
+    end)
+    
+    statusLabel.Text = "Teleported to '" .. targetModel.Name .. "'"
+    statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
 end
 
-grabBtn.MouseButton1Click:Connect(function()
-    local count = grabCollections()
-    if count > 0 then
-        statusLabel.Text = "Fired " .. count .. " collection ClickDetectors"
+-- Scan Collections button
+local function scanCollections()
+    local foundModels = {}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Model") and v.Name and string.lower(v.Name):find("collection") then
+            table.insert(foundModels, v.Name)
+        end
+    end
+    
+    if #foundModels > 0 then
+        local displayText = "Collection Models:\n"
+        for i, name in pairs(foundModels) do
+            displayText = displayText .. "• " .. name
+            if i < #foundModels then displayText = displayText .. "\n" end
+        end
+        collectionListLabel.Text = displayText
+        statusLabel.Text = "Found " .. #foundModels .. " collection models"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
     else
-        statusLabel.Text = "No ClickDetectors found in collection models"
+        collectionListLabel.Text = "Collection Models: None found"
+        statusLabel.Text = "No collection models found"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
+end
+
+scanBtn.MouseButton1Click:Connect(scanCollections)
+scanBtn.TouchTap:Connect(scanCollections)
+
+-- TP button
+tpBtn.MouseButton1Click:Connect(function()
+    local modelName = tpTextBox.Text
+    teleportToModel(modelName)
 end)
 
-grabBtn.TouchTap:Connect(function()
-    local count = grabCollections()
-    if count > 0 then
-        statusLabel.Text = "Fired " .. count .. " collection ClickDetectors"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-    else
-        statusLabel.Text = "No ClickDetectors found in collection models"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+tpBtn.TouchTap:Connect(function()
+    local modelName = tpTextBox.Text
+    teleportToModel(modelName)
+end)
+
+-- Enter key on TextBox triggers TP
+tpTextBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local modelName = tpTextBox.Text
+        teleportToModel(modelName)
     end
 end)
 
@@ -913,7 +1017,7 @@ UserInputService.InputBegan:Connect(function(i, gp) if gp then return end; if i.
 
 -- ===== FORCE VISIBILITY =====
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 320, 0, 290)
+frame.Size = UDim2.new(0, 350, 0, 320)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Seismic renamed, Grab Collections added)")
+print("NZ-IS v6 - LOADED! (TP to ToolCollector added)")
