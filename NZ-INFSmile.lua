@@ -37,6 +37,8 @@ local deleteSeismicActive = false
 local antiInfectionActive = false
 local deleteOrbActive = false
 local toolCooldownActive = false
+local toolCooldownLoop = nil
+local toolCooldownValue = 0
 
 local deletedInfect = {}
 local deletedKill = {}
@@ -51,8 +53,8 @@ local originalSadWater = nil
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 320)
-frame.Position = UDim2.new(0.5, -175, 0.5, -160)
+frame.Size = UDim2.new(0, 350, 0, 340)
+frame.Position = UDim2.new(0.5, -175, 0.5, -170)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -153,7 +155,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -74)
     pg.Position = UDim2.new(0, 5, 0, 65)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 500)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 530)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 80)
     pg.Parent = frame
@@ -314,6 +316,19 @@ local scanCorner = Instance.new("UICorner", scanBtn)
 scanCorner.CornerRadius = UDim.new(0, 6)
 
 yOff = yOff + 36
+
+-- TIP LABEL
+local tipLabel = Instance.new("TextLabel")
+tipLabel.Size = UDim2.new(1, -10, 0, 20)
+tipLabel.Position = UDim2.new(0, 0, 0, yOff)
+tipLabel.Text = "💡 Keep spamming TP button to get the tool!"
+tipLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+tipLabel.TextSize = 10
+tipLabel.Font = Enum.Font.Gotham
+tipLabel.BackgroundTransparency = 1
+tipLabel.TextXAlignment = Enum.TextXAlignment.Left
+tipLabel.Parent = modsPage
+yOff = yOff + 28
 
 -- Collection List display
 local collectionListLabel = Instance.new("TextLabel")
@@ -491,7 +506,7 @@ local function scanAndDeleteFireLava()
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." fire/lava items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No fire/lava items found", Color3.fromRGB(0,255,150) end
 end
 
--- SEISMIC (deletes "seismic" AND "water" models)
+-- SEISMIC
 local function restoreSeismic()
     local c = restoreItems(deletedSeismic)
     if c > 0 then
@@ -525,7 +540,7 @@ local function scanAndDeleteSeismic()
     end
 end
 
--- ===== ANTI-INFECTION (FIXED SCALING) =====
+-- ===== ANTI-INFECTION =====
 local function enableAntiInfection()
     local sadWater = nil
     for _, v in pairs(Workspace:GetDescendants()) do
@@ -651,15 +666,15 @@ end
 deleteOrbBtn.MouseButton1Click:Connect(toggleDeleteOrb)
 deleteOrbBtn.TouchTap:Connect(toggleDeleteOrb)
 
--- ===== TOOL COOLDOWN (FIXED - checks Character too) =====
+-- ===== TOOL COOLDOWN (WITH PERSISTENT LOOP) =====
 local function applyToolCooldown(value)
     local count = 0
     local containers = {
         player:FindFirstChild("Backpack"),
         player:FindFirstChild("Inventory"),
         player:FindFirstChild("Hotbar"),
-        player:FindFirstChild("Character"),        -- Tools being held
-        player:FindFirstChild("StarterGear")       -- Some games store tools here
+        player:FindFirstChild("Character"),
+        player:FindFirstChild("StarterGear")
     }
     
     for _, container in pairs(containers) do
@@ -681,6 +696,29 @@ local function applyToolCooldown(value)
     return count
 end
 
+local function startToolCooldownLoop(value)
+    if toolCooldownLoop then
+        pcall(function() toolCooldownLoop:Disconnect() end)
+        toolCooldownLoop = nil
+    end
+    
+    toolCooldownValue = value
+    applyToolCooldown(value)
+    
+    toolCooldownLoop = RunService.Heartbeat:Connect(function()
+        if toolCooldownActive then
+            applyToolCooldown(toolCooldownValue)
+        end
+    end)
+end
+
+local function stopToolCooldownLoop()
+    if toolCooldownLoop then
+        pcall(function() toolCooldownLoop:Disconnect() end)
+        toolCooldownLoop = nil
+    end
+end
+
 local function toggleToolCooldown()
     toolCooldownActive = not toolCooldownActive
     if toolCooldownActive then
@@ -689,12 +727,16 @@ local function toggleToolCooldown()
         cooldownBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
         statusLabel.Text = "Tool Cooldown ENABLED - Enter a number"
         statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+        if toolCooldownValue > 0 then
+            startToolCooldownLoop(toolCooldownValue)
+        end
     else
         cooldownBtn.Text = "OFF"
         cooldownBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         cooldownBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         statusLabel.Text = "Tool Cooldown DISABLED"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        stopToolCooldownLoop()
         task.wait(0.5)
         statusLabel.Text = "Ready"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
@@ -709,8 +751,10 @@ cooldownTextBox.FocusLost:Connect(function(enterPressed)
         local input = cooldownTextBox.Text
         local num = tonumber(input)
         if num and num >= 0 then
+            toolCooldownValue = num
             local count = applyToolCooldown(num)
-            statusLabel.Text = "Set cooldown to " .. num .. " on " .. count .. " tools"
+            startToolCooldownLoop(num)
+            statusLabel.Text = "Set cooldown to " .. num .. " on " .. count .. " tools (locked)"
             statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         else
             statusLabel.Text = "Enter a valid number (e.g. 5)"
@@ -935,6 +979,10 @@ local function destroyGUI()
     if duplicatedSadWater then
         duplicatedSadWater:Destroy()
     end
+    if toolCooldownLoop then
+        pcall(function() toolCooldownLoop:Disconnect() end)
+        toolCooldownLoop = nil
+    end
     root:Destroy()
     blur:Destroy()
 end
@@ -1021,7 +1069,7 @@ UserInputService.InputBegan:Connect(function(i, gp) if gp then return end; if i.
 
 -- ===== FORCE VISIBILITY =====
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 350, 0, 320)
+frame.Size = UDim2.new(0, 350, 0, 340)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Tool Cooldown now checks held tools)")
+print("NZ-IS v6 - LOADED! (Tool Cooldown now has persistent loop)")
