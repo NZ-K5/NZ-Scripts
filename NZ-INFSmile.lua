@@ -34,7 +34,8 @@ local deleteFireLavaActive = false
 local deleteSeismicActive = false
 local antiInfectionActive = false
 local deleteOrbActive = false
-local signsEditActive = false
+local toolCooldownActive = false
+local grabCollectionsActive = false
 
 local deletedInfect = {}
 local deletedKill = {}
@@ -46,7 +47,6 @@ local deletedSeismic = {}
 local deletedOrb = {}
 local duplicatedSadWater = nil
 local originalSadWater = nil
-local signTexts = {} -- Store original texts for reset
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
@@ -152,7 +152,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -74)
     pg.Position = UDim2.new(0, 5, 0, 65)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 420)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 430)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 80)
     pg.Parent = frame
@@ -210,6 +210,22 @@ local function makeButton(text, y, parent, color)
     return btn
 end
 
+local function makeOneShotButton(text, y, parent, color)
+    color = color or Color3.fromRGB(40, 60, 40)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 140, 0, 30)
+    btn.Position = UDim2.new(0.5, -70, 0, y)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamBold
+    btn.BackgroundColor3 = color
+    btn.Parent = parent
+    local c = Instance.new("UICorner", btn)
+    c.CornerRadius = UDim.new(0, 6)
+    return btn
+end
+
 -- ===== MODS PAGE =====
 local yOff = 4
 
@@ -237,7 +253,7 @@ makeLabel("Disable Fire/Lava", yOff, modsPage, 110)
 local fireLavaBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
-makeLabel("Disable SeismicRockWall", yOff, modsPage, 110)
+makeLabel("Disable-SeismicFall", yOff, modsPage, 110)
 local seismicBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
@@ -249,53 +265,28 @@ makeLabel("Delete Orb", yOff, modsPage, 110)
 local deleteOrbBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
--- Signs Edit (with TextBox)
-local signsLabel = makeLabel("Signs Edit", yOff, modsPage, 80)
+-- Tool Cooldown
+makeLabel("Tool Cooldown", yOff, modsPage, 80)
+local cooldownTextBox = Instance.new("TextBox")
+cooldownTextBox.Size = UDim2.new(0, 80, 0, 22)
+cooldownTextBox.Position = UDim2.new(0, 85, 0, yOff)
+cooldownTextBox.PlaceholderText = "Seconds"
+cooldownTextBox.Text = ""
+cooldownTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+cooldownTextBox.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+cooldownTextBox.BackgroundTransparency = 0.3
+cooldownTextBox.TextSize = 11
+cooldownTextBox.Font = Enum.Font.Gotham
+cooldownTextBox.Parent = modsPage
+local cooldownCorner = Instance.new("UICorner", cooldownTextBox)
+cooldownCorner.CornerRadius = UDim.new(0, 4)
+
+local cooldownBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
--- TextBox for Signs Edit
-local signsTextBox = Instance.new("TextBox")
-signsTextBox.Size = UDim2.new(0, 100, 0, 22)
-signsTextBox.Position = UDim2.new(0, 85, 0, yOff - 28)
-signsTextBox.PlaceholderText = "Enter text..."
-signsTextBox.Text = ""
-signsTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-signsTextBox.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-signsTextBox.BackgroundTransparency = 0.3
-signsTextBox.TextSize = 11
-signsTextBox.Font = Enum.Font.Gotham
-signsTextBox.Parent = modsPage
-local signsCorner = Instance.new("UICorner", signsTextBox)
-signsCorner.CornerRadius = UDim.new(0, 4)
-
--- Toggle for Signs Edit
-local signsBtn = Instance.new("TextButton")
-signsBtn.Size = UDim2.new(0, 60, 0, 22)
-signsBtn.Position = UDim2.new(0, 200, 0, yOff - 28)
-signsBtn.Text = "OFF"
-signsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-signsBtn.TextSize = 10
-signsBtn.Font = Enum.Font.GothamBold
-signsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-signsBtn.Parent = modsPage
-local signsCorner2 = Instance.new("UICorner", signsBtn)
-signsCorner2.CornerRadius = UDim.new(0, 4)
-
--- Reset button for Signs Edit
-local signsResetBtn = Instance.new("TextButton")
-signsResetBtn.Size = UDim2.new(0, 50, 0, 22)
-signsResetBtn.Position = UDim2.new(0, 265, 0, yOff - 28)
-signsResetBtn.Text = "Reset"
-signsResetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-signsResetBtn.TextSize = 9
-signsResetBtn.Font = Enum.Font.GothamBold
-signsResetBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 20)
-signsResetBtn.Parent = modsPage
-local resetCorner = Instance.new("UICorner", signsResetBtn)
-resetCorner.CornerRadius = UDim.new(0, 4)
-signsResetBtn.Visible = false
-
-yOff = yOff + 32
+-- Grab All Collections (One-shot button)
+local grabBtn = makeOneShotButton("Grab All Collections", yOff, modsPage, Color3.fromRGB(40, 80, 40))
+yOff = yOff + 36
 
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(1, -10, 0, 22)
@@ -458,20 +449,38 @@ local function scanAndDeleteFireLava()
     if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." fire/lava items", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No fire/lava items found", Color3.fromRGB(0,255,150) end
 end
 
--- SEISMIC (MODELS ONLY)
-local function restoreSeismic() local c = restoreItems(deletedSeismic); if c > 0 then statusLabel.Text = "Restored "..c.." seismic rock walls"; statusLabel.TextColor3 = Color3.fromRGB(0,255,150) else statusLabel.Text = "No seismic rock walls to restore"; statusLabel.TextColor3 = Color3.fromRGB(255,200,50) end return c end
+-- SEISMIC (UPDATED - deletes ANY model with "seismic" in the name)
+local function restoreSeismic()
+    local c = restoreItems(deletedSeismic)
+    if c > 0 then
+        statusLabel.Text = "Restored "..c.." seismic models"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No seismic models to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return c
+end
+
 local function scanAndDeleteSeismic()
     if not deleteSeismicActive then restoreSeismic(); return end
     local found = {}
-    local keywords = {"weight","seismic","rockwall","rock_wall","seismicwall","weighted"}
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("Model") and v.Name then
             local nl = string.lower(v.Name)
-            for _, kw in pairs(keywords) do if nl:find(kw) then table.insert(found, v); break end end
+            if nl:find("seismic") then
+                table.insert(found, v)
+            end
         end
     end
     deleteItems(found, deletedSeismic)
-    if #found > 0 then statusLabel.Text, statusLabel.TextColor3 = "Deleted "..#found.." seismic rock walls", Color3.fromRGB(255,200,50) else statusLabel.Text, statusLabel.TextColor3 = "No seismic rock walls found", Color3.fromRGB(0,255,150) end
+    if #found > 0 then
+        statusLabel.Text = "Deleted "..#found.." seismic models"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No seismic models found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
 end
 
 -- ===== ANTI-INFECTION =====
@@ -598,66 +607,47 @@ end
 deleteOrbBtn.MouseButton1Click:Connect(toggleDeleteOrb)
 deleteOrbBtn.TouchTap:Connect(toggleDeleteOrb)
 
--- ===== SIGNS EDIT =====
-local function saveSignTexts()
-    signTexts = {}
-    for _, model in pairs(Workspace:GetDescendants()) do
-        if model:IsA("Model") and model.Name and string.lower(model.Name):find("smilesign") then
-            for _, child in pairs(model:GetDescendants()) do
-                if child:IsA("TextLabel") then
-                    table.insert(signTexts, {
-                        Label = child,
-                        OriginalText = child.Text
-                    })
+-- ===== TOOL COOLDOWN =====
+local function applyToolCooldown(value)
+    local count = 0
+    local containers = {
+        player:FindFirstChild("Backpack"),
+        player:FindFirstChild("Inventory"),
+        player:FindFirstChild("Hotbar")
+    }
+    
+    for _, container in pairs(containers) do
+        if container then
+            for _, tool in pairs(container:GetChildren()) do
+                if tool:IsA("Tool") then
+                    local cooldownNum = tool:FindFirstChild("Cooldown")
+                    if cooldownNum and cooldownNum:IsA("NumberValue") then
+                        pcall(function()
+                            cooldownNum.Value = value
+                            count = count + 1
+                        end)
+                    end
                 end
             end
         end
     end
-end
-
-local function applySignTexts(newText)
-    local count = 0
-    for _, data in pairs(signTexts) do
-        if data.Label and data.Label.Parent then
-            pcall(function()
-                data.Label.Text = newText
-                count = count + 1
-            end)
-        end
-    end
+    
     return count
 end
 
-local function resetSignTexts()
-    local count = 0
-    for _, data in pairs(signTexts) do
-        if data.Label and data.Label.Parent then
-            pcall(function()
-                data.Label.Text = data.OriginalText
-                count = count + 1
-            end)
-        end
-    end
-    return count
-end
-
-local function toggleSignsEdit()
-    signsEditActive = not signsEditActive
-    if signsEditActive then
-        signsBtn.Text = "ON"
-        signsBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
-        signsBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        signsResetBtn.Visible = true
-        saveSignTexts()
-        statusLabel.Text = "Signs Edit ENABLED - Type text and press Enter"
+local function toggleToolCooldown()
+    toolCooldownActive = not toolCooldownActive
+    if toolCooldownActive then
+        cooldownBtn.Text = "ON"
+        cooldownBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        cooldownBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Tool Cooldown ENABLED - Enter a number"
         statusLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
     else
-        signsBtn.Text = "OFF"
-        signsBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-        signsBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        signsResetBtn.Visible = false
-        resetSignTexts()
-        statusLabel.Text = "Signs Edit DISABLED - Texts restored"
+        cooldownBtn.Text = "OFF"
+        cooldownBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        cooldownBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        statusLabel.Text = "Tool Cooldown DISABLED"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         task.wait(0.5)
         statusLabel.Text = "Ready"
@@ -665,40 +655,71 @@ local function toggleSignsEdit()
     end
 end
 
-signsBtn.MouseButton1Click:Connect(toggleSignsEdit)
-signsBtn.TouchTap:Connect(toggleSignsEdit)
+cooldownBtn.MouseButton1Click:Connect(toggleToolCooldown)
+cooldownBtn.TouchTap:Connect(toggleToolCooldown)
 
--- TextBox: Press Enter to apply text
-signsTextBox.FocusLost:Connect(function(enterPressed)
-    if enterPressed and signsEditActive then
-        local newText = signsTextBox.Text
-        if newText and newText ~= "" then
-            local count = applySignTexts(newText)
-            statusLabel.Text = "Applied '" .. newText .. "' to " .. count .. " signs"
+cooldownTextBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed and toolCooldownActive then
+        local input = cooldownTextBox.Text
+        local num = tonumber(input)
+        if num and num >= 0 then
+            local count = applyToolCooldown(num)
+            statusLabel.Text = "Set cooldown to " .. num .. " on " .. count .. " tools"
             statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         else
-            statusLabel.Text = "Please enter text first"
+            statusLabel.Text = "Enter a valid number (e.g. 5)"
             statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
         end
     end
 end)
 
--- Reset button
-signsResetBtn.MouseButton1Click:Connect(function()
-    if signsEditActive then
-        local count = resetSignTexts()
-        statusLabel.Text = "Reset " .. count .. " signs to original text"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-        signsTextBox.Text = ""
+-- ===== GRAB ALL COLLECTIONS (ONE-SHOT) =====
+local function grabCollections()
+    local count = 0
+    local detectors = {}
+    
+    -- Find all ClickDetectors inside Models with "collection" in the name
+    for _, model in pairs(Workspace:GetDescendants()) do
+        if model:IsA("Model") and model.Name and string.lower(model.Name):find("collection") then
+            for _, child in pairs(model:GetDescendants()) do
+                if child:IsA("ClickDetector") then
+                    table.insert(detectors, child)
+                end
+            end
+        end
+    end
+    
+    -- Fire each ClickDetector
+    for _, detector in pairs(detectors) do
+        pcall(function()
+            -- Simulate a click on the detector
+            detector:FireClick(player)
+            count = count + 1
+        end)
+    end
+    
+    return count
+end
+
+grabBtn.MouseButton1Click:Connect(function()
+    local count = grabCollections()
+    if count > 0 then
+        statusLabel.Text = "Fired " .. count .. " collection ClickDetectors"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+    else
+        statusLabel.Text = "No ClickDetectors found in collection models"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
 end)
 
-signsResetBtn.TouchTap:Connect(function()
-    if signsEditActive then
-        local count = resetSignTexts()
-        statusLabel.Text = "Reset " .. count .. " signs to original text"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-        signsTextBox.Text = ""
+grabBtn.TouchTap:Connect(function()
+    local count = grabCollections()
+    if count > 0 then
+        statusLabel.Text = "Fired " .. count .. " collection ClickDetectors"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+    else
+        statusLabel.Text = "No ClickDetectors found in collection models"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
 end)
 
@@ -784,13 +805,20 @@ fireLavaBtn.TouchTap:Connect(toggleFireLava)
 local function toggleSeismic()
     deleteSeismicActive = not deleteSeismicActive
     if deleteSeismicActive then
-        seismicBtn.Text, seismicBtn.BackgroundColor3, seismicBtn.TextColor3, statusLabel.Text, statusLabel.TextColor3 = "ON", Color3.fromRGB(20,60,30), Color3.fromRGB(100,255,100), "Scanning...", Color3.fromRGB(0,255,100)
+        seismicBtn.Text = "ON"
+        seismicBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        seismicBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         scanAndDeleteSeismic()
     else
-        seismicBtn.Text, seismicBtn.BackgroundColor3, seismicBtn.TextColor3 = "OFF", Color3.fromRGB(40,20,20), Color3.fromRGB(255,100,100)
+        seismicBtn.Text = "OFF"
+        seismicBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        seismicBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
         restoreSeismic()
     end
 end
+
 seismicBtn.MouseButton1Click:Connect(toggleSeismic)
 seismicBtn.TouchTap:Connect(toggleSeismic)
 
@@ -888,4 +916,4 @@ frame.BackgroundTransparency = 0.08
 frame.Size = UDim2.new(0, 320, 0, 290)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Signs Edit mod added)")
+print("NZ-IS v6 - LOADED! (Seismic renamed, Grab Collections added)")
