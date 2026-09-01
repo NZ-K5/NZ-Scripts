@@ -47,8 +47,9 @@ local deleteFireLavaActive = false
 local deleteSeismicActive = false
 local antiInfectionActive = false
 local deleteOrbActive = false
-local toolCooldownActive = false
 local deleteBlackHoleActive = false
+local deleteLasersActive = false
+local toolCooldownActive = false
 
 local deletedInfect = {}
 local deletedKill = {}
@@ -59,6 +60,7 @@ local deletedFireLava = {}
 local deletedSeismic = {}
 local deletedOrb = {}
 local deletedBlackHole = {}
+local deletedLasers = {}
 local duplicatedSadWater = nil
 local originalSadWater = nil
 local toolCooldownLoop = nil
@@ -66,8 +68,8 @@ local toolCooldownValue = 0
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 370)
-frame.Position = UDim2.new(0.5, -175, 0.5, -185)
+frame.Size = UDim2.new(0, 350, 0, 400)
+frame.Position = UDim2.new(0.5, -175, 0.5, -200)
 frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 frame.BackgroundTransparency = 0.08
 frame.ClipsDescendants = true
@@ -168,7 +170,7 @@ local function createPage()
     pg.Size = UDim2.new(1, -10, 1, -74)
     pg.Position = UDim2.new(0, 5, 0, 65)
     pg.BackgroundTransparency = 1
-    pg.CanvasSize = UDim2.new(0, 0, 0, 580)
+    pg.CanvasSize = UDim2.new(0, 0, 0, 620)
     pg.ScrollBarThickness = 3
     pg.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 80)
     pg.Parent = frame
@@ -267,6 +269,10 @@ yOff = yOff + 28
 
 makeLabel("Disable BlackHole", yOff, modsPage, 110)
 local blackHoleBtn = makeToggle(yOff, modsPage)
+yOff = yOff + 28
+
+makeLabel("Disable Lasers", yOff, modsPage, 110)
+local lasersBtn = makeToggle(yOff, modsPage)
 yOff = yOff + 28
 
 -- Tool Cooldown
@@ -431,7 +437,7 @@ local function restoreItems(storage)
     return count
 end
 
--- ===== DISABLE INFECTPARTS (UPDATED) =====
+-- ===== DISABLE INFECTPARTS =====
 local function restoreInfect()
     local c = restoreItems(deletedInfect)
     if c > 0 then
@@ -447,10 +453,7 @@ end
 local function scanAndDeleteInfect()
     if not deleteInfectActive then restoreInfect(); return end
     local found = {}
-    
-    -- Check all descendants in Workspace
     for _, v in pairs(Workspace:GetDescendants()) do
-        -- Check if it's a part with a script inside that has "infect" in its name
         if v:IsA("BasePart") then
             local hasInfectScript = false
             for _, child in pairs(v:GetDescendants()) do
@@ -463,10 +466,7 @@ local function scanAndDeleteInfect()
                 table.insert(found, v)
             end
         end
-        
-        -- Also check for parts/models/folders with "infect" in their own name
         if (v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder")) and v.Name and string.lower(v.Name):find("infect") then
-            -- Avoid duplicates
             local alreadyFound = false
             for _, f in pairs(found) do
                 if f == v then alreadyFound = true; break end
@@ -476,7 +476,6 @@ local function scanAndDeleteInfect()
             end
         end
     end
-    
     deleteItems(found, deletedInfect)
     if #found > 0 then
         statusLabel.Text = "Deleted "..#found.." infected parts"
@@ -546,7 +545,7 @@ end
 killBtn.MouseButton1Click:Connect(function() safeToggle(toggleKill, "kill") end)
 killBtn.TouchTap:Connect(function() safeToggle(toggleKill, "kill") end)
 
--- ===== DISABLE SMILEGATES (UPDATED) =====
+-- ===== DISABLE SMILEGATES =====
 local function restoreSmileGates()
     local c = restoreItems(deletedSmileGates)
     if c > 0 then
@@ -972,6 +971,59 @@ end
 blackHoleBtn.MouseButton1Click:Connect(function() safeToggle(toggleBlackHole, "blackhole") end)
 blackHoleBtn.TouchTap:Connect(function() safeToggle(toggleBlackHole, "blackhole") end)
 
+-- ===== DISABLE LASERS (NEW) =====
+local function restoreLasers()
+    local c = restoreItems(deletedLasers)
+    if c > 0 then
+        statusLabel.Text = "Restored "..c.." lasers"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    else
+        statusLabel.Text = "No lasers to restore"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    end
+    return c
+end
+
+local function scanAndDeleteLasers()
+    if not deleteLasersActive then restoreLasers(); return end
+    local found = {}
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if (v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder") or v:IsA("Script") or v:IsA("LocalScript") or v:IsA("ModuleScript")) and v.Name then
+            local nl = string.lower(v.Name)
+            if nl:find("laser") then
+                table.insert(found, v)
+            end
+        end
+    end
+    deleteItems(found, deletedLasers)
+    if #found > 0 then
+        statusLabel.Text = "Deleted "..#found.." lasers"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    else
+        statusLabel.Text = "No lasers found"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+    end
+end
+
+local function toggleLasers()
+    deleteLasersActive = not deleteLasersActive
+    if deleteLasersActive then
+        lasersBtn.Text = "ON"
+        lasersBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
+        lasersBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        statusLabel.Text = "Scanning for lasers..."
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+        scanAndDeleteLasers()
+    else
+        lasersBtn.Text = "OFF"
+        lasersBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+        lasersBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        restoreLasers()
+    end
+end
+lasersBtn.MouseButton1Click:Connect(function() safeToggle(toggleLasers, "lasers") end)
+lasersBtn.TouchTap:Connect(function() safeToggle(toggleLasers, "lasers") end)
+
 -- ===== TOOL COOLDOWN =====
 local function applyToolCooldown(value)
     local count = 0
@@ -1276,7 +1328,7 @@ UserInputService.InputBegan:Connect(function(i, gp) if gp then return end; if i.
 
 -- ===== FORCE VISIBILITY =====
 frame.BackgroundTransparency = 0.08
-frame.Size = UDim2.new(0, 350, 0, 370)
+frame.Size = UDim2.new(0, 350, 0, 400)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Disable InfectParts & Disable SmileGates updated)")
+print("NZ-IS v6 - LOADED! (Disable Lasers added)")
