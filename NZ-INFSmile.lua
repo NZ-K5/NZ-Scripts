@@ -65,6 +65,7 @@ local duplicatedSadWater = nil
 local originalSadWater = nil
 local toolCooldownLoop = nil
 local toolCooldownValue = 0
+local seismicLoop = nil
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
@@ -441,10 +442,10 @@ end
 local function restoreInfect()
     local c = restoreItems(deletedInfect)
     if c > 0 then
-        statusLabel.Text = "Restored "..c.." infected parts"
+        statusLabel.Text = "Restored "..c.." infected/AggressiveSmiler items"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     else
-        statusLabel.Text = "No infected parts to restore"
+        statusLabel.Text = "No infected/AggressiveSmiler items to restore"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     end
     return c
@@ -466,22 +467,25 @@ local function scanAndDeleteInfect()
                 table.insert(found, v)
             end
         end
-        if (v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder")) and v.Name and string.lower(v.Name):find("infect") then
-            local alreadyFound = false
-            for _, f in pairs(found) do
-                if f == v then alreadyFound = true; break end
-            end
-            if not alreadyFound then
-                table.insert(found, v)
+        if (v:IsA("BasePart") or v:IsA("Model") or v:IsA("Folder")) and v.Name then
+            local nameLower = string.lower(v.Name)
+            if nameLower:find("infect") or nameLower:find("aggressivesmiler") then
+                local alreadyFound = false
+                for _, f in pairs(found) do
+                    if f == v then alreadyFound = true; break end
+                end
+                if not alreadyFound then
+                    table.insert(found, v)
+                end
             end
         end
     end
     deleteItems(found, deletedInfect)
     if #found > 0 then
-        statusLabel.Text = "Deleted "..#found.." infected parts"
+        statusLabel.Text = "Deleted "..#found.." infected/AggressiveSmiler items"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
     else
-        statusLabel.Text = "No infected parts found"
+        statusLabel.Text = "No infected/AggressiveSmiler items found"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
@@ -499,7 +503,7 @@ end
 infectBtn.MouseButton1Click:Connect(function() safeToggle(toggleInfect, "infect") end)
 infectBtn.TouchTap:Connect(function() safeToggle(toggleInfect, "infect") end)
 
--- ===== DISABLE KILL (UPDATED - Targets "KillBricks" folder only) =====
+-- ===== DISABLE KILL =====
 local function restoreKill()
     local c = restoreItems(deletedKill)
     if c > 0 then
@@ -515,14 +519,11 @@ end
 local function scanAndDeleteKill()
     if not deleteKillActive then restoreKill(); return end
     local found = {}
-    
-    -- Find any folder named exactly "KillBricks" (case-insensitive)
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("Folder") and v.Name and string.lower(v.Name) == "killbricks" then
             table.insert(found, v)
         end
     end
-    
     deleteItems(found, deletedKill)
     if #found > 0 then
         statusLabel.Text = "Deleted "..#found.." KillBricks folder(s)"
@@ -734,7 +735,7 @@ end
 fireLavaBtn.MouseButton1Click:Connect(function() safeToggle(toggleFireLava, "firelava") end)
 fireLavaBtn.TouchTap:Connect(function() safeToggle(toggleFireLava, "firelava") end)
 
--- ===== DISABLE SEISMIC =====
+-- ===== DISABLE SEISMIC (WITH PERSISTENT LOOP) =====
 local function restoreSeismic()
     local c = restoreItems(deletedSeismic)
     if c > 0 then
@@ -748,24 +749,53 @@ local function restoreSeismic()
 end
 
 local function scanAndDeleteSeismic()
-    if not deleteSeismicActive then restoreSeismic(); return end
+    if not deleteSeismicActive then 
+        if seismicLoop then
+            pcall(function() seismicLoop:Disconnect() end)
+            seismicLoop = nil
+        end
+        restoreSeismic() 
+        return 
+    end
+    
     local found = {}
     for _, v in pairs(Workspace:GetDescendants()) do
         if v:IsA("Model") and v.Name then
             local nl = string.lower(v.Name)
             if nl:find("seismic") or nl:find("water") then
-                table.insert(found, v)
+                -- Check if already in storage (to avoid duplicates)
+                local alreadyDeleted = false
+                for _, data in pairs(deletedSeismic) do
+                    if data.Item == v then
+                        alreadyDeleted = true
+                        break
+                    end
+                end
+                if not alreadyDeleted then
+                    table.insert(found, v)
+                end
             end
         end
     end
+    
     deleteItems(found, deletedSeismic)
     if #found > 0 then
         statusLabel.Text = "Deleted "..#found.." seismic/water models"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    else
-        statusLabel.Text = "No seismic/water models found"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
+end
+
+local function startSeismicLoop()
+    if seismicLoop then
+        pcall(function() seismicLoop:Disconnect() end)
+        seismicLoop = nil
+    end
+    
+    seismicLoop = RunService.Heartbeat:Connect(function()
+        if deleteSeismicActive then
+            scanAndDeleteSeismic()
+        end
+    end)
 end
 
 local function toggleSeismic()
@@ -774,14 +804,24 @@ local function toggleSeismic()
         seismicBtn.Text = "ON"
         seismicBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         seismicBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning..."
+        statusLabel.Text = "Scanning for seismic/water (persistent)..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
         scanAndDeleteSeismic()
+        startSeismicLoop()
     else
         seismicBtn.Text = "OFF"
         seismicBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
         seismicBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        if seismicLoop then
+            pcall(function() seismicLoop:Disconnect() end)
+            seismicLoop = nil
+        end
         restoreSeismic()
+        statusLabel.Text = "Seismic/Water scanning stopped"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        task.wait(0.5)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
     end
 end
 seismicBtn.MouseButton1Click:Connect(function() safeToggle(toggleSeismic, "seismic") end)
@@ -1243,6 +1283,10 @@ local function destroyGUI()
         pcall(function() toolCooldownLoop:Disconnect() end)
         toolCooldownLoop = nil
     end
+    if seismicLoop then
+        pcall(function() seismicLoop:Disconnect() end)
+        seismicLoop = nil
+    end
     root:Destroy()
     blur:Destroy()
 end
@@ -1332,4 +1376,4 @@ frame.BackgroundTransparency = 0.08
 frame.Size = UDim2.new(0, 350, 0, 400)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Disable Kill now targets KillBricks folder)")
+print("NZ-IS v6 - LOADED! (Seismic now has persistent loop)")
