@@ -66,6 +66,7 @@ local originalSadWater = nil
 local toolCooldownLoop = nil
 local toolCooldownValue = 0
 local seismicLoop = nil
+local lastSeismicScan = 0
 
 -- ===== MAIN FRAME =====
 local frame = Instance.new("Frame")
@@ -503,7 +504,7 @@ end
 infectBtn.MouseButton1Click:Connect(function() safeToggle(toggleInfect, "infect") end)
 infectBtn.TouchTap:Connect(function() safeToggle(toggleInfect, "infect") end)
 
--- ===== DISABLE KILL (UPDATED - Targets "KillBricks" folder AND "KillZone" parts) =====
+-- ===== DISABLE KILL =====
 local function restoreKill()
     local c = restoreItems(deletedKill)
     if c > 0 then
@@ -519,19 +520,14 @@ end
 local function scanAndDeleteKill()
     if not deleteKillActive then restoreKill(); return end
     local found = {}
-    
     for _, v in pairs(Workspace:GetDescendants()) do
-        -- Check for "KillBricks" folder (exact name match)
         if v:IsA("Folder") and v.Name and string.lower(v.Name) == "killbricks" then
             table.insert(found, v)
         end
-        
-        -- Check for "KillZone" parts (exact name match, case-insensitive)
         if v:IsA("BasePart") and v.Name and string.lower(v.Name) == "killzone" then
             table.insert(found, v)
         end
     end
-    
     deleteItems(found, deletedKill)
     if #found > 0 then
         statusLabel.Text = "Deleted "..#found.." KillBricks/KillZone items"
@@ -743,7 +739,7 @@ end
 fireLavaBtn.MouseButton1Click:Connect(function() safeToggle(toggleFireLava, "firelava") end)
 fireLavaBtn.TouchTap:Connect(function() safeToggle(toggleFireLava, "firelava") end)
 
--- ===== DISABLE SEISMIC (WITH PERSISTENT LOOP) =====
+-- ===== DISABLE SEISMIC (WITH 5-SECOND LOOP) =====
 local function restoreSeismic()
     local c = restoreItems(deletedSeismic)
     if c > 0 then
@@ -798,9 +794,16 @@ local function startSeismicLoop()
         seismicLoop = nil
     end
     
+    -- Run immediately once
+    scanAndDeleteSeismic()
+    
+    -- Then run every 5 seconds
     seismicLoop = RunService.Heartbeat:Connect(function()
         if deleteSeismicActive then
-            scanAndDeleteSeismic()
+            -- Only run every ~5 seconds (300 frames at 60fps)
+            if tick() % 5 < 0.05 then
+                scanAndDeleteSeismic()
+            end
         end
     end)
 end
@@ -811,9 +814,8 @@ local function toggleSeismic()
         seismicBtn.Text = "ON"
         seismicBtn.BackgroundColor3 = Color3.fromRGB(20, 60, 30)
         seismicBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        statusLabel.Text = "Scanning for seismic/water (persistent)..."
+        statusLabel.Text = "Scanning for seismic/water (every 5s)..."
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-        scanAndDeleteSeismic()
         startSeismicLoop()
     else
         seismicBtn.Text = "OFF"
@@ -1383,4 +1385,4 @@ frame.BackgroundTransparency = 0.08
 frame.Size = UDim2.new(0, 350, 0, 400)
 blur.Size = 3
 
-print("NZ-IS v6 - LOADED! (Kill now targets KillBricks folder AND KillZone parts)")
+print("NZ-IS v6 - LOADED! (Seismic scans every 5 seconds)")
