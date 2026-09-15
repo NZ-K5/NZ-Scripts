@@ -1,0 +1,699 @@
+--[[ A-Chassis NZ-Hub
+     - Throttle-aware speed boost for A-Chassis vehicles
+     - Textbox thrust entry with Apply
+     - Title-bar-only drag
+     - Smooth open / minimize / hover animations
+]]
+
+local Players            = game:GetService("Players")
+local RunService         = game:GetService("RunService")
+local UserInputService   = game:GetService("UserInputService")
+local TweenService       = game:GetService("TweenService")
+local CoreGui            = game:GetService("CoreGui")
+
+local player = Players.LocalPlayer
+local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+
+if _G.__NZHub then
+    pcall(function() _G.__NZHub:Destroy() end)
+    _G.__NZHub = nil
+end
+
+--------------------------------------------------------------------
+-- CONFIG
+--------------------------------------------------------------------
+local MIN_SPEED      = 2
+local MAX_SPEED_SOFT = 400
+local DEFAULT_THRUST = 8000
+local THRUST_CEILING = 1e9    -- sanity max for the textbox
+
+local KEY_FORWARD = Enum.KeyCode.W
+local KEY_BACK    = Enum.KeyCode.S
+
+-- Palette
+local COL_BG        = Color3.fromRGB(18, 19, 24)
+local COL_BG_ALT    = Color3.fromRGB(26, 27, 34)
+local COL_BORDER    = Color3.fromRGB(48, 50, 62)
+local COL_TEXT      = Color3.fromRGB(230, 232, 240)
+local COL_TEXT_DIM  = Color3.fromRGB(130, 134, 152)
+local COL_ACCENT    = Color3.fromRGB(88, 140, 255)
+local COL_ACCENT_HI = Color3.fromRGB(112, 162, 255)
+local COL_GREEN     = Color3.fromRGB(72, 196, 120)
+local COL_RED       = Color3.fromRGB(214, 78, 78)
+
+--------------------------------------------------------------------
+-- GUI ROOT
+--------------------------------------------------------------------
+local gui = Instance.new("ScreenGui")
+gui.Name = "NZHub"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local ok = pcall(function() gui.Parent = CoreGui end)
+if not ok then gui.Parent = player:WaitForChild("PlayerGui") end
+
+local function corner(obj, r)
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, r); c.Parent = obj; return c
+end
+local function stroke(obj, col, t)
+    local s = Instance.new("UIStroke"); s.Color = col; s.Thickness = t or 1; s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border; s.Parent = obj; return s
+end
+
+-- Root window
+local main = Instance.new("Frame")
+main.Name = "Window"
+main.Size = UDim2.new(0, 300, 0, 0)   -- starts at 0 height for the open animation
+main.Position = UDim2.new(0.5, -150, 0.45, -130)
+main.BackgroundColor3 = COL_BG
+main.BorderSizePixel = 0
+main.ClipsDescendants = true
+main.Parent = gui
+corner(main, 12)
+stroke(main, COL_BORDER, 1)
+
+_G.__NZHub = gui
+
+-- Title bar (draggable)
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 36)
+titleBar.BackgroundColor3 = COL_BG_ALT
+titleBar.BorderSizePixel = 0
+titleBar.Parent = main
+corner(titleBar, 12)
+
+-- Little fill under the bar so its bottom corners aren't rounded
+local barUnderlay = Instance.new("Frame")
+barUnderlay.Size = UDim2.new(1, 0, 0, 12)
+barUnderlay.Position = UDim2.new(0, 0, 1, -12)
+barUnderlay.BackgroundColor3 = COL_BG_ALT
+barUnderlay.BorderSizePixel = 0
+barUnderlay.Parent = titleBar
+
+-- Accent strip on the left edge of title
+local accent = Instance.new("Frame")
+accent.Size = UDim2.new(0, 3, 0, 16)
+accent.Position = UDim2.new(0, 12, 0.5, -8)
+accent.BackgroundColor3 = COL_ACCENT
+accent.BorderSizePixel = 0
+accent.Parent = titleBar
+corner(accent, 2)
+
+-- Title text
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -90, 1, 0)
+title.Position = UDim2.new(0, 22, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "A-Chassis NZ-Hub"
+title.TextColor3 = COL_TEXT
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleBar
+
+-- Minimize button
+local minBtn = Instance.new("TextButton")
+minBtn.Name = "MinBtn"
+minBtn.Size = UDim2.new(0, 24, 0, 24)
+minBtn.Position = UDim2.new(1, -32, 0.5, -12)
+minBtn.BackgroundColor3 = Color3.fromRGB(38, 39, 48)
+minBtn.Text = "–"
+minBtn.TextColor3 = COL_TEXT_DIM
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 16
+minBtn.BorderSizePixel = 0
+minBtn.AutoButtonColor = false
+minBtn.Parent = titleBar
+corner(minBtn, 6)
+
+minBtn.MouseEnter:Connect(function()
+    TweenService:Create(minBtn, TweenInfo.new(0.15), {BackgroundColor3 = COL_ACCENT, TextColor3 = COL_TEXT}):Play()
+end)
+minBtn.MouseLeave:Connect(function()
+    TweenService:Create(minBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(38,39,48), TextColor3 = COL_TEXT_DIM}):Play()
+end)
+
+--------------------------------------------------------------------
+-- BODY
+--------------------------------------------------------------------
+local body = Instance.new("Frame")
+body.Name = "Body"
+body.Size = UDim2.new(1, 0, 1, -36)
+body.Position = UDim2.new(0, 0, 0, 36)
+body.BackgroundTransparency = 1
+body.Parent = main
+
+local pad = 14
+
+-- Status
+local status = Instance.new("TextLabel")
+status.Name = "Status"
+status.Size = UDim2.new(1, -pad*2, 0, 16)
+status.Position = UDim2.new(0, pad, 0, 10)
+status.BackgroundTransparency = 1
+status.Text = "Waiting for vehicle..."
+status.TextColor3 = COL_TEXT_DIM
+status.Font = Enum.Font.Gotham
+status.TextSize = 11
+status.TextXAlignment = Enum.TextXAlignment.Left
+status.Parent = body
+
+-- Input indicator
+local inputState = Instance.new("TextLabel")
+inputState.Name = "InputState"
+inputState.Size = UDim2.new(1, -pad*2, 0, 14)
+inputState.Position = UDim2.new(0, pad, 0, 28)
+inputState.BackgroundTransparency = 1
+inputState.Text = "Input  —"
+inputState.TextColor3 = COL_TEXT_DIM
+inputState.Font = Enum.Font.Gotham
+inputState.TextSize = 10
+inputState.TextXAlignment = Enum.TextXAlignment.Left
+inputState.Parent = body
+
+-- Thrust label
+local thrustLabel = Instance.new("TextLabel")
+thrustLabel.Name = "ThrustLabel"
+thrustLabel.Size = UDim2.new(1, -pad*2, 0, 14)
+thrustLabel.Position = UDim2.new(0, pad, 0, 50)
+thrustLabel.BackgroundTransparency = 1
+thrustLabel.Text = "Thrust"
+thrustLabel.TextColor3 = COL_TEXT_DIM
+thrustLabel.Font = Enum.Font.Gotham
+thrustLabel.TextSize = 10
+thrustLabel.TextXAlignment = Enum.TextXAlignment.Left
+thrustLabel.Parent = body
+
+-- Row: textbox + apply
+local row = Instance.new("Frame")
+row.Name = "InputRow"
+row.Size = UDim2.new(1, -pad*2, 0, 34)
+row.Position = UDim2.new(0, pad, 0, 66)
+row.BackgroundTransparency = 1
+row.Parent = body
+
+local thrustBox = Instance.new("TextBox")
+thrustBox.Name = "ThrustBox"
+thrustBox.Size = UDim2.new(1, -80, 1, 0)
+thrustBox.BackgroundColor3 = COL_BG_ALT
+thrustBox.Text = tostring(DEFAULT_THRUST)
+thrustBox.PlaceholderText = "enter thrust"
+thrustBox.TextColor3 = COL_TEXT
+thrustBox.PlaceholderColor3 = COL_TEXT_DIM
+thrustBox.Font = Enum.Font.GothamMedium
+thrustBox.TextSize = 13
+thrustBox.BorderSizePixel = 0
+thrustBox.ClearTextOnFocus = false
+thrustBox.Parent = row
+corner(thrustBox, 8)
+local boxStroke = stroke(thrustBox, COL_BORDER, 1)
+
+local applyBtn = Instance.new("TextButton")
+applyBtn.Name = "ApplyBtn"
+applyBtn.Size = UDim2.new(0, 70, 1, 0)
+applyBtn.Position = UDim2.new(1, -70, 0, 0)
+applyBtn.BackgroundColor3 = COL_ACCENT
+applyBtn.Text = "Apply"
+applyBtn.TextColor3 = COL_TEXT
+applyBtn.Font = Enum.Font.GothamBold
+applyBtn.TextSize = 12
+applyBtn.BorderSizePixel = 0
+applyBtn.AutoButtonColor = false
+applyBtn.Parent = row
+corner(applyBtn, 8)
+
+applyBtn.MouseEnter:Connect(function()
+    TweenService:Create(applyBtn, TweenInfo.new(0.15), {BackgroundColor3 = COL_ACCENT_HI}):Play()
+end)
+applyBtn.MouseLeave:Connect(function()
+    TweenService:Create(applyBtn, TweenInfo.new(0.15), {BackgroundColor3 = COL_ACCENT}):Play()
+end)
+
+-- Enable toggle
+local enableBtn = Instance.new("TextButton")
+enableBtn.Name = "EnableBtn"
+enableBtn.Size = UDim2.new(1, -pad*2, 0, 38)
+enableBtn.Position = UDim2.new(0, pad, 0, 112)
+enableBtn.BackgroundColor3 = COL_BG_ALT
+enableBtn.Text = "Boost Offline"
+enableBtn.TextColor3 = COL_TEXT_DIM
+enableBtn.Font = Enum.Font.GothamBold
+enableBtn.TextSize = 13
+enableBtn.BorderSizePixel = 0
+enableBtn.AutoButtonColor = false
+enableBtn.Parent = body
+corner(enableBtn, 8)
+local enableStroke = stroke(enableBtn, COL_BORDER, 1)
+
+-- Info line
+local info = Instance.new("TextLabel")
+info.Name = "Info"
+info.Size = UDim2.new(1, -pad*2, 0, 12)
+info.Position = UDim2.new(0, pad, 0, 158)
+info.BackgroundTransparency = 1
+info.Text = ""
+info.TextColor3 = COL_TEXT_DIM
+info.Font = Enum.Font.Gotham
+info.TextSize = 9
+info.TextXAlignment = Enum.TextXAlignment.Left
+info.Parent = body
+
+-- Padding-bottom marker for full height
+local FULL_HEIGHT = 186
+local MIN_HEIGHT  = 36
+
+--------------------------------------------------------------------
+-- Resize helper
+--------------------------------------------------------------------
+local function tweenSize(newHeight)
+    local tween = TweenService:Create(main, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, main.Size.X.Offset, 0, newHeight),
+    })
+    tween:Play()
+end
+
+-- Opening animation
+main.Size = UDim2.new(0, 300, 0, MIN_HEIGHT)
+if isMobile then
+    main.Size = UDim2.new(0, 260, 0, MIN_HEIGHT)
+    main.Position = UDim2.new(0.5, -130, 0.35, -100)
+end
+task.spawn(function()
+    task.wait(0.05)
+    tweenSize(FULL_HEIGHT)
+end)
+
+--------------------------------------------------------------------
+-- Title-bar drag
+--------------------------------------------------------------------
+local dragging, dragInput, dragStart, startPos
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    main.Position = UDim2.new(
+        startPos.X.Scale, startPos.X.Offset + delta.X,
+        startPos.Y.Scale, startPos.Y.Offset + delta.Y
+    )
+end
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+    end
+end)
+titleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updateDrag(input)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+--------------------------------------------------------------------
+-- Minimize
+--------------------------------------------------------------------
+local minimized = false
+minBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    local target = minimized and MIN_HEIGHT or FULL_HEIGHT
+    tweenSize(target)
+    if minimized then
+        minBtn.Text = "+"
+    else
+        minBtn.Text = "–"
+    end
+    body.Visible = not minimized
+end)
+
+--------------------------------------------------------------------
+-- Input state
+--------------------------------------------------------------------
+local forwardHeld = false
+local backHeld    = false
+
+local function updateInputLabel()
+    if forwardHeld and backHeld then
+        inputState.Text = "Input  forward + back"
+        inputState.TextColor3 = Color3.fromRGB(230, 200, 120)
+    elseif forwardHeld then
+        inputState.Text = "Input  forward"
+        inputState.TextColor3 = COL_GREEN
+    elseif backHeld then
+        inputState.Text = "Input  backward"
+        inputState.TextColor3 = Color3.fromRGB(230, 150, 120)
+    else
+        inputState.Text = "Input  —"
+        inputState.TextColor3 = COL_TEXT_DIM
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+    if input.KeyCode == KEY_FORWARD then forwardHeld = true; updateInputLabel()
+    elseif input.KeyCode == KEY_BACK then backHeld = true; updateInputLabel() end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+    if input.KeyCode == KEY_FORWARD then forwardHeld = false; updateInputLabel()
+    elseif input.KeyCode == KEY_BACK then backHeld = false; updateInputLabel() end
+end)
+
+--------------------------------------------------------------------
+-- Hook FullThrottle / FullBrake
+--------------------------------------------------------------------
+local hookedButtons = {}
+local function hookButton(btn, setter)
+    if not btn or hookedButtons[btn] then return end
+    hookedButtons[btn] = true
+
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            setter(true); updateInputLabel()
+        end
+    end)
+    btn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+            or input.UserInputType == Enum.UserInputType.Touch then
+            setter(false); updateInputLabel()
+        end
+    end)
+    btn.MouseButton1Down:Connect(function() setter(true); updateInputLabel() end)
+    btn.MouseButton1Up:Connect(function() setter(false); updateInputLabel() end)
+end
+
+local function findAndHookCarButtons()
+    local pg = player:FindFirstChild("PlayerGui")
+    if not pg then return end
+
+    local aci = pg:FindFirstChild("A-Chassis Interface")
+    if aci then
+        local gauges = aci:FindFirstChild("Gauges")
+        local guiFolder = gauges and gauges:FindFirstChild("GUI")
+        if guiFolder then
+            local ft = guiFolder:FindFirstChild("FullThrottle")
+            local fb = guiFolder:FindFirstChild("FullBrake")
+            if ft then hookButton(ft, function(v) forwardHeld = v end) end
+            if fb then hookButton(fb, function(v) backHeld = v end) end
+        end
+    end
+
+    for _, d in ipairs(pg:GetDescendants()) do
+        if d:IsA("TextButton") or d:IsA("ImageButton") then
+            if d.Name == "FullThrottle" then hookButton(d, function(v) forwardHeld = v end)
+            elseif d.Name == "FullBrake" then hookButton(d, function(v) backHeld = v end) end
+        end
+    end
+end
+
+findAndHookCarButtons()
+RunService.Heartbeat:Connect(findAndHookCarButtons)
+
+--------------------------------------------------------------------
+-- Seat detection
+--------------------------------------------------------------------
+local currentCar = nil
+local flipState  = nil
+
+local function getCarFromSeat(seat)
+    if not seat then return nil end
+    local a = seat
+    while a and a.Parent do
+        a = a.Parent
+        if a:IsA("Model") then return a end
+    end
+    return nil
+end
+
+local function getChassisPart(car)
+    if not car then return nil end
+    local preferred = { "Body", "Chassis", "CarBody", "Base", "Drive", "Hull" }
+    for _, name in ipairs(preferred) do
+        local p = car:FindFirstChild(name, true)
+        if p and p:IsA("BasePart") then return p end
+    end
+    if car.PrimaryPart and car.PrimaryPart:IsA("BasePart") then
+        return car.PrimaryPart
+    end
+    local biggest, biggestSize = nil, 0
+    for _, d in ipairs(car:GetChildren()) do
+        if d:IsA("BasePart") then
+            local s = d.Size.X * d.Size.Y * d.Size.Z
+            if s > biggestSize then biggest, biggestSize = d, s end
+        end
+    end
+    return biggest
+end
+
+local function onSeated(seat)
+    currentCar = getCarFromSeat(seat)
+    flipState = nil
+    if currentCar then
+        status.Text = currentCar.Name
+        status.TextColor3 = COL_GREEN
+        local chassis = getChassisPart(currentCar)
+        info.Text = chassis and ("chassis  " .. chassis.Name) or "chassis not found"
+    else
+        status.Text = "Seated, no car found"
+        status.TextColor3 = Color3.fromRGB(230, 190, 90)
+        info.Text = ""
+    end
+end
+
+local function onUnseated()
+    stopThrust()
+    currentCar = nil
+    flipState = nil
+    status.Text = "Waiting for vehicle..."
+    status.TextColor3 = COL_TEXT_DIM
+    info.Text = ""
+end
+
+local function bindCharacter(char)
+    local humanoid = char:WaitForChild("Humanoid", 5)
+    if not humanoid then return end
+    humanoid.Seated:Connect(function(isSeated, seat)
+        if isSeated then onSeated(seat) else onUnseated() end
+    end)
+    if humanoid.SeatPart then onSeated(humanoid.SeatPart) end
+end
+
+if player.Character then bindCharacter(player.Character) end
+player.CharacterAdded:Connect(bindCharacter)
+
+--------------------------------------------------------------------
+-- Throttle value finder
+--------------------------------------------------------------------
+local cachedThrottle = nil
+local function findThrottleValue()
+    if cachedThrottle and cachedThrottle.Parent then return cachedThrottle end
+    local pg = player:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+
+    local aci = pg:FindFirstChild("A-Chassis Interface")
+    if aci then
+        local values = aci:FindFirstChild("Values")
+        if values then
+            local vel = values:FindFirstChild("Velocity")
+            if vel and vel:IsA("Vector3Value") then
+                cachedThrottle = vel
+                return vel
+            end
+        end
+    end
+
+    for _, d in ipairs(pg:GetDescendants()) do
+        if d:IsA("Vector3Value") and d.Name:lower() == "velocity" then
+            cachedThrottle = d
+            return d
+        end
+    end
+    return nil
+end
+
+--------------------------------------------------------------------
+-- Thrust loop
+--------------------------------------------------------------------
+local activeForce  = nil
+local activeAttach = nil
+local forceConn    = nil
+local enabled      = false
+local currentThrust = DEFAULT_THRUST
+
+local function stopThrust()
+    if forceConn then forceConn:Disconnect() forceConn = nil end
+    if activeForce then pcall(function() activeForce:Destroy() end) activeForce = nil end
+    if activeAttach then pcall(function() activeAttach:Destroy() end) activeAttach = nil end
+end
+
+local function ensureForceObjects(chassis)
+    if activeForce and activeForce.Parent == chassis then return end
+    if activeForce then pcall(function() activeForce:Destroy() end) end
+    if activeAttach then pcall(function() activeAttach:Destroy() end) end
+    activeAttach = Instance.new("Attachment")
+    activeAttach.Name = "_NZAttach"
+    activeAttach.Parent = chassis
+
+    activeForce = Instance.new("VectorForce")
+    activeForce.Name = "_NZForce"
+    activeForce.Attachment0 = activeAttach
+    activeForce.RelativeTo = Enum.ActuatorRelativeTo.World
+    activeForce.ApplyAtCenterOfMass = true
+    activeForce.Force = Vector3.zero
+    activeForce.Parent = chassis
+end
+
+local function startLoop()
+    if forceConn then forceConn:Disconnect() forceConn = nil end
+
+    forceConn = RunService.Heartbeat:Connect(function()
+        if not enabled then return end
+        if not currentCar or not currentCar.Parent then return end
+
+        local chassis = getChassisPart(currentCar)
+        if not chassis then return end
+        ensureForceObjects(chassis)
+
+        if not forwardHeld or backHeld then
+            if activeForce then activeForce.Force = Vector3.zero end
+            return
+        end
+
+        local facing = chassis.CFrame.LookVector
+        local flat = Vector3.new(facing.X, 0, facing.Z)
+        if flat.Magnitude < 0.01 then
+            activeForce.Force = Vector3.zero
+            return
+        end
+
+        if flipState == nil then
+            local tVal = findThrottleValue()
+            if tVal then
+                local t = tVal.Value
+                local flatT = Vector3.new(t.X, 0, t.Z)
+                if flatT.Magnitude > 0.01 then
+                    local worldDir = (chassis.CFrame:VectorToWorldSpace(flatT)).Unit
+                    flipState = worldDir:Dot(flat.Unit) < 0
+                end
+            end
+        end
+        if flipState == nil then
+            local v = chassis.AssemblyLinearVelocity
+            local vFlat = Vector3.new(v.X, 0, v.Z)
+            if vFlat.Magnitude > 5 then
+                flipState = vFlat.Unit:Dot(flat.Unit) < 0
+            end
+        end
+        if flipState == true then flat = -flat end
+        flat = flat.Unit
+
+        local speed = chassis.AssemblyLinearVelocity.Magnitude
+        local capFactor = 1
+        if speed > MAX_SPEED_SOFT then
+            capFactor = math.clamp(1 - (speed - MAX_SPEED_SOFT) / 100, 0, 1)
+        end
+
+        local strength = currentThrust * capFactor
+        if speed < MIN_SPEED then strength = currentThrust * 0.5 end
+
+        activeForce.Force = flat * strength
+    end)
+end
+
+--------------------------------------------------------------------
+-- Enable toggle
+--------------------------------------------------------------------
+local function setEnabled(state)
+    enabled = state
+    if enabled then
+        enableBtn.Text = "Boost Online"
+        TweenService:Create(enableBtn, TweenInfo.new(0.18), {
+            BackgroundColor3 = COL_GREEN,
+            TextColor3 = Color3.fromRGB(255,255,255)
+        }):Play()
+        TweenService:Create(enableStroke, TweenInfo.new(0.18), {
+            Color = COL_GREEN
+        }):Play()
+        startLoop()
+    else
+        enableBtn.Text = "Boost Offline"
+        TweenService:Create(enableBtn, TweenInfo.new(0.18), {
+            BackgroundColor3 = COL_BG_ALT,
+            TextColor3 = COL_TEXT_DIM
+        }):Play()
+        TweenService:Create(enableStroke, TweenInfo.new(0.18), {
+            Color = COL_BORDER
+        }):Play()
+        stopThrust()
+        updateInputLabel()
+    end
+end
+
+enableBtn.MouseButton1Click:Connect(function()
+    if not currentCar then
+        status.Text = "Sit in a car first"
+        status.TextColor3 = COL_RED
+        return
+    end
+    setEnabled(not enabled)
+end)
+
+--------------------------------------------------------------------
+-- Textbox + Apply
+--------------------------------------------------------------------
+applyBtn.MouseButton1Click:Connect(function()
+    local n = tonumber(thrustBox.Text)
+    if not n or n < 0 then
+        thrustBox.TextColor3 = COL_RED
+        TweenService:Create(thrustBox, TweenInfo.new(0.4), {TextColor3 = COL_TEXT}):Play()
+        return
+    end
+    currentThrust = math.min(n, THRUST_CEILING)
+    thrustBox.Text = tostring(currentThrust)
+    -- quick confirmation flash
+    TweenService:Create(boxStroke, TweenInfo.new(0.12), {Color = COL_GREEN}):Play()
+    task.delay(0.25, function()
+        if boxStroke then
+            TweenService:Create(boxStroke, TweenInfo.new(0.35), {Color = COL_BORDER}):Play()
+        end
+    end)
+end)
+
+-- Enter key also applies
+thrustBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        applyBtn:FireClickEvent and nil
+        -- simulate click
+        applyBtn.MouseButton1Click:Connect(function() end) -- no-op; just call the same logic
+        local n = tonumber(thrustBox.Text)
+        if n and n >= 0 then
+            currentThrust = math.min(n, THRUST_CEILING)
+            thrustBox.Text = tostring(currentThrust)
+            TweenService:Create(boxStroke, TweenInfo.new(0.12), {Color = COL_GREEN}):Play()
+            task.delay(0.25, function()
+                if boxStroke then
+                    TweenService:Create(boxStroke, TweenInfo.new(0.35), {Color = COL_BORDER}):Play()
+                end
+            end)
+        else
+            thrustBox.TextColor3 = COL_RED
+            TweenService:Create(thrustBox, TweenInfo.new(0.4), {TextColor3 = COL_TEXT}):Play()
+        end
+    end
+end)
+
+gui.Destroying:Connect(function() stopThrust() end)
