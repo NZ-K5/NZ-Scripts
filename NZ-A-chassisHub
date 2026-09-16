@@ -1,6 +1,6 @@
 --[[ A-Chassis NZ-Hub + Car Fly + Body Fling (Click/Hold) + Sit on Hood
-     - Car Fly now supports PC keys (W/S/A/D for movement, Q/E for up/down)
-     - Speed textbox + Apply for fly speed
+     - Mobile position fix: hub + fly windows land in the safe zone
+     - Drag clamp: can't drag title bars off-screen
 ]]
 
 local Players            = game:GetService("Players")
@@ -30,7 +30,6 @@ local MAX_SPEED_SOFT = 400
 local DEFAULT_THRUST = 8000
 local THRUST_CEILING = 1e9
 
--- Fly (now editable)
 local FLY_SPEED_DEFAULT = 90
 local FLY_VERT_SPEED_DEFAULT = 60
 local FLY_SPEED_MIN = 1
@@ -91,7 +90,6 @@ _G.__NZFlyHold = {
     forward = false, back = false, up = false, down = false, left = false, right = false,
 }
 
--- Current fly speed (editable via GUI)
 local currentFlySpeed     = FLY_SPEED_DEFAULT
 local currentFlyVertSpeed = FLY_VERT_SPEED_DEFAULT
 
@@ -215,7 +213,7 @@ local function getRigType(char)
 end
 
 --------------------------------------------------------------------
--- TITLE BAR
+-- TITLE BAR (with drag clamp)
 --------------------------------------------------------------------
 local function makeTitleBar(parent, titleText, onDelete)
     local titleBar = Instance.new("Frame")
@@ -279,6 +277,23 @@ local function makeTitleBar(parent, titleText, onDelete)
     corner(minBtn, 6)
 
     local dragging, dragInput, dragStart, startPos
+
+    -- Clamp parent window to viewport so title bar stays reachable
+    local function clampParent()
+        local vp = camera.ViewportSize
+        local abs = parent.AbsolutePosition
+        local size = parent.AbsoluteSize
+        local minX = -(size.X - 60)   -- keep at least 60px visible horizontally
+        local maxX = vp.X - 60
+        local minY = 0                -- never let title bar go above screen
+        local maxY = vp.Y - 50        -- keep at least 50px of title bar visible at bottom
+        local newX = math.clamp(abs.X, minX, maxX)
+        local newY = math.clamp(abs.Y, minY, maxY)
+        if newX ~= abs.X or newY ~= abs.Y then
+            parent.Position = UDim2.new(0, newX, 0, newY)
+        end
+    end
+
     titleBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
@@ -305,7 +320,10 @@ local function makeTitleBar(parent, titleText, onDelete)
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
+            if dragging then
+                dragging = false
+                clampParent()
+            end
         end
     end)
 
@@ -332,7 +350,9 @@ _G.__NZHub = hubGui
 local hubMain = Instance.new("Frame")
 hubMain.Name = "Window"
 hubMain.Size = UDim2.new(0, 300, 0, 0)
-hubMain.Position = UDim2.new(0.5, -150, 0.45, -190)
+-- Position: middle of screen horizontally, upper-middle vertically.
+-- Y offset is scaled + absolute so it adapts to short/tall screens.
+hubMain.Position = UDim2.new(0.5, -150, 0.4, -120)
 hubMain.BackgroundColor3 = COL_BG
 hubMain.BorderSizePixel = 0
 hubMain.ClipsDescendants = true
@@ -569,11 +589,14 @@ local function tweenHub(h)
     }):Play()
 end
 
-hubMain.Size = UDim2.new(0, 300, 0, HUB_MIN_H)
+-- Mobile: smaller window, positioned lower so the top bar is tappable
 if isMobile then
     hubMain.Size = UDim2.new(0, 260, 0, HUB_MIN_H)
-    hubMain.Position = UDim2.new(0.5, -130, 0.35, -176)
+    hubMain.Position = UDim2.new(0.5, -130, 0.4, -60)
+else
+    hubMain.Size = UDim2.new(0, 300, 0, HUB_MIN_H)
 end
+
 task.spawn(function()
     task.wait(0.05)
     tweenHub(HUB_FULL_H)
@@ -588,7 +611,7 @@ hubMinBtn.MouseButton1Click:Connect(function()
 end)
 
 --------------------------------------------------------------------
--- INPUT (forward/back for the boost system)
+-- INPUT (forward/back for boost)
 --------------------------------------------------------------------
 local function updateInputLabel()
     if state.forwardHeld and state.backHeld then
@@ -768,8 +791,7 @@ local function startLoop()
         local flat = Vector3.new(facing.X, 0, facing.Z)
         if flat.Magnitude < 0.01 then
             activeForce.Force = Vector3.zero
-            return
-        end
+            return        end
 
         if state.flipState == nil then
             local tVal = findThrottleValue()
@@ -929,7 +951,6 @@ local function stopFly()
 end
 _G.__NZFlyStop = stopFly
 
--- PC keyboard state for fly
 local flyKeys = {
     [KEY_FORWARD] = "forward",
     [KEY_BACK]    = "back",
@@ -1029,7 +1050,8 @@ local function openFlyGui()
     local flyMain = Instance.new("Frame")
     flyMain.Name = "Window"
     flyMain.Size = UDim2.new(0, 300, 0, 0)
-    flyMain.Position = UDim2.new(0.5, 60, 0.45, -180)
+    -- Lower position so title bar is reachable on mobile
+    flyMain.Position = UDim2.new(0.5, 60, 0.5, -60)
     flyMain.BackgroundColor3 = COL_BG
     flyMain.BorderSizePixel = 0
     flyMain.ClipsDescendants = true
@@ -1070,7 +1092,6 @@ local function openFlyGui()
     flyHint.TextXAlignment = Enum.TextXAlignment.Left
     flyHint.Parent = flyBody
 
-    -- Speed label
     local speedLabel = Instance.new("TextLabel")
     speedLabel.Size = UDim2.new(1, -pad*2, 0, 12)
     speedLabel.Position = UDim2.new(0, pad, 0, 46)
@@ -1082,7 +1103,6 @@ local function openFlyGui()
     speedLabel.TextXAlignment = Enum.TextXAlignment.Left
     speedLabel.Parent = flyBody
 
-    -- Speed textbox + Apply
     local speedRow = Instance.new("Frame")
     speedRow.Size = UDim2.new(1, -pad*2, 0, 30)
     speedRow.Position = UDim2.new(0, pad, 0, 62)
@@ -1126,7 +1146,7 @@ local function openFlyGui()
         end
         local clamped = math.clamp(n, FLY_SPEED_MIN, FLY_SPEED_MAX)
         currentFlySpeed = clamped
-        currentFlyVertSpeed = clamped * 0.66  -- vertical ~66% of horizontal
+        currentFlyVertSpeed = clamped * 0.66
         speedBox.Text = tostring(clamped)
         flashOk(speedBoxStroke)
     end
@@ -1136,7 +1156,6 @@ local function openFlyGui()
         if enterPressed then applySpeed() end
     end)
 
-    -- Direction pad
     local dirPad = Instance.new("Frame")
     dirPad.Size = UDim2.new(1, -pad*2, 0, 130)
     dirPad.Position = UDim2.new(0, pad, 0, 100)
@@ -1234,11 +1253,13 @@ local function openFlyGui()
         }):Play()
     end
 
-    flyMain.Size = UDim2.new(0, 300, 0, FLY_MIN_H)
     if isMobile then
         flyMain.Size = UDim2.new(0, 260, 0, FLY_MIN_H)
-        flyMain.Position = UDim2.new(0.5, -130, 0.35, 60)
+        flyMain.Position = UDim2.new(0.5, -130, 0.5, -60)
+    else
+        flyMain.Size = UDim2.new(0, 300, 0, FLY_MIN_H)
     end
+
     task.spawn(function()
         task.wait(0.05)
         tweenFly(FLY_FULL_H)
@@ -1291,7 +1312,7 @@ end
 flyOpenBtn.MouseButton1Click:Connect(openFlyGui)
 
 --------------------------------------------------------------------
--- BODY FLING (Click + Hold) — MASS SCALED
+-- BODY FLING (Click + Hold)
 --------------------------------------------------------------------
 local flingEnabled  = false
 local flingMode     = "click"
