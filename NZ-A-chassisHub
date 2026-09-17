@@ -1,6 +1,6 @@
 --[[ A-Chassis NZ-Hub + Car Fly + Body Fling + Sit on Hood + Wheelie
      - Wide / short layout
-     - Presets: Normal Car, Truck, Public Bus
+     - Presets: Normal Car, Truck, Public Bus, Drag Car Weak, Drag Car Strong
      - Additions: BackThrust
 ]]
 
@@ -56,9 +56,11 @@ local WHEELIE_MAX_PITCH        = 55
 local wheelieRampUp = WHEELIE_RAMP_UP_DEFAULT
 
 local PRESETS = {
-    Normal    = { thrust = 2500, backThrust = 2500, wheelieForce = 11000, wheelieDelay = 0.03 },
-    Truck     = { thrust = 3250, backThrust = 3250, wheelieForce = 13250, wheelieDelay = 0.03 },
-    PublicBus = { thrust = 2500, backThrust = 2500, wheelieForce = 10500, wheelieDelay = 0.01 },
+    Normal         = { thrust = 2500, backThrust = 2500, wheelieForce = 11000, wheelieDelay = 0.03 },
+    Truck          = { thrust = 3250, backThrust = 3250, wheelieForce = 13250, wheelieDelay = 0.03 },
+    PublicBus      = { thrust = 2500, backThrust = 2500, wheelieForce = 10500, wheelieDelay = 0.01 },
+    DragCarWeak    = { thrust = 4000, backThrust = 4000, wheelieForce = 11000, wheelieDelay = 0.03 },
+    DragCarStrong  = { thrust = 4000, backThrust = 4000, wheelieForce = 13980, wheelieDelay = 0.03 },
 }
 
 local SIT_ANIM_R6  = "rbxassetid://2506281703"
@@ -396,7 +398,7 @@ end
 -- HUB GUI
 --------------------------------------------------------------------
 local HUB_W = 420
-local HUB_H = 340
+local HUB_H = 400
 
 local hubGui = Instance.new("ScreenGui")
 hubGui.Name = "NZHub"
@@ -422,10 +424,18 @@ local _, hubMinBtn = makeTitleBar(hubMain, "A-Chassis NZ-Hub", function()
     _G.__NZHub = nil
 end)
 
-local hubBody = Instance.new("Frame")
+-- Body is now a ScrollingFrame so mobile can scroll through the taller content
+local hubBody = Instance.new("ScrollingFrame")
+hubBody.Name = "Body"
 hubBody.Size = UDim2.new(1, 0, 1, -36)
 hubBody.Position = UDim2.new(0, 0, 0, 36)
 hubBody.BackgroundTransparency = 1
+hubBody.BorderSizePixel = 0
+hubBody.ScrollBarThickness = 4
+hubBody.ScrollBarImageColor3 = COL_ACCENT
+hubBody.CanvasSize = UDim2.new(0, 0, 0, 420)
+hubBody.ScrollingDirection = Enum.ScrollingDirection.Y
+hubBody.ElasticBehavior = Enum.ElasticBehavior.Never
 hubBody.Parent = hubMain
 
 local pad = 12
@@ -571,7 +581,7 @@ corner(backEnableBtn, 6)
 local backEnableStroke = stroke(backEnableBtn, COL_BORDER, 1)
 
 local colRight = Instance.new("Frame")
-colRight.Size = UDim2.new(0, 190, 0, 300)
+colRight.Size = UDim2.new(0, 190, 0, 400)
 colRight.Position = UDim2.new(1, -pad - 190, 0, 42)
 colRight.BackgroundTransparency = 1
 colRight.Parent = hubBody
@@ -614,22 +624,24 @@ presetLabel.TextSize = 10
 presetLabel.TextXAlignment = Enum.TextXAlignment.Left
 presetLabel.Parent = colRight
 
-local normalPresetBtn  = makeWideBtn(colRight, 16, "Normal Car")
-local truckPresetBtn   = makeWideBtn(colRight, 50, "Truck")
-local publicBusPresetBtn = makeWideBtn(colRight, 84, "Public Bus")
+local normalPresetBtn     = makeWideBtn(colRight, 16,  "Normal Car")
+local truckPresetBtn      = makeWideBtn(colRight, 50,  "Truck")
+local publicBusPresetBtn  = makeWideBtn(colRight, 84,  "Public Bus")
+local dragWeakPresetBtn   = makeWideBtn(colRight, 118, "Drag Car Weak")
+local dragStrongPresetBtn = makeWideBtn(colRight, 152, "Drag Car Strong")
 
-local flyOpenBtn = makeWideBtn(colRight, 120, "Open Car Fly", COL_ACCENT)
-local flingBtn   = makeWideBtn(colRight, 154, "Body Fling: Off")
+local flyOpenBtn = makeWideBtn(colRight, 196, "Open Car Fly", COL_ACCENT)
+local flingBtn   = makeWideBtn(colRight, 230, "Body Fling: Off")
 
 local flingModeRow = Instance.new("Frame")
 flingModeRow.Size = UDim2.new(1, 0, 0, 26)
-flingModeRow.Position = UDim2.new(0, 0, 0, 188)
+flingModeRow.Position = UDim2.new(0, 0, 0, 264)
 flingModeRow.BackgroundTransparency = 1
 flingModeRow.Parent = colRight
 
 local sitRow = Instance.new("Frame")
 sitRow.Size = UDim2.new(1, 0, 0, 26)
-sitRow.Position = UDim2.new(0, 0, 0, 218)
+sitRow.Position = UDim2.new(0, 0, 0, 294)
 sitRow.BackgroundTransparency = 1
 sitRow.Parent = colRight
 
@@ -711,9 +723,9 @@ end
 
 if isMobile then
     hubMain.Size = UDim2.new(0, 360, 0, HUB_MIN_H)
-    hubMain.Position = UDim2.new(0.5, -180, 0.35, -140)
+    hubMain.Position = UDim2.new(0.5, -180, 0.35, -170)
     colLeft.Size  = UDim2.new(0, 160, 0, 300)
-    colRight.Size = UDim2.new(0, 160, 0, 300)
+    colRight.Size = UDim2.new(0, 160, 0, 400)
     colRight.Position = UDim2.new(1, -pad - 160, 0, 42)
 end
 
@@ -1320,6 +1332,8 @@ end
 normalPresetBtn.MouseButton1Click:Connect(function() applyPreset("Normal") end)
 truckPresetBtn.MouseButton1Click:Connect(function() applyPreset("Truck") end)
 publicBusPresetBtn.MouseButton1Click:Connect(function() applyPreset("PublicBus") end)
+dragWeakPresetBtn.MouseButton1Click:Connect(function() applyPreset("DragCarWeak") end)
+dragStrongPresetBtn.MouseButton1Click:Connect(function() applyPreset("DragCarStrong") end)
 
 --------------------------------------------------------------------
 -- FLY
