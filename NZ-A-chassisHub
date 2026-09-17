@@ -1,6 +1,7 @@
---[[ A-Chassis NZ-Hub + Car Fly + Body Fling (Click/Hold) + Sit on Hood
-     - Mobile position fix: hub + fly windows land in the safe zone
-     - Drag clamp: can't drag title bars off-screen
+--[[ A-Chassis NZ-Hub + Car Fly + Body Fling + Sit on Hood + Wheelie
+     - Wide / short layout
+     - Presets: Normal Car, Truck, Public Bus
+     - Additions: BackThrust
 ]]
 
 local Players            = game:GetService("Players")
@@ -16,18 +17,16 @@ local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEna
 
 if _G.__NZHub then pcall(function() _G.__NZHub:Destroy() end) _G.__NZHub = nil end
 if _G.__NZFly then pcall(function() _G.__NZFly:Destroy() end) _G.__NZFly = nil end
-if _G.__NZBounce then pcall(function() _G.__NZBounce:Destroy() end) _G.__NZBounce = nil end
 _G.__NZFlyActive = false
 _G.__NZFlyStop = nil
-_G.__NZBounceActive = false
-_G.__NZBounceStop = nil
 
 --------------------------------------------------------------------
 -- CONFIG
 --------------------------------------------------------------------
 local MIN_SPEED      = 2
 local MAX_SPEED_SOFT = 400
-local DEFAULT_THRUST = 8000
+local DEFAULT_THRUST = 2500
+local DEFAULT_BACK_THRUST = 2500
 local THRUST_CEILING = 1e9
 
 local FLY_SPEED_DEFAULT = 90
@@ -46,8 +45,21 @@ local FLING_MAX_KICK_H    = 2500
 local FLING_MAX_KICK_V    = 1200
 
 local HOLD_SPIN_SPEED    = 400
-local HOLD_RETURN_DELAY  = 0.05
 local HOLD_PUSH_PER_KG   = 12
+
+local WHEELIE_FORCE_DEFAULT    = 11000
+local WHEELIE_RAMP_UP_DEFAULT  = 0.03
+local WHEELIE_MIN_SPEED        = 8
+local WHEELIE_DROP_SPEED       = 5
+local WHEELIE_MAX_PITCH        = 55
+
+local wheelieRampUp = WHEELIE_RAMP_UP_DEFAULT
+
+local PRESETS = {
+    Normal    = { thrust = 2500, backThrust = 2500, wheelieForce = 11000, wheelieDelay = 0.03 },
+    Truck     = { thrust = 3250, backThrust = 3250, wheelieForce = 13250, wheelieDelay = 0.03 },
+    PublicBus = { thrust = 2500, backThrust = 2500, wheelieForce = 10500, wheelieDelay = 0.01 },
+}
 
 local SIT_ANIM_R6  = "rbxassetid://2506281703"
 local SIT_ANIM_R15 = "rbxassetid://507768375"
@@ -65,7 +77,6 @@ local COL_BORDER    = Color3.fromRGB(48, 50, 62)
 local COL_TEXT      = Color3.fromRGB(230, 232, 240)
 local COL_TEXT_DIM  = Color3.fromRGB(130, 134, 152)
 local COL_ACCENT    = Color3.fromRGB(88, 140, 255)
-local COL_ACCENT_HI = Color3.fromRGB(112, 162, 255)
 local COL_GREEN     = Color3.fromRGB(72, 196, 120)
 local COL_RED       = Color3.fromRGB(214, 78, 78)
 local COL_YELLOW    = Color3.fromRGB(230, 190, 90)
@@ -84,6 +95,8 @@ local state = {
     flipState   = nil,
     forwardHeld = false,
     backHeld    = false,
+    keyForward  = false,
+    keyBack     = false,
 }
 
 _G.__NZFlyHold = {
@@ -92,6 +105,13 @@ _G.__NZFlyHold = {
 
 local currentFlySpeed     = FLY_SPEED_DEFAULT
 local currentFlyVertSpeed = FLY_VERT_SPEED_DEFAULT
+
+local function isAnyTextBoxFocused()
+    local ok, focused = pcall(function()
+        return UserInputService:GetFocusedTextBox()
+    end)
+    return ok and focused ~= nil
+end
 
 --------------------------------------------------------------------
 -- HELPERS
@@ -212,8 +232,46 @@ local function getRigType(char)
     return "R15"
 end
 
+local function getDriverOfCar(car)
+    if not car then return nil end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        local char = plr.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and hum.SeatPart then
+                local seatCar = getCarFromSeat(hum.SeatPart)
+                if seatCar == car then
+                    return plr
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function resolveWheel(w)
+    if not w then return nil end
+    if w:IsA("BasePart") then return w end
+    if w:IsA("Model") then
+        if w.PrimaryPart then return w.PrimaryPart end
+        for _, d in ipairs(w:GetDescendants()) do
+            if d:IsA("BasePart") then return d end
+        end
+    end
+    return nil
+end
+
+local function getFrontWheels(car)
+    if not car then return nil, nil end
+    local wheelsFolder = car:FindFirstChild("Wheels")
+    if not wheelsFolder then return nil, nil end
+    local fl = resolveWheel(wheelsFolder:FindFirstChild("FL"))
+    local fr = resolveWheel(wheelsFolder:FindFirstChild("FR"))
+    return fl, fr
+end
+
 --------------------------------------------------------------------
--- TITLE BAR (with drag clamp)
+-- TITLE BAR
 --------------------------------------------------------------------
 local function makeTitleBar(parent, titleText, onDelete)
     local titleBar = Instance.new("Frame")
@@ -278,15 +336,14 @@ local function makeTitleBar(parent, titleText, onDelete)
 
     local dragging, dragInput, dragStart, startPos
 
-    -- Clamp parent window to viewport so title bar stays reachable
     local function clampParent()
         local vp = camera.ViewportSize
         local abs = parent.AbsolutePosition
         local size = parent.AbsoluteSize
-        local minX = -(size.X - 60)   -- keep at least 60px visible horizontally
+        local minX = -(size.X - 60)
         local maxX = vp.X - 60
-        local minY = 0                -- never let title bar go above screen
-        local maxY = vp.Y - 50        -- keep at least 50px of title bar visible at bottom
+        local minY = 0
+        local maxY = vp.Y - 50
         local newX = math.clamp(abs.X, minX, maxX)
         local newY = math.clamp(abs.Y, minY, maxY)
         if newX ~= abs.X or newY ~= abs.Y then
@@ -338,6 +395,9 @@ end
 --------------------------------------------------------------------
 -- HUB GUI
 --------------------------------------------------------------------
+local HUB_W = 420
+local HUB_H = 340
+
 local hubGui = Instance.new("ScreenGui")
 hubGui.Name = "NZHub"
 hubGui.ResetOnSpawn = false
@@ -349,10 +409,8 @@ _G.__NZHub = hubGui
 
 local hubMain = Instance.new("Frame")
 hubMain.Name = "Window"
-hubMain.Size = UDim2.new(0, 300, 0, 0)
--- Position: middle of screen horizontally, upper-middle vertically.
--- Y offset is scaled + absolute so it adapts to short/tall screens.
-hubMain.Position = UDim2.new(0.5, -150, 0.4, -120)
+hubMain.Size = UDim2.new(0, HUB_W, 0, 36)
+hubMain.Position = UDim2.new(0.5, -HUB_W/2, 0.4, -HUB_H/2)
 hubMain.BackgroundColor3 = COL_BG
 hubMain.BorderSizePixel = 0
 hubMain.ClipsDescendants = true
@@ -370,11 +428,11 @@ hubBody.Position = UDim2.new(0, 0, 0, 36)
 hubBody.BackgroundTransparency = 1
 hubBody.Parent = hubMain
 
-local pad = 14
+local pad = 12
 
 local status = Instance.new("TextLabel")
 status.Size = UDim2.new(1, -pad*2, 0, 16)
-status.Position = UDim2.new(0, pad, 0, 10)
+status.Position = UDim2.new(0, pad, 0, 6)
 status.BackgroundTransparency = 1
 status.Text = "Waiting for vehicle..."
 status.TextColor3 = COL_TEXT_DIM
@@ -385,7 +443,7 @@ status.Parent = hubBody
 
 local inputState = Instance.new("TextLabel")
 inputState.Size = UDim2.new(1, -pad*2, 0, 14)
-inputState.Position = UDim2.new(0, pad, 0, 28)
+inputState.Position = UDim2.new(0, pad, 0, 22)
 inputState.BackgroundTransparency = 1
 inputState.Text = "Input  -"
 inputState.TextColor3 = COL_TEXT_DIM
@@ -394,165 +452,227 @@ inputState.TextSize = 10
 inputState.TextXAlignment = Enum.TextXAlignment.Left
 inputState.Parent = hubBody
 
-local thrustLabel = Instance.new("TextLabel")
-thrustLabel.Size = UDim2.new(1, -pad*2, 0, 14)
-thrustLabel.Position = UDim2.new(0, pad, 0, 50)
-thrustLabel.BackgroundTransparency = 1
-thrustLabel.Text = "Thrust"
-thrustLabel.TextColor3 = COL_TEXT_DIM
-thrustLabel.Font = Enum.Font.Gotham
-thrustLabel.TextSize = 10
-thrustLabel.TextXAlignment = Enum.TextXAlignment.Left
-thrustLabel.Parent = hubBody
+local colLeft = Instance.new("Frame")
+colLeft.Size = UDim2.new(0, 190, 0, 300)
+colLeft.Position = UDim2.new(0, pad, 0, 42)
+colLeft.BackgroundTransparency = 1
+colLeft.Parent = hubBody
 
-local thrustRow = Instance.new("Frame")
-thrustRow.Size = UDim2.new(1, -pad*2, 0, 34)
-thrustRow.Position = UDim2.new(0, pad, 0, 66)
-thrustRow.BackgroundTransparency = 1
-thrustRow.Parent = hubBody
+local function makeSmallRow(parent, y, labelText, defaultValue)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 14)
+    lbl.Position = UDim2.new(0, 0, 0, y)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = labelText
+    lbl.TextColor3 = COL_TEXT_DIM
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 10
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = parent
 
-local thrustBox = Instance.new("TextBox")
-thrustBox.Size = UDim2.new(1, -80, 1, 0)
-thrustBox.BackgroundColor3 = COL_BG_ALT
-thrustBox.Text = tostring(DEFAULT_THRUST)
-thrustBox.PlaceholderText = "enter thrust"
-thrustBox.TextColor3 = COL_TEXT
-thrustBox.PlaceholderColor3 = COL_TEXT_DIM
-thrustBox.Font = Enum.Font.GothamMedium
-thrustBox.TextSize = 13
-thrustBox.BorderSizePixel = 0
-thrustBox.ClearTextOnFocus = false
-thrustBox.Parent = thrustRow
-corner(thrustBox, 8)
-local thrustBoxStroke = stroke(thrustBox, COL_BORDER, 1)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 32)
+    row.Position = UDim2.new(0, 0, 0, y + 15)
+    row.BackgroundTransparency = 1
+    row.Parent = parent
 
-local thrustApply = Instance.new("TextButton")
-thrustApply.Size = UDim2.new(0, 70, 1, 0)
-thrustApply.Position = UDim2.new(1, -70, 0, 0)
-thrustApply.BackgroundColor3 = COL_ACCENT
-thrustApply.Text = "Apply"
-thrustApply.TextColor3 = COL_TEXT
-thrustApply.Font = Enum.Font.GothamBold
-thrustApply.TextSize = 12
-thrustApply.BorderSizePixel = 0
-thrustApply.AutoButtonColor = false
-thrustApply.Parent = thrustRow
-corner(thrustApply, 8)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(1, -62, 1, 0)
+    box.BackgroundColor3 = COL_BG_ALT
+    box.Text = tostring(defaultValue)
+    box.TextColor3 = COL_TEXT
+    box.PlaceholderColor3 = COL_TEXT_DIM
+    box.Font = Enum.Font.GothamMedium
+    box.TextSize = 12
+    box.BorderSizePixel = 0
+    box.ClearTextOnFocus = false
+    box.Parent = row
+    corner(box, 6)
+    local boxStroke = stroke(box, COL_BORDER, 1)
+
+    local apply = Instance.new("TextButton")
+    apply.Size = UDim2.new(0, 56, 1, 0)
+    apply.Position = UDim2.new(1, -56, 0, 0)
+    apply.BackgroundColor3 = COL_ACCENT
+    apply.Text = "Apply"
+    apply.TextColor3 = COL_TEXT
+    apply.Font = Enum.Font.GothamBold
+    apply.TextSize = 11
+    apply.BorderSizePixel = 0
+    apply.AutoButtonColor = false
+    apply.Parent = row
+    corner(apply, 6)
+
+    return box, boxStroke, apply
+end
+
+local thrustBox, thrustBoxStroke, thrustApply =
+    makeSmallRow(colLeft, 0, "Thrust", DEFAULT_THRUST)
+
+local wheelieForceBox, wheelieForceBoxStroke, wheelieForceApply =
+    makeSmallRow(colLeft, 52, "Wheelie Force", WHEELIE_FORCE_DEFAULT)
+
+local wheelieDelayBox, wheelieDelayBoxStroke, wheelieDelayApply =
+    makeSmallRow(colLeft, 104, "Wheelie Delay (s)", WHEELIE_RAMP_UP_DEFAULT)
+
+local backThrustBox, backThrustBoxStroke, backThrustApply =
+    makeSmallRow(colLeft, 156, "BackThrust", DEFAULT_BACK_THRUST)
+
+local toggleRow = Instance.new("Frame")
+toggleRow.Size = UDim2.new(1, 0, 0, 34)
+toggleRow.Position = UDim2.new(0, 0, 0, 208)
+toggleRow.BackgroundTransparency = 1
+toggleRow.Parent = colLeft
 
 local enableBtn = Instance.new("TextButton")
-enableBtn.Size = UDim2.new(1, -pad*2, 0, 32)
-enableBtn.Position = UDim2.new(0, pad, 0, 112)
+enableBtn.Size = UDim2.new(0.5, -3, 1, 0)
 enableBtn.BackgroundColor3 = COL_BG_ALT
 enableBtn.Text = "Boost Offline"
 enableBtn.TextColor3 = COL_TEXT_DIM
 enableBtn.Font = Enum.Font.GothamBold
-enableBtn.TextSize = 12
+enableBtn.TextSize = 11
 enableBtn.BorderSizePixel = 0
 enableBtn.AutoButtonColor = false
-enableBtn.Parent = hubBody
-corner(enableBtn, 8)
+enableBtn.Parent = toggleRow
+corner(enableBtn, 6)
 local enableStroke = stroke(enableBtn, COL_BORDER, 1)
 
-local flyOpenBtn = Instance.new("TextButton")
-flyOpenBtn.Size = UDim2.new(1, -pad*2, 0, 30)
-flyOpenBtn.Position = UDim2.new(0, pad, 0, 152)
-flyOpenBtn.BackgroundColor3 = COL_BG_ALT
-flyOpenBtn.Text = "Open Car Fly"
-flyOpenBtn.TextColor3 = COL_TEXT
-flyOpenBtn.Font = Enum.Font.GothamBold
-flyOpenBtn.TextSize = 12
-flyOpenBtn.BorderSizePixel = 0
-flyOpenBtn.AutoButtonColor = false
-flyOpenBtn.Parent = hubBody
-corner(flyOpenBtn, 8)
-stroke(flyOpenBtn, COL_BORDER, 1)
+local wheelieBtn = Instance.new("TextButton")
+wheelieBtn.Size = UDim2.new(0.5, -3, 1, 0)
+wheelieBtn.Position = UDim2.new(0.5, 3, 0, 0)
+wheelieBtn.BackgroundColor3 = COL_BG_ALT
+wheelieBtn.Text = "Wheelie: Off"
+wheelieBtn.TextColor3 = COL_TEXT_DIM
+wheelieBtn.Font = Enum.Font.GothamBold
+wheelieBtn.TextSize = 11
+wheelieBtn.BorderSizePixel = 0
+wheelieBtn.AutoButtonColor = false
+wheelieBtn.Parent = toggleRow
+corner(wheelieBtn, 6)
+stroke(wheelieBtn, COL_BORDER, 1)
 
-local flingBtn = Instance.new("TextButton")
-flingBtn.Size = UDim2.new(1, -pad*2, 0, 30)
-flingBtn.Position = UDim2.new(0, pad, 0, 188)
-flingBtn.BackgroundColor3 = COL_BG_ALT
-flingBtn.Text = "Body Fling: Off"
-flingBtn.TextColor3 = COL_TEXT_DIM
-flingBtn.Font = Enum.Font.GothamBold
-flingBtn.TextSize = 12
-flingBtn.BorderSizePixel = 0
-flingBtn.AutoButtonColor = false
-flingBtn.Parent = hubBody
-corner(flingBtn, 8)
-stroke(flingBtn, COL_BORDER, 1)
+local backToggleRow = Instance.new("Frame")
+backToggleRow.Size = UDim2.new(1, 0, 0, 34)
+backToggleRow.Position = UDim2.new(0, 0, 0, 250)
+backToggleRow.BackgroundTransparency = 1
+backToggleRow.Parent = colLeft
 
-local flingModeLabel = Instance.new("TextLabel")
-flingModeLabel.Size = UDim2.new(1, -pad*2, 0, 14)
-flingModeLabel.Position = UDim2.new(0, pad, 0, 222)
-flingModeLabel.BackgroundTransparency = 1
-flingModeLabel.Text = "Fling Mode"
-flingModeLabel.TextColor3 = COL_TEXT_DIM
-flingModeLabel.Font = Enum.Font.Gotham
-flingModeLabel.TextSize = 10
-flingModeLabel.TextXAlignment = Enum.TextXAlignment.Left
-flingModeLabel.Parent = hubBody
+local backEnableBtn = Instance.new("TextButton")
+backEnableBtn.Size = UDim2.new(1, 0, 1, 0)
+backEnableBtn.BackgroundColor3 = COL_BG_ALT
+backEnableBtn.Text = "BackThrust: Off"
+backEnableBtn.TextColor3 = COL_TEXT_DIM
+backEnableBtn.Font = Enum.Font.GothamBold
+backEnableBtn.TextSize = 11
+backEnableBtn.BorderSizePixel = 0
+backEnableBtn.AutoButtonColor = false
+backEnableBtn.Parent = backToggleRow
+corner(backEnableBtn, 6)
+local backEnableStroke = stroke(backEnableBtn, COL_BORDER, 1)
 
-local modeRow = Instance.new("Frame")
-modeRow.Size = UDim2.new(1, -pad*2, 0, 28)
-modeRow.Position = UDim2.new(0, pad, 0, 238)
-modeRow.BackgroundTransparency = 1
-modeRow.Parent = hubBody
+local colRight = Instance.new("Frame")
+colRight.Size = UDim2.new(0, 190, 0, 300)
+colRight.Position = UDim2.new(1, -pad - 190, 0, 42)
+colRight.BackgroundTransparency = 1
+colRight.Parent = hubBody
+
+local function makeWideBtn(parent, y, text, bg)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 30)
+    b.Position = UDim2.new(0, 0, 0, y)
+    b.BackgroundColor3 = bg or COL_BG_ALT
+    b.Text = text
+    b.TextColor3 = COL_TEXT
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 12
+    b.BorderSizePixel = 0
+    b.AutoButtonColor = false
+    b.Parent = parent
+    corner(b, 6)
+    if bg ~= COL_ACCENT then stroke(b, COL_BORDER, 1) end
+    b.MouseEnter:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.15), {
+            BackgroundColor3 = COL_ACCENT, TextColor3 = Color3.fromRGB(255,255,255)
+        }):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.15), {
+            BackgroundColor3 = bg or COL_BG_ALT, TextColor3 = COL_TEXT
+        }):Play()
+    end)
+    return b
+end
+
+local presetLabel = Instance.new("TextLabel")
+presetLabel.Size = UDim2.new(1, 0, 0, 14)
+presetLabel.Position = UDim2.new(0, 0, 0, 0)
+presetLabel.BackgroundTransparency = 1
+presetLabel.Text = "Presets"
+presetLabel.TextColor3 = COL_TEXT_DIM
+presetLabel.Font = Enum.Font.Gotham
+presetLabel.TextSize = 10
+presetLabel.TextXAlignment = Enum.TextXAlignment.Left
+presetLabel.Parent = colRight
+
+local normalPresetBtn  = makeWideBtn(colRight, 16, "Normal Car")
+local truckPresetBtn   = makeWideBtn(colRight, 50, "Truck")
+local publicBusPresetBtn = makeWideBtn(colRight, 84, "Public Bus")
+
+local flyOpenBtn = makeWideBtn(colRight, 120, "Open Car Fly", COL_ACCENT)
+local flingBtn   = makeWideBtn(colRight, 154, "Body Fling: Off")
+
+local flingModeRow = Instance.new("Frame")
+flingModeRow.Size = UDim2.new(1, 0, 0, 26)
+flingModeRow.Position = UDim2.new(0, 0, 0, 188)
+flingModeRow.BackgroundTransparency = 1
+flingModeRow.Parent = colRight
+
+local sitRow = Instance.new("Frame")
+sitRow.Size = UDim2.new(1, 0, 0, 26)
+sitRow.Position = UDim2.new(0, 0, 0, 218)
+sitRow.BackgroundTransparency = 1
+sitRow.Parent = colRight
 
 local clickModeBtn = Instance.new("TextButton")
 clickModeBtn.Size = UDim2.new(0.5, -3, 1, 0)
+clickModeBtn.Position = UDim2.new(0, 0, 0, 0)
 clickModeBtn.BackgroundColor3 = COL_ACCENT
-clickModeBtn.Text = "Click"
+clickModeBtn.Text = "Fling: Click"
 clickModeBtn.TextColor3 = COL_TEXT
 clickModeBtn.Font = Enum.Font.GothamBold
-clickModeBtn.TextSize = 12
+clickModeBtn.TextSize = 10
 clickModeBtn.BorderSizePixel = 0
 clickModeBtn.AutoButtonColor = false
-clickModeBtn.Parent = modeRow
-corner(clickModeBtn, 8)
+clickModeBtn.Parent = flingModeRow
+corner(clickModeBtn, 6)
 stroke(clickModeBtn, COL_BORDER, 1)
 
 local holdModeBtn = Instance.new("TextButton")
 holdModeBtn.Size = UDim2.new(0.5, -3, 1, 0)
 holdModeBtn.Position = UDim2.new(0.5, 3, 0, 0)
 holdModeBtn.BackgroundColor3 = COL_BG_ALT
-holdModeBtn.Text = "Hold"
+holdModeBtn.Text = "Fling: Hold"
 holdModeBtn.TextColor3 = COL_TEXT_DIM
 holdModeBtn.Font = Enum.Font.GothamBold
-holdModeBtn.TextSize = 12
+holdModeBtn.TextSize = 10
 holdModeBtn.BorderSizePixel = 0
 holdModeBtn.AutoButtonColor = false
-holdModeBtn.Parent = modeRow
-corner(holdModeBtn, 8)
+holdModeBtn.Parent = flingModeRow
+corner(holdModeBtn, 6)
 stroke(holdModeBtn, COL_BORDER, 1)
-
-local sitLabel = Instance.new("TextLabel")
-sitLabel.Size = UDim2.new(1, -pad*2, 0, 14)
-sitLabel.Position = UDim2.new(0, pad, 0, 274)
-sitLabel.BackgroundTransparency = 1
-sitLabel.Text = "Sit on Hood"
-sitLabel.TextColor3 = COL_TEXT_DIM
-sitLabel.Font = Enum.Font.Gotham
-sitLabel.TextSize = 10
-sitLabel.TextXAlignment = Enum.TextXAlignment.Left
-sitLabel.Parent = hubBody
-
-local sitRow = Instance.new("Frame")
-sitRow.Size = UDim2.new(1, -pad*2, 0, 28)
-sitRow.Position = UDim2.new(0, pad, 0, 290)
-sitRow.BackgroundTransparency = 1
-sitRow.Parent = hubBody
 
 local sitBtn = Instance.new("TextButton")
 sitBtn.Size = UDim2.new(0.5, -3, 1, 0)
+sitBtn.Position = UDim2.new(0, 0, 0, 0)
 sitBtn.BackgroundColor3 = COL_BG_ALT
-sitBtn.Text = "Sit: Off"
-sitBtn.TextColor3 = COL_TEXT_DIM
+sitBtn.Text = "Sit"
+sitBtn.TextColor3 = COL_TEXT
 sitBtn.Font = Enum.Font.GothamBold
-sitBtn.TextSize = 12
+sitBtn.TextSize = 11
 sitBtn.BorderSizePixel = 0
 sitBtn.AutoButtonColor = false
 sitBtn.Parent = sitRow
-corner(sitBtn, 8)
+corner(sitBtn, 6)
 stroke(sitBtn, COL_BORDER, 1)
 
 local stopSitBtn = Instance.new("TextButton")
@@ -562,16 +682,16 @@ stopSitBtn.BackgroundColor3 = COL_BG_ALT
 stopSitBtn.Text = "Stop Sit"
 stopSitBtn.TextColor3 = COL_TEXT_DIM
 stopSitBtn.Font = Enum.Font.GothamBold
-stopSitBtn.TextSize = 12
+stopSitBtn.TextSize = 11
 stopSitBtn.BorderSizePixel = 0
 stopSitBtn.AutoButtonColor = false
 stopSitBtn.Parent = sitRow
-corner(stopSitBtn, 8)
+corner(stopSitBtn, 6)
 stroke(stopSitBtn, COL_BORDER, 1)
 
 local info = Instance.new("TextLabel")
-info.Size = UDim2.new(1, -pad*2, 0, 12)
-info.Position = UDim2.new(0, pad, 0, 326)
+info.Size = UDim2.new(1, -pad*2, 0, 14)
+info.Position = UDim2.new(0, pad, 0, HUB_H - 20)
 info.BackgroundTransparency = 1
 info.Text = ""
 info.TextColor3 = COL_TEXT_DIM
@@ -580,47 +700,61 @@ info.TextSize = 9
 info.TextXAlignment = Enum.TextXAlignment.Left
 info.Parent = hubBody
 
-local HUB_FULL_H = 352
+local HUB_FULL_H = HUB_H
 local HUB_MIN_H  = 36
 
 local function tweenHub(h)
     TweenService:Create(hubMain, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, hubMain.Size.X.Offset, 0, h),
+        Size = UDim2.new(0, HUB_W, 0, h),
     }):Play()
 end
 
--- Mobile: smaller window, positioned lower so the top bar is tappable
 if isMobile then
-    hubMain.Size = UDim2.new(0, 260, 0, HUB_MIN_H)
-    hubMain.Position = UDim2.new(0.5, -130, 0.4, -60)
-else
-    hubMain.Size = UDim2.new(0, 300, 0, HUB_MIN_H)
+    hubMain.Size = UDim2.new(0, 360, 0, HUB_MIN_H)
+    hubMain.Position = UDim2.new(0.5, -180, 0.35, -140)
+    colLeft.Size  = UDim2.new(0, 160, 0, 300)
+    colRight.Size = UDim2.new(0, 160, 0, 300)
+    colRight.Position = UDim2.new(1, -pad - 160, 0, 42)
 end
 
 task.spawn(function()
     task.wait(0.05)
-    tweenHub(HUB_FULL_H)
+    if isMobile then
+        TweenService:Create(hubMain, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 360, 0, HUB_FULL_H),
+        }):Play()
+    else
+        tweenHub(HUB_FULL_H)
+    end
 end)
 
 local hubMinimized = false
 hubMinBtn.MouseButton1Click:Connect(function()
     hubMinimized = not hubMinimized
-    tweenHub(hubMinimized and HUB_MIN_H or HUB_FULL_H)
+    if isMobile then
+        TweenService:Create(hubMain, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 360, 0, hubMinimized and HUB_MIN_H or HUB_FULL_H),
+        }):Play()
+    else
+        tweenHub(hubMinimized and HUB_MIN_H or HUB_FULL_H)
+    end
     hubMinBtn.Text = hubMinimized and "+" or "-"
     hubBody.Visible = not hubMinimized
 end)
 
 --------------------------------------------------------------------
--- INPUT (forward/back for boost)
+-- INPUT
 --------------------------------------------------------------------
 local function updateInputLabel()
-    if state.forwardHeld and state.backHeld then
+    local combinedF = state.forwardHeld or state.keyForward
+    local combinedB = state.backHeld or state.keyBack
+    if combinedF and combinedB then
         inputState.Text = "Input  forward + back"
         inputState.TextColor3 = Color3.fromRGB(230, 200, 120)
-    elseif state.forwardHeld then
+    elseif combinedF then
         inputState.Text = "Input  forward"
         inputState.TextColor3 = COL_GREEN
-    elseif state.backHeld then
+    elseif combinedB then
         inputState.Text = "Input  backward"
         inputState.TextColor3 = Color3.fromRGB(230, 150, 120)
     else
@@ -631,13 +765,14 @@ end
 
 UserInputService.InputBegan:Connect(function(input, gp)
     if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-    if input.KeyCode == KEY_FORWARD then state.forwardHeld = true; updateInputLabel()
-    elseif input.KeyCode == KEY_BACK then state.backHeld = true; updateInputLabel() end
+    if gp or isAnyTextBoxFocused() then return end
+    if input.KeyCode == KEY_FORWARD then state.keyForward = true; updateInputLabel()
+    elseif input.KeyCode == KEY_BACK then state.keyBack = true; updateInputLabel() end
 end)
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-    if input.KeyCode == KEY_FORWARD then state.forwardHeld = false; updateInputLabel()
-    elseif input.KeyCode == KEY_BACK then state.backHeld = false; updateInputLabel() end
+    if input.KeyCode == KEY_FORWARD then state.keyForward = false; updateInputLabel()
+    elseif input.KeyCode == KEY_BACK then state.keyBack = false; updateInputLabel() end
 end)
 
 local hookedButtons = {}
@@ -656,12 +791,10 @@ local function hookButton(btn, setter)
             setter(false); updateInputLabel()
         end
     end)
-    btn.MouseButton1Down:Connect(function() setter(true); updateInputLabel() end)
-    btn.MouseButton1Up:Connect(function() setter(false); updateInputLabel() end)
 end
 
-local function findAndHookCarButtons()
-    local pg = player:FindFirstChild("PlayerGui")
+local function hookPlayerGuiButtons(plr)
+    local pg = plr:FindFirstChild("PlayerGui")
     if not pg then return end
     local aci = pg:FindFirstChild("A-Chassis Interface")
     if aci then
@@ -673,12 +806,15 @@ local function findAndHookCarButtons()
             if ft then hookButton(ft, function(v) state.forwardHeld = v end) end
             if fb then hookButton(fb, function(v) state.backHeld = v end) end
         end
-        return
     end
-    for _, d in ipairs(pg:GetDescendants()) do
-        if d:IsA("TextButton") or d:IsA("ImageButton") then
-            if d.Name == "FullThrottle" then hookButton(d, function(v) state.forwardHeld = v end)
-            elseif d.Name == "FullBrake" then hookButton(d, function(v) state.backHeld = v end) end
+end
+
+local function findAndHookCarButtons()
+    hookPlayerGuiButtons(player)
+    if state.currentCar then
+        local driver = getDriverOfCar(state.currentCar)
+        if driver and driver ~= player then
+            hookPlayerGuiButtons(driver)
         end
     end
 end
@@ -686,7 +822,7 @@ end
 findAndHookCarButtons()
 task.spawn(function()
     while true do
-        task.wait(2)
+        task.wait(1)
         findAndHookCarButtons()
     end
 end)
@@ -735,20 +871,103 @@ if player.Character then bindCharacter(player.Character) end
 player.CharacterAdded:Connect(bindCharacter)
 
 --------------------------------------------------------------------
--- THRUST LOOP
+-- WHEELIE STATE
+--------------------------------------------------------------------
+local wheelieEnabled = false
+local wheelieAmount  = 0
+local wheelieForceCurrent = WHEELIE_FORCE_DEFAULT
+local wheelieAttachL = nil
+local wheelieAttachR = nil
+local wheelieForceL  = nil
+local wheelieForceR  = nil
+local wheelieCachedCar = nil
+local wheelieLastFind  = 0
+
+local function destroyWheelieObjects()
+    if wheelieForceL then pcall(function() wheelieForceL:Destroy() end) wheelieForceL = nil end
+    if wheelieForceR then pcall(function() wheelieForceR:Destroy() end) wheelieForceR = nil end
+    if wheelieAttachL then pcall(function() wheelieAttachL:Destroy() end) wheelieAttachL = nil end
+    if wheelieAttachR then pcall(function() wheelieAttachR:Destroy() end) wheelieAttachR = nil end
+    wheelieCachedCar = nil
+end
+
+local function ensureWheelieObjects(chassis)
+    if not wheelieEnabled then return end
+    local car = state.currentCar
+    if not car then return end
+
+    if wheelieForceL and wheelieForceR
+        and wheelieForceL.Parent and wheelieForceR.Parent
+        and wheelieForceL.Parent:IsDescendantOf(car)
+        and wheelieForceR.Parent:IsDescendantOf(car) then
+        return
+    end
+
+    local now = os.clock()
+    if wheelieCachedCar == car and (now - wheelieLastFind) < 1 then return end
+    wheelieLastFind = now
+    wheelieCachedCar = car
+
+    destroyWheelieObjects()
+
+    local fl, fr = getFrontWheels(car)
+    local targetL = fl or chassis
+    local targetR = fr or chassis
+
+    wheelieAttachL = Instance.new("Attachment")
+    wheelieAttachL.Name = "_NZWheelieAttachL"
+    if fl then
+        wheelieAttachL.Position = Vector3.zero
+    else
+        wheelieAttachL.Position = Vector3.new(-0.5 * chassis.Size.X, 0, -0.5 * chassis.Size.Z)
+    end
+    wheelieAttachL.Parent = targetL
+
+    wheelieForceL = Instance.new("VectorForce")
+    wheelieForceL.Name = "_NZWheelieForceL"
+    wheelieForceL.Attachment0 = wheelieAttachL
+    wheelieForceL.RelativeTo = Enum.ActuatorRelativeTo.World
+    wheelieForceL.ApplyAtCenterOfMass = false
+    wheelieForceL.Force = Vector3.zero
+    wheelieForceL.Parent = targetL
+
+    wheelieAttachR = Instance.new("Attachment")
+    wheelieAttachR.Name = "_NZWheelieAttachR"
+    if fr then
+        wheelieAttachR.Position = Vector3.zero
+    else
+        wheelieAttachR.Position = Vector3.new(0.5 * chassis.Size.X, 0, -0.5 * chassis.Size.Z)
+    end
+    wheelieAttachR.Parent = targetR
+
+    wheelieForceR = Instance.new("VectorForce")
+    wheelieForceR.Name = "_NZWheelieForceR"
+    wheelieForceR.Attachment0 = wheelieAttachR
+    wheelieForceR.RelativeTo = Enum.ActuatorRelativeTo.World
+    wheelieForceR.ApplyAtCenterOfMass = false
+    wheelieForceR.Force = Vector3.zero
+    wheelieForceR.Parent = targetR
+end
+
+--------------------------------------------------------------------
+-- THRUST + BACKTHRUST + WHEELIE LOOP
 --------------------------------------------------------------------
 local activeForce  = nil
 local activeAttach = nil
 local forceConn    = nil
 local boostEnabled = false
+local backEnabled  = false
 local currentThrust = DEFAULT_THRUST
+local currentBackThrust = DEFAULT_BACK_THRUST
 local lastChassis  = nil
 
 local function stopThrust()
     if forceConn then forceConn:Disconnect() forceConn = nil end
     if activeForce then pcall(function() activeForce:Destroy() end) activeForce = nil end
     if activeAttach then pcall(function() activeAttach:Destroy() end) activeAttach = nil end
+    destroyWheelieObjects()
     lastChassis = nil
+    wheelieAmount = 0
 end
 
 local function ensureForceObjects(chassis)
@@ -768,9 +987,9 @@ local function ensureForceObjects(chassis)
 end
 
 local function startLoop()
-    if forceConn then forceConn:Disconnect() forceConn = nil end
-    forceConn = RunService.Heartbeat:Connect(function()
-        if not boostEnabled then return end
+    if forceConn then return end
+    forceConn = RunService.Heartbeat:Connect(function(dt)
+        if not boostEnabled and not backEnabled then return end
         if _G.__NZFlyActive then return end
         if not state.currentCar or not state.currentCar.Parent then return end
 
@@ -782,70 +1001,187 @@ local function startLoop()
         if not chassis then return end
         ensureForceObjects(chassis)
 
-        if not state.forwardHeld or state.backHeld then
-            if activeForce then activeForce.Force = Vector3.zero end
-            return
-        end
+        local fwd = state.forwardHeld or state.keyForward
+        local bck = state.backHeld or state.keyBack
 
-        local facing = chassis.CFrame.LookVector
-        local flat = Vector3.new(facing.X, 0, facing.Z)
-        if flat.Magnitude < 0.01 then
-            activeForce.Force = Vector3.zero
-            return        end
-
-        if state.flipState == nil then
-            local tVal = findThrottleValue()
-            if tVal then
-                local t = tVal.Value
-                local flatT = Vector3.new(t.X, 0, t.Z)
-                if flatT.Magnitude > 0.01 then
-                    local worldDir = (chassis.CFrame:VectorToWorldSpace(flatT)).Unit
-                    state.flipState = worldDir:Dot(flat.Unit) < 0
+        if boostEnabled and fwd and not bck then
+            local facing = chassis.CFrame.LookVector
+            local flat = Vector3.new(facing.X, 0, facing.Z)
+            if flat.Magnitude >= 0.01 then
+                if state.flipState == nil then
+                    local tVal = findThrottleValue()
+                    if tVal then
+                        local t = tVal.Value
+                        local flatT = Vector3.new(t.X, 0, t.Z)
+                        if flatT.Magnitude > 0.01 then
+                            local worldDir = (chassis.CFrame:VectorToWorldSpace(flatT)).Unit
+                            state.flipState = worldDir:Dot(flat.Unit) < 0
+                        end
+                    end
                 end
-            end
-        end
-        if state.flipState == nil then
-            local v = chassis.AssemblyLinearVelocity
-            local vFlat = Vector3.new(v.X, 0, v.Z)
-            if vFlat.Magnitude > 5 then
-                state.flipState = vFlat.Unit:Dot(flat.Unit) < 0
-            end
-        end
-        if state.flipState == true then flat = -flat end
-        flat = flat.Unit
+                if state.flipState == nil then
+                    local v = chassis.AssemblyLinearVelocity
+                    local vFlat = Vector3.new(v.X, 0, v.Z)
+                    if vFlat.Magnitude > 5 then
+                        state.flipState = vFlat.Unit:Dot(flat.Unit) < 0
+                    end
+                end
+                if state.flipState == true then flat = -flat end
+                flat = flat.Unit
 
-        local speed = chassis.AssemblyLinearVelocity.Magnitude
-        local capFactor = 1
-        if speed > MAX_SPEED_SOFT then
-            capFactor = math.clamp(1 - (speed - MAX_SPEED_SOFT) / 100, 0, 1)
+                local speed = chassis.AssemblyLinearVelocity.Magnitude
+                local capFactor = 1
+                if speed > MAX_SPEED_SOFT then
+                    capFactor = math.clamp(1 - (speed - MAX_SPEED_SOFT) / 100, 0, 1)
+                end
+                local strength = currentThrust * capFactor
+                if speed < MIN_SPEED then strength = currentThrust * 0.5 end
+                activeForce.Force = flat * strength
+            end
+        elseif backEnabled and bck and not fwd then
+            local facing = chassis.CFrame.LookVector
+            local flat = Vector3.new(facing.X, 0, facing.Z)
+            if flat.Magnitude >= 0.01 then
+                flat = flat.Unit
+                if state.flipState == true then flat = -flat end
+
+                local speed = chassis.AssemblyLinearVelocity.Magnitude
+                local capFactor = 1
+                if speed > MAX_SPEED_SOFT then
+                    capFactor = math.clamp(1 - (speed - MAX_SPEED_SOFT) / 100, 0, 1)
+                end
+                local strength = currentBackThrust * capFactor
+                if speed < MIN_SPEED then strength = currentBackThrust * 0.5 end
+                activeForce.Force = -flat * strength
+            end
+        else
+            if activeForce then activeForce.Force = Vector3.zero end
         end
-        local strength = currentThrust * capFactor
-        if speed < MIN_SPEED then strength = currentThrust * 0.5 end
-        activeForce.Force = flat * strength
+
+        if wheelieEnabled then
+            ensureWheelieObjects(chassis)
+
+            local speed = chassis.AssemblyLinearVelocity.Magnitude
+            local movingFast = speed >= WHEELIE_MIN_SPEED
+            local pitching = fwd and not bck and movingFast
+
+            if pitching then
+                wheelieAmount = math.min(1, wheelieAmount + dt / math.max(wheelieRampUp, 0.01))
+            else
+                wheelieAmount = math.max(0, wheelieAmount - dt * WHEELIE_DROP_SPEED)
+            end
+
+            local look = chassis.CFrame.LookVector
+            local flatLook = Vector3.new(look.X, 0, look.Z)
+            local pitchDeg = 0
+            if flatLook.Magnitude > 0.001 then
+                pitchDeg = math.deg(math.acos(math.clamp(look:Dot(flatLook.Unit), -1, 1)))
+            end
+            if pitchDeg > WHEELIE_MAX_PITCH then
+                wheelieAmount = 0
+            end
+
+            if wheelieForceL and wheelieForceL.Parent
+                and wheelieForceR and wheelieForceR.Parent then
+                local mass = chassis:GetMass()
+                local massScale = math.clamp(mass / 1000, 0.3, 20)
+                local strength = wheelieForceCurrent * wheelieAmount * massScale
+                local upVec = Vector3.new(0, strength, 0)
+                wheelieForceL.Force = upVec
+                wheelieForceR.Force = upVec
+            end
+        else
+            if wheelieForceL then wheelieForceL.Force = Vector3.zero end
+            if wheelieForceR then wheelieForceR.Force = Vector3.zero end
+            wheelieAmount = 0
+        end
     end)
 end
 
+--------------------------------------------------------------------
+-- TOGGLES
+--------------------------------------------------------------------
+local BOOST_CLICK_COOLDOWN = 0.2
+local lastBoostClick = 0
+local lastWheelieClick = 0
+local lastBackClick = 0
+
+local function refreshBoostLoop()
+    if boostEnabled or backEnabled then
+        startLoop()
+    else
+        stopThrust()
+    end
+    updateInputLabel()
+end
+
 local function setBoost(stateOn)
+    stateOn = stateOn and true or false
+    if boostEnabled == stateOn then return end
     boostEnabled = stateOn
-    if stateOn then
+
+    if boostEnabled then
         enableBtn.Text = "Boost Online"
         TweenService:Create(enableBtn, TweenInfo.new(0.18), {
             BackgroundColor3 = COL_GREEN, TextColor3 = Color3.fromRGB(255,255,255)
         }):Play()
         TweenService:Create(enableStroke, TweenInfo.new(0.18), {Color = COL_GREEN}):Play()
-        startLoop()
     else
         enableBtn.Text = "Boost Offline"
         TweenService:Create(enableBtn, TweenInfo.new(0.18), {
             BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT_DIM
         }):Play()
         TweenService:Create(enableStroke, TweenInfo.new(0.18), {Color = COL_BORDER}):Play()
-        stopThrust()
-        updateInputLabel()
+    end
+    refreshBoostLoop()
+end
+
+local function setBackThrust(stateOn)
+    stateOn = stateOn and true or false
+    if backEnabled == stateOn then return end
+    backEnabled = stateOn
+
+    if backEnabled then
+        backEnableBtn.Text = "BackThrust: On"
+        TweenService:Create(backEnableBtn, TweenInfo.new(0.18), {
+            BackgroundColor3 = COL_GREEN, TextColor3 = Color3.fromRGB(255,255,255)
+        }):Play()
+        TweenService:Create(backEnableStroke, TweenInfo.new(0.18), {Color = COL_GREEN}):Play()
+    else
+        backEnableBtn.Text = "BackThrust: Off"
+        TweenService:Create(backEnableBtn, TweenInfo.new(0.18), {
+            BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT_DIM
+        }):Play()
+        TweenService:Create(backEnableStroke, TweenInfo.new(0.18), {Color = COL_BORDER}):Play()
+    end
+    refreshBoostLoop()
+end
+
+local function setWheelie(stateOn)
+    stateOn = stateOn and true or false
+    if wheelieEnabled == stateOn then return end
+    wheelieEnabled = stateOn
+
+    if wheelieEnabled then
+        wheelieBtn.Text = "Wheelie: On"
+        TweenService:Create(wheelieBtn, TweenInfo.new(0.18), {
+            BackgroundColor3 = COL_GREEN, TextColor3 = Color3.fromRGB(255,255,255)
+        }):Play()
+    else
+        wheelieBtn.Text = "Wheelie: Off"
+        TweenService:Create(wheelieBtn, TweenInfo.new(0.18), {
+            BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT_DIM
+        }):Play()
+        wheelieAmount = 0
+        if wheelieForceL then wheelieForceL.Force = Vector3.zero end
+        if wheelieForceR then wheelieForceR.Force = Vector3.zero end
     end
 end
 
 enableBtn.MouseButton1Click:Connect(function()
+    local now = os.clock()
+    if now - lastBoostClick < BOOST_CLICK_COOLDOWN then return end
+    lastBoostClick = now
     if not state.currentCar then
         status.Text = "Sit in a car first"
         status.TextColor3 = COL_RED
@@ -854,6 +1190,28 @@ enableBtn.MouseButton1Click:Connect(function()
     setBoost(not boostEnabled)
 end)
 
+backEnableBtn.MouseButton1Click:Connect(function()
+    local now = os.clock()
+    if now - lastBackClick < BOOST_CLICK_COOLDOWN then return end
+    lastBackClick = now
+    if not state.currentCar then
+        status.Text = "Sit in a car first"
+        status.TextColor3 = COL_RED
+        return
+    end
+    setBackThrust(not backEnabled)
+end)
+
+wheelieBtn.MouseButton1Click:Connect(function()
+    local now = os.clock()
+    if now - lastWheelieClick < BOOST_CLICK_COOLDOWN then return end
+    lastWheelieClick = now
+    setWheelie(not wheelieEnabled)
+end)
+
+--------------------------------------------------------------------
+-- APPLY HANDLERS
+--------------------------------------------------------------------
 local function flashOk(boxStrokeObj)
     if not boxStrokeObj then return end
     TweenService:Create(boxStrokeObj, TweenInfo.new(0.12), {Color = COL_GREEN}):Play()
@@ -881,6 +1239,88 @@ thrustBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then applyThrust() end
 end)
 
+local function applyBackThrust()
+    local n = tonumber(backThrustBox.Text)
+    if not n or n < 0 then
+        backThrustBox.TextColor3 = COL_RED
+        TweenService:Create(backThrustBox, TweenInfo.new(0.4), {TextColor3 = COL_TEXT}):Play()
+        return
+    end
+    currentBackThrust = math.min(n, THRUST_CEILING)
+    backThrustBox.Text = tostring(currentBackThrust)
+    flashOk(backThrustBoxStroke)
+end
+
+backThrustApply.MouseButton1Click:Connect(applyBackThrust)
+backThrustBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then applyBackThrust() end
+end)
+
+local function applyWheelieForce()
+    local n = tonumber(wheelieForceBox.Text)
+    if not n or n < 0 then
+        wheelieForceBox.TextColor3 = COL_RED
+        TweenService:Create(wheelieForceBox, TweenInfo.new(0.4), {TextColor3 = COL_TEXT}):Play()
+        return
+    end
+    wheelieForceCurrent = math.clamp(n, 0, 500000)
+    wheelieForceBox.Text = tostring(wheelieForceCurrent)
+    flashOk(wheelieForceBoxStroke)
+end
+
+wheelieForceApply.MouseButton1Click:Connect(applyWheelieForce)
+wheelieForceBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then applyWheelieForce() end
+end)
+
+local function applyWheelieDelay()
+    local n = tonumber(wheelieDelayBox.Text)
+    if not n or n < 0 then
+        wheelieDelayBox.TextColor3 = COL_RED
+        TweenService:Create(wheelieDelayBox, TweenInfo.new(0.4), {TextColor3 = COL_TEXT}):Play()
+        return
+    end
+    wheelieRampUp = math.clamp(n, 0.01, 10)
+    wheelieDelayBox.Text = tostring(wheelieRampUp)
+    flashOk(wheelieDelayBoxStroke)
+end
+
+wheelieDelayApply.MouseButton1Click:Connect(applyWheelieDelay)
+wheelieDelayBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then applyWheelieDelay() end
+end)
+
+local function applyPreset(presetName)
+    local p = PRESETS[presetName]
+    if not p then return end
+    currentThrust = p.thrust
+    currentBackThrust = p.backThrust
+    wheelieForceCurrent = p.wheelieForce
+    wheelieRampUp = p.wheelieDelay
+    thrustBox.Text = tostring(p.thrust)
+    backThrustBox.Text = tostring(p.backThrust)
+    wheelieForceBox.Text = tostring(p.wheelieForce)
+    wheelieDelayBox.Text = tostring(p.wheelieDelay)
+    flashOk(thrustBoxStroke)
+    flashOk(backThrustBoxStroke)
+    flashOk(wheelieForceBoxStroke)
+    flashOk(wheelieDelayBoxStroke)
+    if info and info.Parent then
+        info.Text = "Loaded preset: " .. presetName
+        info.TextColor3 = COL_GREEN
+        task.delay(1.5, function()
+            if info and info.Parent then
+                info.Text = state.currentBody and ("chassis  " .. state.currentBody.Name) or ""
+                info.TextColor3 = COL_TEXT_DIM
+            end
+        end)
+    end
+end
+
+normalPresetBtn.MouseButton1Click:Connect(function() applyPreset("Normal") end)
+truckPresetBtn.MouseButton1Click:Connect(function() applyPreset("Truck") end)
+publicBusPresetBtn.MouseButton1Click:Connect(function() applyPreset("PublicBus") end)
+
 --------------------------------------------------------------------
 -- FLY
 --------------------------------------------------------------------
@@ -888,7 +1328,7 @@ local flyConn    = nil
 local flyActive  = false
 local savedState = nil
 
-local function collectCarParts(chassis)
+local function collectCarPartsForFly(chassis)
     local car = chassis
     while car and car.Parent and not car:IsA("Model") do
         car = car.Parent
@@ -903,7 +1343,7 @@ local function collectCarParts(chassis)
 end
 
 local function saveFlyState(chassis)
-    local parts = collectCarParts(chassis)
+    local parts = collectCarPartsForFly(chassis)
     local anchored = {}
     local cframes = {}
     for _, p in ipairs(parts) do
@@ -962,6 +1402,7 @@ local flyKeys = {
 
 UserInputService.InputBegan:Connect(function(input, gp)
     if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+    if gp or isAnyTextBoxFocused() then return end
     if not flyActive then return end
     local key = flyKeys[input.KeyCode]
     if key then _G.__NZFlyHold[key] = true end
@@ -1017,7 +1458,9 @@ local function startFly()
         if horiz.Magnitude > 0.01 then
             step = step + horiz.Unit * currentFlySpeed * dt
         end
-        step = step + Vector3.new(0, vert * currentFlyVertSpeed * dt, 0)
+        if math.abs(vert) > 0.001 then
+            step = step + Vector3.new(0, vert * currentFlyVertSpeed * dt, 0)
+        end
 
         if step.Magnitude < 1e-6 then return end
 
@@ -1050,7 +1493,6 @@ local function openFlyGui()
     local flyMain = Instance.new("Frame")
     flyMain.Name = "Window"
     flyMain.Size = UDim2.new(0, 300, 0, 0)
-    -- Lower position so title bar is reachable on mobile
     flyMain.Position = UDim2.new(0.5, 60, 0.5, -60)
     flyMain.BackgroundColor3 = COL_BG
     flyMain.BorderSizePixel = 0
@@ -1071,8 +1513,8 @@ local function openFlyGui()
     flyBody.Parent = flyMain
 
     local flyStatus = Instance.new("TextLabel")
-    flyStatus.Size = UDim2.new(1, -pad*2, 0, 16)
-    flyStatus.Position = UDim2.new(0, pad, 0, 10)
+    flyStatus.Size = UDim2.new(1, -24, 0, 16)
+    flyStatus.Position = UDim2.new(0, 12, 0, 10)
     flyStatus.BackgroundTransparency = 1
     flyStatus.Text = "Not flying"
     flyStatus.TextColor3 = COL_TEXT_DIM
@@ -1082,8 +1524,8 @@ local function openFlyGui()
     flyStatus.Parent = flyBody
 
     local flyHint = Instance.new("TextLabel")
-    flyHint.Size = UDim2.new(1, -pad*2, 0, 14)
-    flyHint.Position = UDim2.new(0, pad, 0, 28)
+    flyHint.Size = UDim2.new(1, -24, 0, 14)
+    flyHint.Position = UDim2.new(0, 12, 0, 28)
     flyHint.BackgroundTransparency = 1
     flyHint.Text = "PC: W/S/A/D move · Q/E up/down"
     flyHint.TextColor3 = COL_TEXT_DIM
@@ -1093,8 +1535,8 @@ local function openFlyGui()
     flyHint.Parent = flyBody
 
     local speedLabel = Instance.new("TextLabel")
-    speedLabel.Size = UDim2.new(1, -pad*2, 0, 12)
-    speedLabel.Position = UDim2.new(0, pad, 0, 46)
+    speedLabel.Size = UDim2.new(1, -24, 0, 12)
+    speedLabel.Position = UDim2.new(0, 12, 0, 46)
     speedLabel.BackgroundTransparency = 1
     speedLabel.Text = "Fly Speed"
     speedLabel.TextColor3 = COL_TEXT_DIM
@@ -1104,8 +1546,8 @@ local function openFlyGui()
     speedLabel.Parent = flyBody
 
     local speedRow = Instance.new("Frame")
-    speedRow.Size = UDim2.new(1, -pad*2, 0, 30)
-    speedRow.Position = UDim2.new(0, pad, 0, 62)
+    speedRow.Size = UDim2.new(1, -24, 0, 30)
+    speedRow.Position = UDim2.new(0, 12, 0, 62)
     speedRow.BackgroundTransparency = 1
     speedRow.Parent = flyBody
 
@@ -1157,8 +1599,8 @@ local function openFlyGui()
     end)
 
     local dirPad = Instance.new("Frame")
-    dirPad.Size = UDim2.new(1, -pad*2, 0, 130)
-    dirPad.Position = UDim2.new(0, pad, 0, 100)
+    dirPad.Size = UDim2.new(1, -24, 0, 130)
+    dirPad.Position = UDim2.new(0, 12, 0, 100)
     dirPad.BackgroundTransparency = 1
     dirPad.Parent = flyBody
 
@@ -1208,8 +1650,6 @@ local function openFlyGui()
                 setKey(false)
             end
         end)
-        btn.MouseButton1Down:Connect(function() setKey(true) end)
-        btn.MouseButton1Up:Connect(function() setKey(false) end)
     end
 
     bindHold(btnFwd, "forward")
@@ -1220,8 +1660,8 @@ local function openFlyGui()
     bindHold(btnRight, "right")
 
     local flyToggle = Instance.new("TextButton")
-    flyToggle.Size = UDim2.new(1, -pad*2, 0, 38)
-    flyToggle.Position = UDim2.new(0, pad, 0, 240)
+    flyToggle.Size = UDim2.new(1, -24, 0, 38)
+    flyToggle.Position = UDim2.new(0, 12, 0, 240)
     flyToggle.BackgroundColor3 = COL_BG_ALT
     flyToggle.Text = "Enable Fly"
     flyToggle.TextColor3 = COL_TEXT_DIM
@@ -1234,8 +1674,8 @@ local function openFlyGui()
     local flyToggleStroke = stroke(flyToggle, COL_BORDER, 1)
 
     local flyInfo = Instance.new("TextLabel")
-    flyInfo.Size = UDim2.new(1, -pad*2, 0, 12)
-    flyInfo.Position = UDim2.new(0, pad, 0, 286)
+    flyInfo.Size = UDim2.new(1, -24, 0, 12)
+    flyInfo.Position = UDim2.new(0, 12, 0, 286)
     flyInfo.BackgroundTransparency = 1
     flyInfo.Text = ""
     flyInfo.TextColor3 = COL_TEXT_DIM
@@ -1244,7 +1684,7 @@ local function openFlyGui()
     flyInfo.TextXAlignment = Enum.TextXAlignment.Left
     flyInfo.Parent = flyBody
 
-    local FLY_FULL_H = 306
+    local FLY_FULL_H = 312
     local FLY_MIN_H  = 36
 
     local function tweenFly(h)
@@ -1312,18 +1752,16 @@ end
 flyOpenBtn.MouseButton1Click:Connect(openFlyGui)
 
 --------------------------------------------------------------------
--- BODY FLING (Click + Hold)
+-- BODY FLING
 --------------------------------------------------------------------
-local flingEnabled  = false
-local flingMode     = "click"
-
+local flingEnabled = false
+local flingMode = "click"
 local flingLast = 0
 local flingBusy = false
-
-local holdActive     = false
-local holdTarget     = nil
-local holdReturnPos  = nil
-local holdConn       = nil
+local holdActive = false
+local holdTarget = nil
+local holdReturnPos = nil
+local holdConn = nil
 
 local function isCarModel(model)
     if not model:IsA("Model") then return false end
@@ -1358,22 +1796,21 @@ local function getRoot()
     return char, char:FindFirstChild("HumanoidRootPart")
 end
 
-local function applyMassKick(chassis, direction, verticalOnly)
-    if not chassis then return end
-    local mass = getCarMass(chassis.Parent or chassis)
+local function applyMassKick(car, direction, verticalOnly)
+    if not car then return end
+    local mass = getCarMass(car)
     if not mass or mass <= 0 then mass = 1000 end
-
     local scale = mass / 1000
     local hKick = math.min(FLING_KICK_H_PER_KG * scale, FLING_MAX_KICK_H)
     local vKick = math.min(FLING_KICK_V_PER_KG * scale, FLING_MAX_KICK_V)
-
     local impulse
     if verticalOnly then
         impulse = Vector3.new(0, vKick, 0)
     else
         impulse = direction * hKick + Vector3.new(0, vKick, 0)
     end
-
+    local chassis = getChassisPart(car)
+    if not chassis then return end
     pcall(function()
         chassis.AssemblyLinearVelocity = chassis.AssemblyLinearVelocity + impulse
     end)
@@ -1381,81 +1818,71 @@ end
 
 local function doClickFling(car)
     if flingBusy then return end
-    local now = tick()
+    local now = os.clock()
     if now - flingLast < FLING_COOLDOWN then return end
     flingLast = now
-
     local carCenter = getCarCenter(car)
     if not carCenter then return end
-
     local char, root = getRoot()
     if not char or not root then return end
-
     flingBusy = true
-    local origCFrame = root.CFrame
-
-    local camPos = camera.CFrame.Position
-    local toCar = Vector3.new(carCenter.X - camPos.X, 0, carCenter.Z - camPos.Z)
-    if toCar.Magnitude < 0.01 then
-        toCar = Vector3.new(0, 0, -1)
-    else
-        toCar = toCar.Unit
-    end
-
-    local pushPos = carCenter + toCar * FLING_OVERLAP
-    pushPos = Vector3.new(pushPos.X, carCenter.Y + FLING_UP_OFFSET, pushPos.Z)
-
-    pcall(function()
-        root.CFrame = CFrame.new(pushPos, pushPos + toCar)
-    end)
-
-    local chassis = getChassisPart(car)
-    applyMassKick(chassis, toCar, false)
-
-    local stopAt = tick() + FLING_PUSH_DUR
-    local lockConn
-    lockConn = RunService.Heartbeat:Connect(function()
-        if tick() >= stopAt or not root or not root.Parent then
-            if lockConn then lockConn:Disconnect() end
-            return
-        end
-        pcall(function()
-            root.AssemblyLinearVelocity = Vector3.zero
-            root.AssemblyAngularVelocity = Vector3.zero
-            root.CFrame = CFrame.new(pushPos, pushPos + toCar)
+    local ok, err = pcall(function()
+        local origCFrame = root.CFrame
+        local camPos = camera.CFrame.Position
+        local toCar = Vector3.new(carCenter.X - camPos.X, 0, carCenter.Z - camPos.Z)
+        if toCar.Magnitude < 0.01 then toCar = Vector3.new(0, 0, -1) else toCar = toCar.Unit end
+        local pushPos = carCenter + toCar * FLING_OVERLAP
+        pushPos = Vector3.new(pushPos.X, carCenter.Y + FLING_UP_OFFSET, pushPos.Z)
+        pcall(function() root.CFrame = CFrame.new(pushPos, pushPos + toCar) end)
+        local chassis = getChassisPart(car)
+        applyMassKick(car, toCar, false)
+        local stopAt = os.clock() + FLING_PUSH_DUR
+        local lockConn
+        lockConn = RunService.Heartbeat:Connect(function()
+            if os.clock() >= stopAt or not root or not root.Parent then
+                if lockConn then lockConn:Disconnect() end
+                return
+            end
+            pcall(function()
+                root.AssemblyLinearVelocity = Vector3.zero
+                root.AssemblyAngularVelocity = Vector3.zero
+                root.CFrame = CFrame.new(pushPos, pushPos + toCar)
+            end)
+            if chassis and chassis.Parent then
+                local mass = getCarMass(car)
+                local scale = math.max(mass, 1) / 1000
+                local contKick = math.min(FLING_KICK_H_PER_KG * scale * 0.15, FLING_MAX_KICK_H * 0.2)
+                pcall(function()
+                    chassis.AssemblyLinearVelocity = chassis.AssemblyLinearVelocity + toCar * contKick
+                end)
+            end
         end)
-        if chassis and chassis.Parent then
-            local mass = getCarMass(car)
-            local scale = math.max(mass, 1) / 1000
-            local contKick = math.min(FLING_KICK_H_PER_KG * scale * 0.15, FLING_MAX_KICK_H * 0.2)
-            pcall(function()
-                chassis.AssemblyLinearVelocity = chassis.AssemblyLinearVelocity + toCar * contKick
-            end)
-        end
+        task.delay(FLING_PUSH_DUR + FLING_RETURN, function()
+            if lockConn then pcall(function() lockConn:Disconnect() end) end
+            local char2, root2 = getRoot()
+            if root2 and root2.Parent then
+                pcall(function()
+                    root2.CFrame = origCFrame
+                    root2.AssemblyLinearVelocity = Vector3.zero
+                    root2.AssemblyAngularVelocity = Vector3.zero
+                end)
+            end
+            flingBusy = false
+        end)
+        local m = getCarMass(car)
+        info.Text = string.format("Flung %s (~%d mass)", car.Name, math.floor(m))
+        info.TextColor3 = COL_GREEN
+        task.delay(1.4, function()
+            if info and info.Parent then
+                info.Text = state.currentBody and ("chassis  " .. state.currentBody.Name) or ""
+                info.TextColor3 = COL_TEXT_DIM
+            end
+        end)
     end)
-
-    task.delay(FLING_PUSH_DUR + FLING_RETURN, function()
-        if lockConn then pcall(function() lockConn:Disconnect() end) end
-        local char2, root2 = getRoot()
-        if root2 and root2.Parent then
-            pcall(function()
-                root2.CFrame = origCFrame
-                root2.AssemblyLinearVelocity = Vector3.zero
-                root2.AssemblyAngularVelocity = Vector3.zero
-            end)
-        end
+    if not ok then
         flingBusy = false
-    end)
-
-    local m = getCarMass(car)
-    info.Text = string.format("Flung %s (~%d mass)", car.Name, math.floor(m))
-    info.TextColor3 = COL_GREEN
-    task.delay(1.4, function()
-        if info and info.Parent then
-            info.Text = state.currentBody and ("chassis  " .. state.currentBody.Name) or ""
-            info.TextColor3 = COL_TEXT_DIM
-        end
-    end)
+        warn("doClickFling error:", err)
+    end
 end
 
 local function stopHoldFling()
@@ -1489,37 +1916,27 @@ local function startHoldFling(car)
     local char, root = getRoot()
     if not char or not root then return end
     if not getChassisPart(car) then return end
-
     holdActive = true
     holdTarget = car
     holdReturnPos = root.CFrame
-
     if holdConn then holdConn:Disconnect() end
     holdConn = RunService.Heartbeat:Connect(function(dt)
         if not holdActive then return end
-        if not holdTarget or not holdTarget.Parent then
-            stopHoldFling() return
-        end
+        if not holdTarget or not holdTarget.Parent then stopHoldFling() return end
         local _, r = getRoot()
-        if not r or not r.Parent then
-            stopHoldFling() return
-        end
-
+        if not r or not r.Parent then stopHoldFling() return end
         local carCenter = getCarCenter(holdTarget)
         if not carCenter then stopHoldFling() return end
-
-        local t = tick()
+        local t = os.clock()
         local spinCFrame = CFrame.new(carCenter + Vector3.new(0, 2, 0))
             * CFrame.Angles(t * HOLD_SPIN_SPEED * 0.1,
                             t * HOLD_SPIN_SPEED * 0.13,
                             t * HOLD_SPIN_SPEED * 0.17)
-
         pcall(function()
             r.CFrame = spinCFrame
             r.AssemblyLinearVelocity = Vector3.zero
             r.AssemblyAngularVelocity = Vector3.zero
         end)
-
         local chas = getChassisPart(holdTarget)
         if chas then
             local camPos = camera.CFrame.Position
@@ -1535,7 +1952,6 @@ local function startHoldFling(car)
             end
         end
     end)
-
     if info and info.Parent then
         local m = getCarMass(car)
         info.Text = string.format("Hold-flinging %s (~%d mass)", car.Name, math.floor(m))
@@ -1545,21 +1961,17 @@ end
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not flingEnabled then return end
-    if gameProcessed then return end
-
+    if gameProcessed or isAnyTextBoxFocused() then return end
     local isClick = input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch
     if not isClick then return end
-
     local pos = input.Position
     local ray = camera:ViewportPointToRay(pos.X, pos.Y)
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances = { player.Character }
-
     local hit = Workspace:Raycast(ray.Origin, ray.Direction * 5000, params)
     if not hit then return end
-
     local car = findCarModel(hit.Instance)
     if not car then
         info.Text = "Not a car"
@@ -1572,12 +1984,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end)
         return
     end
-
-    if flingMode == "click" then
-        doClickFling(car)
-    else
-        startHoldFling(car)
-    end
+    if flingMode == "click" then doClickFling(car) else startHoldFling(car) end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
@@ -1585,10 +1992,7 @@ UserInputService.InputEnded:Connect(function(input)
     local isClick = input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch
     if not isClick then return end
-
-    if flingMode == "hold" and holdActive then
-        stopHoldFling()
-    end
+    if flingMode == "hold" and holdActive then stopHoldFling() end
 end)
 
 flingBtn.MouseButton1Click:Connect(function()
@@ -1628,35 +2032,25 @@ holdModeBtn.MouseButton1Click:Connect(function() setFlingMode("hold") end)
 --------------------------------------------------------------------
 -- SIT ON HOOD
 --------------------------------------------------------------------
-local sitActive    = false
-local sitTarget    = nil
+local sitActive = false
+local sitTarget = nil
 local sitReturnPos = nil
-local sitConn      = nil
+local sitConn = nil
 local sitAnimTrack = nil
-local sitAnimObj   = nil
+local sitAnimObj = nil
 
 local function stopSit()
     if sitConn then sitConn:Disconnect() sitConn = nil end
     if not sitActive then return end
-
     local char = player.Character
-
-    if sitAnimTrack then
-        pcall(function() sitAnimTrack:Stop(0.1) end)
-        sitAnimTrack = nil
-    end
-    if sitAnimObj then
-        pcall(function() sitAnimObj:Destroy() end)
-        sitAnimObj = nil
-    end
-
+    if sitAnimTrack then pcall(function() sitAnimTrack:Stop(0.1) end) sitAnimTrack = nil end
+    if sitAnimObj then pcall(function() sitAnimObj:Destroy() end) sitAnimObj = nil end
     if char then
         for _, c in ipairs(char:GetDescendants()) do
             if c:IsA("WeldConstraint") and c.Name == "_NZSitWeld" then
                 pcall(function() c:Destroy() end)
             end
         end
-
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then
             pcall(function() hum.Sit = false end)
@@ -1664,20 +2058,16 @@ local function stopSit()
             pcall(function() hum:ChangeState(Enum.HumanoidStateType.Running) end)
             pcall(function() hum:ChangeState(Enum.HumanoidStateType.GettingUp) end)
         end
-
         local root = char:FindFirstChild("HumanoidRootPart")
         if root and root.Parent then
             local upNudge = Vector3.new(0, 2, 0)
             pcall(function()
                 root.AssemblyLinearVelocity = Vector3.zero
                 root.AssemblyAngularVelocity = Vector3.zero
-                if sitReturnPos then
-                    root.CFrame = sitReturnPos + upNudge
-                end
+                if sitReturnPos then root.CFrame = sitReturnPos + upNudge end
                 root.AssemblyLinearVelocity = Vector3.zero
                 root.AssemblyAngularVelocity = Vector3.zero
             end)
-
             task.defer(function()
                 local c2 = player.Character
                 local r2 = c2 and c2:FindFirstChild("HumanoidRootPart")
@@ -1685,19 +2075,15 @@ local function stopSit()
                     pcall(function()
                         r2.AssemblyLinearVelocity = Vector3.zero
                         r2.AssemblyAngularVelocity = Vector3.zero
-                        if sitReturnPos then
-                            r2.CFrame = sitReturnPos + upNudge
-                        end
+                        if sitReturnPos then r2.CFrame = sitReturnPos + upNudge end
                     end)
                 end
             end)
         end
     end
-
     sitActive = false
     sitTarget = nil
     sitReturnPos = nil
-
     if info and info.Parent then
         info.Text = "Stood up"
         info.TextColor3 = COL_YELLOW
@@ -1708,82 +2094,68 @@ local function stopSit()
             end
         end)
     end
-
     TweenService:Create(stopSitBtn, TweenInfo.new(0.18), {
         BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT_DIM
     }):Play()
     TweenService:Create(sitBtn, TweenInfo.new(0.18), {
-        BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT_DIM
+        BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT
     }):Play()
-    sitBtn.Text = "Sit: Off"
+    sitBtn.Text = "Sit"
 end
 _G.__NZSitStop = stopSit
 
 local function startSit(car)
     if sitActive then return end
-
     local char, root = getRoot()
     if not char or not root then return end
-
     local hum = char:FindFirstChildOfClass("Humanoid")
     if not hum then return end
-
     sitReturnPos = root.CFrame
-
     local carCenter, carSize = getCarBounds(car)
     if not carCenter or not carSize then return end
-
     local chassis = getChassisPart(car)
     if not chassis then return end
-
     local forward = chassis.CFrame.LookVector
     forward = Vector3.new(forward.X, 0, forward.Z)
-    if forward.Magnitude < 0.01 then
-        forward = Vector3.new(0, 0, -1)
-    end
+    if forward.Magnitude < 0.01 then forward = Vector3.new(0, 0, -1) end
     forward = forward.Unit
-
     local hoodPos = carCenter
         + forward * (carSize.Z * 0.35)
         + Vector3.new(0, carSize.Y * 0.35, 0)
-
     hum.Sit = false
     hum.PlatformStand = true
-
     pcall(function()
         root.CFrame = CFrame.new(hoodPos, hoodPos + forward)
         root.AssemblyLinearVelocity = Vector3.zero
         root.AssemblyAngularVelocity = Vector3.zero
     end)
-
     local weld = Instance.new("WeldConstraint")
     weld.Name = "_NZSitWeld"
     weld.Part0 = root
     weld.Part1 = chassis
     weld.Parent = root
-
     local rigType = getRigType(char)
     local animId = (rigType == "R6") and SIT_ANIM_R6 or SIT_ANIM_R15
-
     sitAnimObj = Instance.new("Animation")
     sitAnimObj.AnimationId = animId
-
-    sitAnimTrack = hum:LoadAnimation(sitAnimObj)
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if not animator then
+        animator = Instance.new("Animator")
+        animator.Parent = hum
+    end
+    sitAnimTrack = animator:LoadAnimation(sitAnimObj)
     if sitAnimTrack then
         pcall(function()
             sitAnimTrack.Looped = true
             sitAnimTrack:Play(0.1)
         end)
     end
-
     sitActive = true
     sitTarget = car
-
     if info and info.Parent then
         info.Text = "Sat on " .. car.Name .. " (" .. rigType .. ")"
         info.TextColor3 = COL_GREEN
     end
-
     sitBtn.Text = "Sit: On"
     TweenService:Create(sitBtn, TweenInfo.new(0.18), {
         BackgroundColor3 = COL_GREEN, TextColor3 = Color3.fromRGB(255,255,255)
@@ -1791,21 +2163,14 @@ local function startSit(car)
     TweenService:Create(stopSitBtn, TweenInfo.new(0.18), {
         BackgroundColor3 = COL_RED, TextColor3 = Color3.fromRGB(255,255,255)
     }):Play()
-
     if sitConn then sitConn:Disconnect() end
     sitConn = RunService.Heartbeat:Connect(function()
         if not sitActive then return end
-        if not sitTarget or not sitTarget.Parent then
-            stopSit() return
-        end
+        if not sitTarget or not sitTarget.Parent then stopSit() return end
         local char2, root2 = getRoot()
-        if not char2 or not root2 or not root2.Parent then
-            stopSit() return
-        end
-
+        if not char2 or not root2 or not root2.Parent then stopSit() return end
         local chas2 = getChassisPart(sitTarget)
         if not chas2 then stopSit() return end
-
         local weld2 = root2:FindFirstChild("_NZSitWeld")
         if not weld2 then
             local w = Instance.new("WeldConstraint")
@@ -1814,11 +2179,15 @@ local function startSit(car)
             w.Part1 = chas2
             w.Parent = root2
         end
-
         if not sitAnimTrack or not sitAnimTrack.IsPlaying then
             local hum2 = char2:FindFirstChildOfClass("Humanoid")
             if hum2 and sitAnimObj then
-                local ok, track = pcall(function() return hum2:LoadAnimation(sitAnimObj) end)
+                local anim2 = hum2:FindFirstChildOfClass("Animator")
+                if not anim2 then
+                    anim2 = Instance.new("Animator")
+                    anim2.Parent = hum2
+                end
+                local ok, track = pcall(function() return anim2:LoadAnimation(sitAnimObj) end)
                 if ok and track then
                     sitAnimTrack = track
                     pcall(function()
@@ -1834,10 +2203,7 @@ end
 local sitSelecting = false
 
 sitBtn.MouseButton1Click:Connect(function()
-    if sitActive then
-        stopSit()
-        return
-    end
+    if sitActive then stopSit() return end
     sitSelecting = not sitSelecting
     if sitSelecting then
         sitBtn.Text = "Sit: Select"
@@ -1849,49 +2215,43 @@ sitBtn.MouseButton1Click:Connect(function()
             info.TextColor3 = COL_YELLOW
         end
     else
-        sitBtn.Text = "Sit: Off"
+        sitBtn.Text = "Sit"
         TweenService:Create(sitBtn, TweenInfo.new(0.18), {
-            BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT_DIM
+            BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT
         }):Play()
     end
 end)
 
 stopSitBtn.MouseButton1Click:Connect(function()
     sitSelecting = false
-    if sitActive then
-        stopSit()
+    if sitActive then stopSit()
     else
-        sitBtn.Text = "Sit: Off"
+        sitBtn.Text = "Sit"
         TweenService:Create(sitBtn, TweenInfo.new(0.18), {
-            BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT_DIM
+            BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT
         }):Play()
     end
 end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if not sitSelecting then return end
-    if gameProcessed then return end
-
+    if gameProcessed or isAnyTextBoxFocused() then return end
     local isClick = input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch
     if not isClick then return end
-
     local pos = input.Position
     local ray = camera:ViewportPointToRay(pos.X, pos.Y)
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances = { player.Character }
-
     local hit = Workspace:Raycast(ray.Origin, ray.Direction * 5000, params)
     if not hit then return end
-
     local car = findCarModel(hit.Instance)
     if not car then
         info.Text = "Not a car"
         info.TextColor3 = COL_RED
         return
     end
-
     sitSelecting = false
     startSit(car)
 end)
@@ -1903,7 +2263,4 @@ hubGui.Destroying:Connect(function()
     stopThrust()
     if holdActive then stopHoldFling() end
     if sitActive then stopSit() end
-    if _G.__NZBounce and _G.__NZBounce.Parent then
-        pcall(function() _G.__NZBounce:Destroy() end)
-    end
 end)
