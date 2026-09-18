@@ -1,12 +1,12 @@
 --[[ NZ-HUB (unified)
   Tabs:
     - A-Chassis : thrust / backthrust / wheelie / presets / car fly / body fling / sit on hood
-    - Brookhaven: Brookhaven car + player mods (fixed)
+    - Brookhav
+    - Backdoor: resultItems/backdoorsen: Brookhaven car + player mods (fixed)
     - INF Smile : Infectious Smile map mods (fixed)
     - Backdoor  : backdoor scanner (fixed)
     - Utility   : rejoin / copy job / misc
-  Fixes applied:
-    - Backdoor: resultItems/backdoorsFound declared BEFORE copy handler (was global-nil bug)
+  Fixes applied:Found declared BEFORE copy handler (was global-nil bug)
     - Brookhaven: fly-speed boxes overlapped same Y and never updated canvas; now labelled rows.
       Velocity/RotVelocity -> AssemblyLinearVelocity/AssemblyAngularVelocity.
       InfJump via JumpRequest (was `if humanoid.Jump then humanoid.Jump=true` no-op).
@@ -1269,7 +1269,14 @@ do
         for _, v in ipairs(Workspace:GetDescendants()) do
             if v:IsA("Model") and v.Name == player.Name .. "Car" then return v end
         end
-        return nil
+        local want = player.Name .. "Car"
+        local found = nil
+        pcall(function()
+            for _, v in ipairs(game:GetDescendants()) do
+                if v:IsA("Model") and v.Name == want then found = v break end
+            end
+        end)
+        return found
     end
     local function cmNeedCar()
         cmCar = (cmCar and cmCar.Parent) and cmCar or cmFindCar()
@@ -1537,13 +1544,23 @@ do
         end
         return nil
     end
+    local function bhDeepFind()
+        local want = player.Name .. "Car"
+        local found = nil
+        pcall(function()
+            for _, v in ipairs(game:GetDescendants()) do
+                if v:IsA("Model") and v.Name == want then found = v break end
+            end
+        end)
+        return found
+    end
     local function bhFindCar()
         local viaSeat = bhCarFromSeat()
         if viaSeat then return viaSeat end
         for _, v in ipairs(Workspace:GetDescendants()) do
             if v:IsA("Model") and v.Name == player.Name .. "Car" then return v end
         end
-        return nil
+        return bhDeepFind()
     end
     local function bhNeedCar()
         bhCar = (bhCar and bhCar.Parent) and bhCar or bhFindCar()
@@ -1599,21 +1616,29 @@ do
         if not bhNeedCar() then return end
         noclipOn = not noclipOn; setToggle(bhNoclip, noclipOn)
         if noclipOn then
-            origColl = {}
             for _, p in ipairs(bhCar:GetDescendants()) do
                 if p:IsA("BasePart") then
-                    origColl[p] = { c = p.CanCollide, t = p.CanTouch }
+                    if origColl[p] == nil then origColl[p] = { c = p.CanCollide, t = p.CanTouch } end
                     p.CanCollide, p.CanTouch = false, false
                 end
             end
-            local dc
-            dc = bhCar.DescendantAdded:Connect(function(d)
-                if d:IsA("BasePart") then
-                    origColl[d] = { c = d.CanCollide, t = d.CanTouch }
-                    d.CanCollide, d.CanTouch = false, false
+            local hb
+            hb = RunService.Heartbeat:Connect(function()
+                if not noclipOn then return end
+                if not bhCar or not bhCar.Parent then
+                    local c = bhFindCar()
+                    if not c then return end
+                    bhCar, baseMax = c, nil
+                    bhStatus.Text = "Car: " .. c.Name; bhStatus.TextColor3 = COL_GREEN
+                end
+                for _, p in ipairs(bhCar:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        if origColl[p] == nil then origColl[p] = { c = p.CanCollide, t = p.CanTouch } end
+                        if p.CanCollide or p.CanTouch then p.CanCollide, p.CanTouch = false, false end
+                    end
                 end
             end)
-            table.insert(noclipConns, dc)
+            table.insert(noclipConns, hb)
             bhStatus.Text = "Noclip ON"
         else
             for p, d in pairs(origColl) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t end) end
