@@ -1242,6 +1242,7 @@ do
     pageLabel(pageA, py, "Car Mouse Control"); local cmcToggle = pageToggle(pageA, py - 2, 160); py = py + 30
     local cmcMode = pageWideBtn(pageA, py, "Spin: In-place"); py = py + 34
     pageLabel(pageA, py, "Spin X Y Z"); local cmSpinX = pageBox(pageA, py - 2, 150, 52, "0"); local cmSpinY = pageBox(pageA, py - 2, 208, 52, "90"); local cmSpinZ = pageBox(pageA, py - 2, 266, 52, "0"); local cmSpinApply = pageApply(pageA, py - 2, 324, "Set"); py = py + 30
+    pageLabel(pageA, py, "Spin Enabled"); local cmSpinTog = pageToggle(pageA, py - 2, 160); setToggle(cmSpinTog, true); py = py + 30
     local cmDistLbl = pageLabel(pageA, py, "Wheel Dist: 0", 200); py = py + 22
     local cmBrake = pageWideBtn(pageA, py, "Instant Brake (X)"); py = py + 34
     pageLabel(pageA, py, "Car Scale"); local cmScaleBox = pageBox(pageA, py - 2, 160, 90, "1"); local cmScaleApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
@@ -1507,8 +1508,12 @@ do
     -- Car Mouse Control: scan seated, drive unseated via cursor
     ----------------------------------------------------------------
     local cmcCar, cmcOn, cmcHolding, cmcLoop = nil, false, false, nil
+    local cmcUp, cmcDown = false, false
     local cmcSpinX, cmcSpinY, cmcSpinZ = 0, 90, 0
-    local cmcOrbit, cmcDist = false, 0
+    local cmcOrbit, cmcDist, cmcBase, cmcSpinOn = false, 0, 0, true
+    cmSpinTog.MouseButton1Click:Connect(function()
+        cmcSpinOn = not cmcSpinOn; setToggle(cmSpinTog, cmcSpinOn)
+    end)
     cmSpinApply.MouseButton1Click:Connect(function()
         local nx, ny, nz = tonumber(cmSpinX.Text), tonumber(cmSpinY.Text), tonumber(cmSpinZ.Text)
         if nx and ny and nz then
@@ -1551,7 +1556,7 @@ do
                 if not okR or not ray then return end
                 local okP, piv = pcall(function() return cmcCar:GetPivot() end)
                 if not okP or not piv then return end
-                local dist = (ray.Origin - piv.Position).Magnitude + cmcDist
+                local dist = (cmcBase > 0 and cmcBase or (ray.Origin - piv.Position).Magnitude) + cmcDist
                 if dist < 5 then dist = 5 end
                 local target = ray.Origin + ray.Direction * dist
                 local toT = target - piv.Position
@@ -1561,7 +1566,12 @@ do
                     newPos = piv.Position + toT.Unit * stepLen
                 end
                 local rot = piv - piv.Position
-                local spinCF = CFrame.Angles(math.rad(cmcSpinX) * dt, math.rad(cmcSpinY) * dt, math.rad(cmcSpinZ) * dt)
+                local vy = (cmcUp and 1 or 0) - (cmcDown and 1 or 0)
+                if vy ~= 0 then newPos = newPos + Vector3.new(0, vy * cmMflySpeed * dt) end
+                local spinCF = CFrame.new(0, 0, 0)
+                if cmcSpinOn then
+                    spinCF = CFrame.Angles(math.rad(cmcSpinX) * dt, math.rad(cmcSpinY) * dt, math.rad(cmcSpinZ) * dt)
+                end
                 local newCF
                 if cmcOrbit then
                     local newRel = spinCF * (newPos - target)
@@ -1601,12 +1611,30 @@ do
         cmDistLbl.Text = "Wheel Dist: " .. tostring(cmcDist)
     end)
     UserInputService.InputBegan:Connect(function(input, gp)
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            if isAnyTextBoxFocused() then return end
+            if input.KeyCode == Enum.KeyCode.Q then cmcUp = true return end
+            if input.KeyCode == Enum.KeyCode.E then cmcDown = true return end
+            return
+        end
         if gp or isAnyTextBoxFocused() then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            if cmcOn and cmcCar and cmcCar.Parent then cmcHolding = true end
+            if cmcOn and cmcCar and cmcCar.Parent then
+                cmcHolding = true
+                local cam0 = Workspace.CurrentCamera
+                local ok0, piv0 = pcall(function() return cmcCar:GetPivot() end)
+                if cam0 and ok0 and piv0 then
+                    cmcBase = (cam0.CFrame.Position - piv0.Position).Magnitude
+                else cmcBase = 0 end
+            end
         end
     end)
     UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            if input.KeyCode == Enum.KeyCode.Q then cmcUp = false return end
+            if input.KeyCode == Enum.KeyCode.E then cmcDown = false return end
+            return
+        end
         if input.UserInputType == Enum.UserInputType.MouseButton1 then cmcHolding = false end
     end)
 end
