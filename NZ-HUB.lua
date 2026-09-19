@@ -1240,8 +1240,9 @@ do
     pageLabel(pageA, py, "Car Jump (R-Click)"); local cmJump = pageToggle(pageA, py - 2, 160); py = py + 30
     pageLabel(pageA, py, "Car Fling");    local cmFling = pageToggle(pageA, py - 2, 160); py = py + 34
     pageLabel(pageA, py, "Car Mouse Control"); local cmcToggle = pageToggle(pageA, py - 2, 160); py = py + 30
-    local cmcScan = pageWideBtn(pageA, py, "Scan Car (sit in car)"); py = py + 34
-    pageLabel(pageA, py, "Spin Speed"); local cmSpinBox = pageBox(pageA, py - 2, 160, 90, "90"); local cmSpinApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
+    local cmcMode = pageWideBtn(pageA, py, "Spin: In-place"); py = py + 34
+    pageLabel(pageA, py, "Spin X Y Z"); local cmSpinX = pageBox(pageA, py - 2, 150, 52, "0"); local cmSpinY = pageBox(pageA, py - 2, 208, 52, "90"); local cmSpinZ = pageBox(pageA, py - 2, 266, 52, "0"); local cmSpinApply = pageApply(pageA, py - 2, 324, "Set"); py = py + 30
+    local cmDistLbl = pageLabel(pageA, py, "Wheel Dist: 0", 200); py = py + 22
     local cmBrake = pageWideBtn(pageA, py, "Instant Brake (X)"); py = py + 34
     pageLabel(pageA, py, "Car Scale"); local cmScaleBox = pageBox(pageA, py - 2, 160, 90, "1"); local cmScaleApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
     local cmCustom = pageWideBtn(pageA, py, "Car Modded Customization"); py = py + 34
@@ -1505,34 +1506,28 @@ do
     ----------------------------------------------------------------
     -- Car Mouse Control: scan seated, drive unseated via cursor
     ----------------------------------------------------------------
-    local cmcCar, cmcOn, cmcHolding, cmcSpin, cmcLoop = nil, false, false, 90, nil
-    cmcScan.MouseButton1Click:Connect(function()
-        local ch = player.Character
-        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
-        local seat = hum and hum.SeatPart
-        if not seat then cmStatus.Text = "Sit in the car first, then Scan"; cmStatus.TextColor3 = COL_RED return end
-        local a = seat
-        while a and a.Parent do
-            a = a.Parent
-            if a:IsA("Model") then
-                cmcCar = a
-                cmStatus.Text = "Locked " .. a.Name .. " - exit seat, hold Left Click"; cmStatus.TextColor3 = COL_GREEN
-                return
-            end
-        end
-        cmStatus.Text = "No car model found"; cmStatus.TextColor3 = COL_RED
-    end)
+    local cmcCar, cmcOn, cmcHolding, cmcLoop = nil, false, false, nil
+    local cmcSpinX, cmcSpinY, cmcSpinZ = 0, 90, 0
+    local cmcOrbit, cmcDist = false, 0
     cmSpinApply.MouseButton1Click:Connect(function()
-        local n = tonumber(cmSpinBox.Text)
-        if n then cmcSpin = math.clamp(n, -720, 720); cmSpinBox.Text = tostring(cmcSpin); flashOk(cmSpinBox)
-        else flashErr(cmSpinBox) end
+        local nx, ny, nz = tonumber(cmSpinX.Text), tonumber(cmSpinY.Text), tonumber(cmSpinZ.Text)
+        if nx and ny and nz then
+            cmcSpinX = math.clamp(nx, -720, 720); cmcSpinY = math.clamp(ny, -720, 720); cmcSpinZ = math.clamp(nz, -720, 720)
+            cmSpinX.Text, cmSpinY.Text, cmSpinZ.Text = tostring(cmcSpinX), tostring(cmcSpinY), tostring(cmcSpinZ)
+            flashOk(cmSpinX); flashOk(cmSpinY); flashOk(cmSpinZ)
+        else flashErr(cmSpinX) end
+    end)
+    cmcMode.MouseButton1Click:Connect(function()
+        cmcOrbit = not cmcOrbit
+        cmcMode.Text = cmcOrbit and "Spin: Around Cursor" or "Spin: In-place"
+        TweenService:Create(cmcMode, TweenInfo.new(0.15), { BackgroundColor3 = COL_ACCENT }):Play()
     end)
     cmcToggle.MouseButton1Click:Connect(function()
-        if not cmcCar or not cmcCar.Parent then
-            cmStatus.Text = "Scan a car first"; cmStatus.TextColor3 = COL_RED
+        if not cmNeedCar() then
             cmcOn = false; setToggle(cmcToggle, false)
             return
         end
+        cmcCar = cmCar
         if cmKflyOn then cmKflyOn = false; setToggle(cmKFly, false); if cmKflyConn then pcall(function() cmKflyConn:Disconnect() end) cmKflyConn = nil end end
         if cmMflyOn then cmMflyOn = false; setToggle(cmMFly, false); if cmMflyConn then pcall(function() cmMflyConn:Disconnect() end) cmMflyConn = nil end end
         cmcOn = not cmcOn; setToggle(cmcToggle, cmcOn)
@@ -1556,18 +1551,25 @@ do
                 if not okR or not ray then return end
                 local okP, piv = pcall(function() return cmcCar:GetPivot() end)
                 if not okP or not piv then return end
-                local dist = (ray.Origin - piv.Position).Magnitude
-                if dist < 1 then dist = 30 end
+                local dist = (ray.Origin - piv.Position).Magnitude + cmcDist
+                if dist < 5 then dist = 5 end
                 local target = ray.Origin + ray.Direction * dist
                 local toT = target - piv.Position
                 local newPos = piv.Position
-                if toT.Magnitude > 2 then
+                if toT.Magnitude > 0.5 then
                     local stepLen = math.min(cmMflySpeed * dt, toT.Magnitude)
                     newPos = piv.Position + toT.Unit * stepLen
                 end
                 local rot = piv - piv.Position
-                local s = math.rad(cmcSpin) * dt
-                local newCF = CFrame.new(newPos) * (rot * CFrame.Angles(s, s, s))
+                local spinCF = CFrame.Angles(math.rad(cmcSpinX) * dt, math.rad(cmcSpinY) * dt, math.rad(cmcSpinZ) * dt)
+                local newCF
+                if cmcOrbit then
+                    local newRel = spinCF * (newPos - target)
+                    newPos = target + newRel
+                    newCF = CFrame.new(newPos) * (rot * spinCF)
+                else
+                    newCF = CFrame.new(newPos) * (rot * spinCF)
+                end
                 pcall(function() cmcCar:PivotTo(newCF) end)
                 for _, p in ipairs(cmcCar:GetDescendants()) do
                     if p:IsA("BasePart") then
@@ -1586,6 +1588,17 @@ do
             end
             cmStatus.Text = "Mouse Control OFF"
         end
+    end)
+    local cmMouse = player:GetMouse()
+    cmMouse.WheelForward:Connect(function()
+        if not cmcOn then return end
+        cmcDist = math.clamp(cmcDist + 5, -150, 300)
+        cmDistLbl.Text = "Wheel Dist: " .. tostring(cmcDist)
+    end)
+    cmMouse.WheelBackward:Connect(function()
+        if not cmcOn then return end
+        cmcDist = math.clamp(cmcDist - 5, -150, 300)
+        cmDistLbl.Text = "Wheel Dist: " .. tostring(cmcDist)
     end)
     UserInputService.InputBegan:Connect(function(input, gp)
         if gp or isAnyTextBoxFocused() then return end
