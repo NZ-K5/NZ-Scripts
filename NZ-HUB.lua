@@ -1558,11 +1558,15 @@ do
                 if not okP or not piv then return end
                 local rp = RaycastParams.new()
                 rp.FilterType = Enum.RaycastFilterType.Exclude
-                rp.FilterDescendantsInstances = { cmcCar, player.Character }
+                rp.FilterDescendantsInstances = { player.Character }
                 local hit = Workspace:Raycast(ray.Origin, ray.Direction * 2000, rp)
                 local target
-                if hit then
-                    target = hit.Position + Vector3.new(0, 2, 0) + ray.Direction * cmcDist
+                if hit and hit.Instance:IsDescendantOf(cmcCar) then
+                    target = piv.Position
+                elseif hit and (hit.Position - ray.Origin).Magnitude <= 1000 then
+                    local okB, _, bbSize = pcall(function() return cmcCar:GetBoundingBox() end)
+                    local hover = (okB and bbSize) and (bbSize.Y * 0.5 + 0.5) or 2
+                    target = hit.Position + Vector3.new(0, hover, 0) + ray.Direction * cmcDist
                 else
                     local dist = (cmcBase > 0 and cmcBase or (ray.Origin - piv.Position).Magnitude) + cmcDist
                     if dist < 5 then dist = 5 end
