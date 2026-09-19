@@ -1562,9 +1562,18 @@ do
                 if not okR or not ray then return end
                 local okP, piv = pcall(function() return cmcCar:GetPivot() end)
                 if not okP or not piv then return end
-                local dist = (cmcBase > 0 and cmcBase or (ray.Origin - piv.Position).Magnitude) + cmcDist
-                if dist < 5 then dist = 5 end
-                local target = ray.Origin + ray.Direction * dist
+                local rp = RaycastParams.new()
+                rp.FilterType = Enum.RaycastFilterType.Exclude
+                rp.FilterDescendantsInstances = { cmcCar, player.Character }
+                local hit = Workspace:Raycast(ray.Origin, ray.Direction * 2000, rp)
+                local target
+                if hit then
+                    target = hit.Position + Vector3.new(0, 2, 0) + ray.Direction * cmcDist
+                else
+                    local dist = (cmcBase > 0 and cmcBase or (ray.Origin - piv.Position).Magnitude) + cmcDist
+                    if dist < 5 then dist = 5 end
+                    target = ray.Origin + ray.Direction * dist
+                end
                 local toT = target - piv.Position
                 local newPos = piv.Position
                 if toT.Magnitude > 0.1 then
