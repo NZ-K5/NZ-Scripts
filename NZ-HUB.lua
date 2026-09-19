@@ -1,12 +1,12 @@
 --[[ NZ-HUB (unified)
   Tabs:
     - A-Chassis : thrust / backthrust / wheelie / presets / car fly / body fling / sit on hood
-    - Brookhav
-    - Backdoor: resultItems/backdoorsen: Brookhaven car + player mods (fixed)
+    - Brookhaven: Brookhaven car + player mods (fixed)
     - INF Smile : Infectious Smile map mods (fixed)
     - Backdoor  : backdoor scanner (fixed)
     - Utility   : rejoin / copy job / misc
-  Fixes applied:Found declared BEFORE copy handler (was global-nil bug)
+  Fixes applied:
+    - Backdoor: resultItems/backdoorsFound declared BEFORE copy handler (was global-nil bug)
     - Brookhaven: fly-speed boxes overlapped same Y and never updated canvas; now labelled rows.
       Velocity/RotVelocity -> AssemblyLinearVelocity/AssemblyAngularVelocity.
       InfJump via JumpRequest (was `if humanoid.Jump then humanoid.Jump=true` no-op).
@@ -1239,6 +1239,9 @@ do
     pageLabel(pageA, py, "Car Float");    local cmFloat = pageToggle(pageA, py - 2, 160); py = py + 30
     pageLabel(pageA, py, "Car Jump (R-Click)"); local cmJump = pageToggle(pageA, py - 2, 160); py = py + 30
     pageLabel(pageA, py, "Car Fling");    local cmFling = pageToggle(pageA, py - 2, 160); py = py + 34
+    pageLabel(pageA, py, "Car Mouse Control"); local cmcToggle = pageToggle(pageA, py - 2, 160); py = py + 30
+    local cmcScan = pageWideBtn(pageA, py, "Scan Car (sit in car)"); py = py + 34
+    pageLabel(pageA, py, "Spin Speed"); local cmSpinBox = pageBox(pageA, py - 2, 160, 90, "90"); local cmSpinApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
     local cmBrake = pageWideBtn(pageA, py, "Instant Brake (X)"); py = py + 34
     pageLabel(pageA, py, "Car Scale"); local cmScaleBox = pageBox(pageA, py - 2, 160, 90, "1"); local cmScaleApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
     local cmCustom = pageWideBtn(pageA, py, "Car Modded Customization"); py = py + 34
@@ -1498,6 +1501,100 @@ do
             local rp = ch and ch:FindFirstChild("HumanoidRootPart")
             if rp then rp.CFrame = CFrame.new(parts[1], parts[2], parts[3]); cmStatus.Text = "Teleported" end
         else flashErr(cmCDBox) end
+    end)
+    ----------------------------------------------------------------
+    -- Car Mouse Control: scan seated, drive unseated via cursor
+    ----------------------------------------------------------------
+    local cmcCar, cmcOn, cmcHolding, cmcSpin, cmcLoop = nil, false, false, 90, nil
+    cmcScan.MouseButton1Click:Connect(function()
+        local ch = player.Character
+        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+        local seat = hum and hum.SeatPart
+        if not seat then cmStatus.Text = "Sit in the car first, then Scan"; cmStatus.TextColor3 = COL_RED return end
+        local a = seat
+        while a and a.Parent do
+            a = a.Parent
+            if a:IsA("Model") then
+                cmcCar = a
+                cmStatus.Text = "Locked " .. a.Name .. " - exit seat, hold Left Click"; cmStatus.TextColor3 = COL_GREEN
+                return
+            end
+        end
+        cmStatus.Text = "No car model found"; cmStatus.TextColor3 = COL_RED
+    end)
+    cmSpinApply.MouseButton1Click:Connect(function()
+        local n = tonumber(cmSpinBox.Text)
+        if n then cmcSpin = math.clamp(n, -720, 720); cmSpinBox.Text = tostring(cmcSpin); flashOk(cmSpinBox)
+        else flashErr(cmSpinBox) end
+    end)
+    cmcToggle.MouseButton1Click:Connect(function()
+        if not cmcCar or not cmcCar.Parent then
+            cmStatus.Text = "Scan a car first"; cmStatus.TextColor3 = COL_RED
+            cmcOn = false; setToggle(cmcToggle, false)
+            return
+        end
+        if cmKflyOn then cmKflyOn = false; setToggle(cmKFly, false); if cmKflyConn then pcall(function() cmKflyConn:Disconnect() end) cmKflyConn = nil end end
+        if cmMflyOn then cmMflyOn = false; setToggle(cmMFly, false); if cmMflyConn then pcall(function() cmMflyConn:Disconnect() end) cmMflyConn = nil end end
+        cmcOn = not cmcOn; setToggle(cmcToggle, cmcOn)
+        if cmcLoop then pcall(function() cmcLoop:Disconnect() end) cmcLoop = nil end
+        if cmcOn then
+            cmStatus.Text = "Mouse Control ON - hold Left Click (speed: M-Fly)"
+            cmcLoop = RunService.Heartbeat:Connect(function(dt)
+                if not cmcOn or not cmcHolding then return end
+                if not cmcCar or not cmcCar.Parent then
+                    cmcHolding = false
+                    cmStatus.Text = "Car lost - Scan again"; cmStatus.TextColor3 = COL_RED
+                    return
+                end
+                local ch = player.Character
+                local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+                if hum and hum.SeatPart then return end
+                local cam = Workspace.CurrentCamera
+                if not cam then return end
+                local mp = UserInputService:GetMouseLocation()
+                local okR, ray = pcall(function() return cam:ScreenPointToRay(mp.X, mp.Y) end)
+                if not okR or not ray then return end
+                local okP, piv = pcall(function() return cmcCar:GetPivot() end)
+                if not okP or not piv then return end
+                local dist = (ray.Origin - piv.Position).Magnitude
+                if dist < 1 then dist = 30 end
+                local target = ray.Origin + ray.Direction * dist
+                local toT = target - piv.Position
+                local newPos = piv.Position
+                if toT.Magnitude > 2 then
+                    local stepLen = math.min(cmMflySpeed * dt, toT.Magnitude)
+                    newPos = piv.Position + toT.Unit * stepLen
+                end
+                local rot = piv - piv.Position
+                local s = math.rad(cmcSpin) * dt
+                local newCF = CFrame.new(newPos) * (rot * CFrame.Angles(s, s, s))
+                pcall(function() cmcCar:PivotTo(newCF) end)
+                for _, p in ipairs(cmcCar:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        pcall(function() p.AssemblyLinearVelocity = Vector3.zero; p.AssemblyAngularVelocity = Vector3.zero end)
+                    end
+                end
+            end)
+        else
+            cmcHolding = false
+            if cmcCar and cmcCar.Parent then
+                for _, p in ipairs(cmcCar:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        pcall(function() p.AssemblyLinearVelocity = Vector3.zero; p.AssemblyAngularVelocity = Vector3.zero end)
+                    end
+                end
+            end
+            cmStatus.Text = "Mouse Control OFF"
+        end
+    end)
+    UserInputService.InputBegan:Connect(function(input, gp)
+        if gp or isAnyTextBoxFocused() then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if cmcOn and cmcCar and cmcCar.Parent then cmcHolding = true end
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then cmcHolding = false end
     end)
 end
 
