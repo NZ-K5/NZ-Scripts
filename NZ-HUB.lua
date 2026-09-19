@@ -1240,9 +1240,10 @@ do
     pageLabel(pageA, py, "Car Jump (R-Click)"); local cmJump = pageToggle(pageA, py - 2, 160); py = py + 30
     pageLabel(pageA, py, "Car Fling");    local cmFling = pageToggle(pageA, py - 2, 160); py = py + 34
     pageLabel(pageA, py, "Car Mouse Control"); local cmcToggle = pageToggle(pageA, py - 2, 160); py = py + 30
+    pageLabel(pageA, py, "Follow Speed"); local cmFolBox = pageBox(pageA, py - 2, 160, 90, "8"); local cmFolApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 30
     local cmcMode = pageWideBtn(pageA, py, "Spin: In-place"); py = py + 34
     pageLabel(pageA, py, "Spin X Y Z"); local cmSpinX = pageBox(pageA, py - 2, 150, 52, "0"); local cmSpinY = pageBox(pageA, py - 2, 208, 52, "90"); local cmSpinZ = pageBox(pageA, py - 2, 266, 52, "0"); local cmSpinApply = pageApply(pageA, py - 2, 324, "Set"); py = py + 30
-    pageLabel(pageA, py, "Spin Enabled"); local cmSpinTog = pageToggle(pageA, py - 2, 160); setToggle(cmSpinTog, true); py = py + 30
+    pageLabel(pageA, py, "Spin Enabled"); local cmSpinTog = pageToggle(pageA, py - 2, 160); setToggle(cmSpinTog, false); py = py + 30
     local cmDistLbl = pageLabel(pageA, py, "Wheel Dist: 0", 200); py = py + 22
     local cmBrake = pageWideBtn(pageA, py, "Instant Brake (X)"); py = py + 34
     pageLabel(pageA, py, "Car Scale"); local cmScaleBox = pageBox(pageA, py - 2, 160, 90, "1"); local cmScaleApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
@@ -1508,9 +1509,14 @@ do
     -- Car Mouse Control: scan seated, drive unseated via cursor
     ----------------------------------------------------------------
     local cmcCar, cmcOn, cmcHolding, cmcLoop = nil, false, false, nil
-    local cmcUp, cmcDown = false, false
+    local cmcUp, cmcDown, cmcFollow = false, false, 8
+    cmFolApply.MouseButton1Click:Connect(function()
+        local n = tonumber(cmFolBox.Text)
+        if n then cmcFollow = math.clamp(n, 0.5, 30); cmFolBox.Text = tostring(cmcFollow); flashOk(cmFolBox)
+        else flashErr(cmFolBox) end
+    end)
     local cmcSpinX, cmcSpinY, cmcSpinZ = 0, 90, 0
-    local cmcOrbit, cmcDist, cmcBase, cmcSpinOn = false, 0, 0, true
+    local cmcOrbit, cmcDist, cmcBase, cmcSpinOn = false, 0, 0, false
     cmSpinTog.MouseButton1Click:Connect(function()
         cmcSpinOn = not cmcSpinOn; setToggle(cmSpinTog, cmcSpinOn)
     end)
@@ -1538,7 +1544,7 @@ do
         cmcOn = not cmcOn; setToggle(cmcToggle, cmcOn)
         if cmcLoop then pcall(function() cmcLoop:Disconnect() end) cmcLoop = nil end
         if cmcOn then
-            cmStatus.Text = "Mouse Control ON - hold Left Click (speed: M-Fly)"
+            cmStatus.Text = "Mouse Control ON - hold Left Click"
             cmcLoop = RunService.Heartbeat:Connect(function(dt)
                 if not cmcOn or not cmcHolding then return end
                 if not cmcCar or not cmcCar.Parent then
@@ -1561,9 +1567,11 @@ do
                 local target = ray.Origin + ray.Direction * dist
                 local toT = target - piv.Position
                 local newPos = piv.Position
-                if toT.Magnitude > 0.5 then
-                    local stepLen = math.min(cmMflySpeed * dt, toT.Magnitude)
-                    newPos = piv.Position + toT.Unit * stepLen
+                if toT.Magnitude > 0.1 then
+                    local step = toT * math.min(1, cmcFollow * dt)
+                    local maxStep = 300 * dt
+                    if step.Magnitude > maxStep then step = step.Unit * maxStep end
+                    newPos = piv.Position + step
                 end
                 local rot = piv - piv.Position
                 local vy = (cmcUp and 1 or 0) - (cmcDown and 1 or 0)
