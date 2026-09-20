@@ -1,23 +1,3 @@
---[[ NZ-HUB (unified)
-  Tabs:
-    - A-Chassis : thrust / backthrust / wheelie / presets / car fly / body fling / sit on hood
-    - Brookhaven: Brookhaven car + player mods (fixed)
-    - INF Smile : Infectious Smile map mods (fixed)
-    - Backdoor  : backdoor scanner (fixed)
-    - Utility   : rejoin / copy job / misc
-  Fixes applied:
-    - Backdoor: resultItems/backdoorsFound declared BEFORE copy handler (was global-nil bug)
-    - Brookhaven: fly-speed boxes overlapped same Y and never updated canvas; now labelled rows.
-      Velocity/RotVelocity -> AssemblyLinearVelocity/AssemblyAngularVelocity.
-      InfJump via JumpRequest (was `if humanoid.Jump then humanoid.Jump=true` no-op).
-      SpeedMultiplier no longer compounds (stores base MaxSpeed).
-      Close-confirm destroy wrapped in pcall.
-    - INF Smile: fixed `or`/`and` precedence bug that made anti-hack/spears/fire/lasers
-      match almost every BasePart. Now parenthesised.
-      Seismic loop uses elapsed timer instead of tick()%1 heartbeat hack.
-    - A-Chassis: kept logic, reparented into tab page; single blur; single Insert hotkey.
-]]
-
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -31,7 +11,6 @@ local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 
--- cleanup old standalone GUIs
 pcall(function()
     if _G.__NZHub then _G.__NZHub:Destroy() _G.__NZHub = nil end
     if _G.__NZFly then _G.__NZFly:Destroy() _G.__NZFly = nil end
@@ -48,16 +27,13 @@ pcall(function()
 end)
 for _, v in ipairs(Lighting:GetChildren()) do
     if v:IsA("BlurEffect") and (v.Name == "_NZBlur" or v.Name == "BlurEffect") then
-        -- keep lighting clean; our single blur is named _NZBlur
+
     end
 end
 _G.__NZFlyActive = false
 _G.__NZFlyStop = nil
 _G.__NZFlyHold = { forward = false, back = false, up = false, down = false, left = false, right = false }
 
---------------------------------------------------------------------
--- SHARED UI STYLE
---------------------------------------------------------------------
 local COL_BG       = Color3.fromRGB(18, 19, 24)
 local COL_BG_ALT   = Color3.fromRGB(26, 27, 34)
 local COL_BORDER   = Color3.fromRGB(48, 50, 62)
@@ -102,10 +78,41 @@ local function isAnyTextBoxFocused()
     local ok, f = pcall(function() return UserInputService:GetFocusedTextBox() end)
     return ok and f ~= nil
 end
+local function isVehicleModel(m)
+    if not m:IsA("Model") then return false end
+    local parts, hasSeat, hasWheel = 0, false, false
+    for _, d in ipairs(m:GetDescendants()) do
+        if d:IsA("BasePart") then parts = parts + 1 end
+        if d:IsA("Seat") or d:IsA("VehicleSeat") then hasSeat = true end
+        local nm = d.Name
+        if nm == "Wheels" or nm == "FL" or nm == "FR" or nm == "Body" or nm == "Chassis" then hasWheel = true end
+        if parts >= 3 and (hasSeat or hasWheel) then return true end
+        if parts > 300 then break end
+    end
+    return false
+end
 
---------------------------------------------------------------------
--- MAIN WINDOW : NZ-HUB
---------------------------------------------------------------------
+local function findRiddenModelFallback()
+    local ch = player.Character
+    local root = ch and ch:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+    local pp = root.Position
+    for _, m in ipairs(Workspace:GetChildren()) do
+        if m:IsA("Model") and isVehicleModel(m) then
+            local ok, cf, size = pcall(function() return m:GetBoundingBox() end)
+            if ok and cf then
+                local rel = cf:PointToObjectSpace(pp)
+                if math.abs(rel.X) <= size.X * 0.5 + 2
+                    and math.abs(rel.Y) <= size.Y * 0.5 + 3
+                    and math.abs(rel.Z) <= size.Z * 0.5 + 2 then
+                    return m
+                end
+            end
+        end
+    end
+    return nil
+end
+
 local WIN_W, WIN_H = 640, 440
 
 local gui = Instance.new("ScreenGui")
@@ -134,7 +141,6 @@ main.Parent = gui
 corner(main, 12)
 stroke(main, COL_BORDER, 1)
 
--- title bar
 local titleBar = Instance.new("Frame")
 titleBar.Name = "TitleBar"
 titleBar.Size = UDim2.new(1, 0, 0, 36)
@@ -198,7 +204,6 @@ closeBtn.MouseButton1Click:Connect(function()
     _G.__NZHUB, _G.__NZHub, _G.__NZFly = nil, nil, nil
 end)
 
--- drag
 do
     local dragging, dragInput, dragStart, startPos
     titleBar.InputBegan:Connect(function(input)
@@ -224,7 +229,6 @@ do
     end)
 end
 
--- tab bar
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -24, 0, 30)
 tabBar.Position = UDim2.new(0, 12, 0, 42)
@@ -293,7 +297,7 @@ minBtn.MouseButton1Click:Connect(function()
     tabBar.Visible = not minimized
     for _, pg in pairs(pages) do pg.Visible = (not minimized) and (pg == pages["Car Mods"] or pg.Visible) end
     if not minimized then
-        -- restore current selection
+
         for n, pg in pairs(pages) do
             if pg.Visible then selectTab(n) break end
         end
@@ -310,7 +314,6 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
--- shared row builders (parented per page)
 local function pageLabel(parent, y, text, w)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(0, w or 150, 0, 22)
@@ -397,9 +400,6 @@ local function pageWideBtn(parent, y, text, bg)
     return b
 end
 
---------------------------------------------------------------------
--- A-CHASSIS MODULE (Tab: A-Chassis)
---------------------------------------------------------------------
 local pageA = pages["Car Mods"]
 do
     local MIN_SPEED, MAX_SPEED_SOFT = 2, 400
@@ -528,7 +528,6 @@ do
         return ch, ch:FindFirstChild("HumanoidRootPart")
     end
 
-    -- layout: two columns inside pageA
     local status = Instance.new("TextLabel")
     status.Size = UDim2.new(1, -8, 0, 16)
     status.Position = UDim2.new(0, 4, 0, 2)
@@ -636,7 +635,6 @@ do
     py = py + 32
     pageA.CanvasSize = UDim2.new(0, 0, 0, py + 60)
 
-    -- state vars
     local boostEnabled, backEnabled, wheelieEnabled = false, false, false
     local currentThrust, currentBackThrust = 2500, 2500
     local wheelieForceCurrent, wheelieRampUp, wheelieAmount = 11000, 0.03, 0
@@ -857,7 +855,6 @@ do
         if fk[input.KeyCode] then _G.__NZFlyHold[fk[input.KeyCode]] = false end
     end)
 
-    -- seat detection
     local function onSeated(seat)
         state.currentCar = getCarFromSeat(seat); state.flipState = nil; state.currentBody = nil
         if state.currentCar then
@@ -881,7 +878,28 @@ do
     if player.Character then bindChar(player.Character) end
     player.CharacterAdded:Connect(bindChar)
 
-    -- A-Chassis mobile buttons: FullThrottle / FullBrake
+    task.spawn(function()
+        while gui.Parent do
+            task.wait(1)
+            if not state.currentCar then
+                local ch = player.Character
+                local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+                if hum and hum.Sit and not hum.SeatPart then
+                    local c = findRiddenModelFallback()
+                    if c then
+                        state.currentCar = c
+                        state.flipState = nil
+                        local chp = getChassisPart(c)
+                        state.currentBody = chp
+                        status.Text = c.Name .. " (riding)"
+                        status.TextColor3 = COL_GREEN
+                        info.Text = chp and ("chassis  " .. chp.Name) or "chassis not found"
+                    end
+                end
+            end
+        end
+    end)
+
     local hookedBtns = {}
     local function hookGuiBtn(btn, setter)
         if not btn or hookedBtns[btn] then return end
@@ -920,37 +938,19 @@ do
         end
     end)
 
-    -- fly (anchored CFrame move)
-    local flyConn, flyActive, savedFly = nil, false, nil
-    local function collectFly(chassis)
-        local car = chassis
-        while car and car.Parent and not car:IsA("Model") do car = car.Parent end
-        if not car then return { chassis } end
-        local parts = {}
-        for _, d in ipairs(car:GetDescendants()) do if d:IsA("BasePart") then table.insert(parts, d) end end
-        if not table.find(parts, chassis) then table.insert(parts, chassis) end
-        return parts
-    end
+    local flyConn, flyActive = nil, false
     local function stopFly()
         if flyConn then flyConn:Disconnect() flyConn = nil end
         if not flyActive then return end
         flyActive = false; _G.__NZFlyActive = false
         for k in pairs(_G.__NZFlyHold) do _G.__NZFlyHold[k] = false end
-        if state.currentCar and savedFly then
-            local ch = getChassisPart(state.currentCar)
-            if ch then
-                for _, p in ipairs(savedFly.parts) do
-                    pcall(function()
-                        if p and p.Parent then p.CFrame = savedFly.cframes[p]; p.Anchored = savedFly.anchored[p] end
-                    end)
+        if state.currentCar then
+            for _, p in ipairs(state.currentCar:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    pcall(function() p.AssemblyLinearVelocity = Vector3.zero; p.AssemblyAngularVelocity = Vector3.zero end)
                 end
-                pcall(function()
-                    ch.AssemblyLinearVelocity = savedFly.velocity
-                    ch.AssemblyAngularVelocity = savedFly.angular
-                end)
             end
         end
-        savedFly = nil
         flyToggle.Text = "Car Fly: Off"
         flyToggle.BackgroundColor3 = COL_BG_ALT; flyToggle.TextColor3 = COL_TEXT_DIM
     end
@@ -959,29 +959,43 @@ do
         if flyActive or not state.currentCar then return end
         local ch = getChassisPart(state.currentCar); if not ch then return end
         flyActive = true; _G.__NZFlyActive = true
-        local parts = collectFly(ch)
-        local anch, cf = {}, {}
-        for _, p in ipairs(parts) do anch[p] = p.Anchored; cf[p] = p.CFrame end
-        savedFly = { parts = parts, anchored = anch, cframes = cf, velocity = ch.AssemblyLinearVelocity, angular = ch.AssemblyAngularVelocity }
-        for _, p in ipairs(parts) do pcall(function() p.Anchored = true end) end
         if flyConn then flyConn:Disconnect() end
         flyConn = RunService.Heartbeat:Connect(function(dt)
             if not flyActive then return end
             if not state.currentCar or not state.currentCar.Parent then stopFly() return end
+            local chas = getChassisPart(state.currentCar)
+            if not chas or not chas.Parent then stopFly() return end
+            local cam = Workspace.CurrentCamera
+            if not cam then return end
             local h = _G.__NZFlyHold
+            local fwd = cam.CFrame.LookVector
+            fwd = Vector3.new(fwd.X, 0, fwd.Z)
+            if fwd.Magnitude < 0.01 then fwd = Vector3.new(0, 0, -1) else fwd = fwd.Unit end
+            local right = cam.CFrame.RightVector
+            right = Vector3.new(right.X, 0, right.Z)
+            if right.Magnitude < 0.01 then right = Vector3.new(1, 0, 0) else right = right.Unit end
             local mv = Vector3.zero
-            if h.forward then mv = mv + Vector3.new(0, 0, -1) end
-            if h.back then mv = mv + Vector3.new(0, 0, 1) end
-            if h.right then mv = mv + Vector3.new(1, 0, 0) end
-            if h.left then mv = mv - Vector3.new(1, 0, 0) end
-            if h.up then mv = mv + Vector3.new(0, 1, 0) end
-            if h.down then mv = mv - Vector3.new(0, 1, 0) end
-            if mv.Magnitude < 0.001 then return end
-            local step = Vector3.zero
-            local hor = Vector3.new(mv.X, 0, mv.Z)
-            if hor.Magnitude > 0.01 then step = step + hor.Unit * currentFlySpeed * dt end
-            if math.abs(mv.Y) > 0.001 then step = step + Vector3.new(0, mv.Y * currentFlyVert * dt, 0) end
-            for _, p in ipairs(savedFly.parts) do if p and p.Parent then p.CFrame = p.CFrame + step end end
+            if h.forward then mv = mv + fwd end
+            if h.back then mv = mv - fwd end
+            if h.right then mv = mv + right end
+            if h.left then mv = mv - right end
+            local vy = 0
+            if h.up then vy = vy + 1 end
+            if h.down then vy = vy - 1 end
+            if mv.Magnitude < 0.01 and vy == 0 then
+                pcall(function()
+                    chas.AssemblyLinearVelocity = Vector3.zero
+                    chas.AssemblyAngularVelocity = Vector3.zero
+                end)
+                return
+            end
+            local vel = Vector3.zero
+            if mv.Magnitude > 0.01 then vel = vel + mv.Unit * currentFlySpeed end
+            if vy ~= 0 then vel = vel + Vector3.new(0, vy * currentFlyVert, 0) end
+            pcall(function()
+                chas.AssemblyLinearVelocity = vel
+                chas.CFrame = chas.CFrame + vel * math.min(dt, 0.05)
+            end)
         end)
     end
     flyApply.MouseButton1Click:Connect(function()
@@ -1001,7 +1015,6 @@ do
         end
     end)
 
-    -- body fling click/hold + sit
     local flingEnabled, flingMode, flingBusy, flingLast = false, "click", false, 0
     local holdActive, holdTarget, holdReturn, holdConn = false, nil, nil, nil
     local function isCarModel(m)
@@ -1116,7 +1129,7 @@ do
         local isClick = input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch
         if not isClick then return end
         local pos = input.Position
-        -- sit select has priority
+
         if sitSelecting then
             local ray = camera:ViewportPointToRay(pos.X, pos.Y)
             local pr = RaycastParams.new(); pr.FilterType = Enum.RaycastFilterType.Exclude; pr.FilterDescendantsInstances = { player.Character }
@@ -1214,13 +1227,10 @@ do
     gui.Destroying:Connect(function() stopThrust(); if holdActive then stopHold() end; if sitActive then stopSit() end end)
 end
 
-
 do
     local pageA = pages["Car Mods"]
     local py = pageA.CanvasSize.Y.Offset + 8
-    ----------------------------------------------------------------
-    -- Brookhaven car mods (moved here)
-    ----------------------------------------------------------------
+
     pageLabel(pageA, py, "Brookhaven car mods", 200)
     local cmRescan = pageApply(pageA, py - 2, 278, "Find car")
     py = py + 26
@@ -1245,14 +1255,17 @@ do
     pageLabel(pageA, py, "Spin Enabled"); local cmSpinTog = pageToggle(pageA, py - 2, 160); setToggle(cmSpinTog, false); py = py + 30
     local cmDistLbl = pageLabel(pageA, py, "Dist: 0 (B/P)", 200); py = py + 22
     local cmBrake = pageWideBtn(pageA, py, "Instant Brake (X)"); py = py + 34
-    pageLabel(pageA, py, "Car Scale"); local cmScaleBox = pageBox(pageA, py - 2, 160, 90, "1"); local cmScaleApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
+    pageLabel(pageA, py, "Car Scale"); local cmScaleBox = pageBox(pageA, py - 2, 160, 90, "1"); local cmScaleApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 30
+    pageLabel(pageA, py, "Car Hitbox"); local cmHBBox = pageBox(pageA, py - 2, 160, 90, "1"); local cmHBApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
     local cmCustom = pageWideBtn(pageA, py, "Car Modded Customization"); py = py + 34
     pageLabel(pageA, py, "TP To Player"); local cmTPBox = pageBox(pageA, py - 2, 160, 90, "Username"); local cmTPApply = pageApply(pageA, py - 2, 258, "TP"); py = py + 30
     pageLabel(pageA, py, "TP To Coords"); local cmCDBox = pageBox(pageA, py - 2, 160, 90, "0, 10, 0"); local cmCDApply = pageApply(pageA, py - 2, 258, "TP"); py = py + 34
+    pageLabel(pageA, py, "Orbit Car"); local cmOrbTog = pageToggle(pageA, py - 2, 160); py = py + 30
+    pageLabel(pageA, py, "Orbit Speed"); local cmOrbBox = pageBox(pageA, py - 2, 160, 90, "60"); local cmOrbApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
+    pageLabel(pageA, py, "Car Noclip"); local cmNoclipBtn = pageToggle(pageA, py - 2, 160); py = py + 30
+    pageLabel(pageA, py, "Concrete Solid"); local cmConcTog = pageToggle(pageA, py - 2, 160); py = py + 34
     pageA.CanvasSize = UDim2.new(0, 0, 0, py + 60)
-    ----------------------------------------------------------------
-    -- Brookhaven car-mods logic (UI lives above on pageA)
-    ----------------------------------------------------------------
+
     local cmCar, cmFlySpeed, cmMflySpeed, cmJumpH, cmFloatH, cmFlingPow = nil, 50, 30, 50, 20, 500
     local cmKflyOn, cmMflyOn, cmFloatOn, cmJumpOn, cmFlingOn = false, false, false, false, false
     local cmKflyConn, cmMflyConn, cmFloatConn, cmJumpConn, cmFlingConn = nil, nil, nil, nil, nil
@@ -1274,6 +1287,8 @@ do
         for _, v in ipairs(Workspace:GetDescendants()) do
             if v:IsA("Model") and v.Name == player.Name .. "Car" then return v end
         end
+        local r = findRiddenModelFallback()
+        if r then return r end
         local want = player.Name .. "Car"
         local found = nil
         pcall(function()
@@ -1305,7 +1320,7 @@ do
         cmStatus.TextColor3 = COL_YELLOW
         return true
     end
-    -- saturated colors only: skip white / black / grey pigments
+
     local function cmIsNeutral(c)
         local mx = math.max(c.R, c.G, c.B)
         local mn = math.min(c.R, c.G, c.B)
@@ -1464,6 +1479,22 @@ do
             flashOk(cmScaleBox)
         else flashErr(cmScaleBox) end
     end)
+    local cmHbMult, cmHbOrig, cmHbCar = 1, {}, nil
+    cmHBApply.MouseButton1Click:Connect(function()
+        if not cmNeedCar() then return end
+        local s = tonumber(cmHBBox.Text)
+        if not (s and s >= 0.5 and s <= 10) then flashErr(cmHBBox) return end
+        cmHbMult = s
+        if cmHbCar ~= cmCar then cmHbCar = cmCar; cmHbOrig = {} end
+        for _, p in ipairs(cmCar:GetDescendants()) do
+            if p:IsA("BasePart") then
+                if cmHbOrig[p] == nil then cmHbOrig[p] = p.Size end
+                pcall(function() p.Size = cmHbOrig[p] * cmHbMult end)
+            end
+        end
+        cmHBBox.Text = tostring(cmHbMult); flashOk(cmHBBox)
+        cmStatus.Text = "Car hitbox x" .. tostring(cmHbMult); cmStatus.TextColor3 = COL_GREEN
+    end)
     cmCustom.MouseButton1Click:Connect(function()
         if not cmNeedCar() then return end
         local mats = { "Plastic", "Neon", "Metal", "Wood", "Slate", "Concrete", "DiamondPlate" }
@@ -1504,9 +1535,7 @@ do
             if rp then rp.CFrame = CFrame.new(parts[1], parts[2], parts[3]); cmStatus.Text = "Teleported" end
         else flashErr(cmCDBox) end
     end)
-    ----------------------------------------------------------------
-    -- Car Mouse Control: scan seated, drive unseated via cursor
-    ----------------------------------------------------------------
+
     local cmcCar, cmcOn, cmcHolding, cmcLoop = nil, false, false, nil
     local cmcDot, cmcTagT, cmcColChanged = nil, 0, {}
     local cmcUp, cmcDown = false, false
@@ -1538,6 +1567,7 @@ do
         cmcCar = cmCar
         if cmKflyOn then cmKflyOn = false; setToggle(cmKFly, false); if cmKflyConn then pcall(function() cmKflyConn:Disconnect() end) cmKflyConn = nil end end
         if cmMflyOn then cmMflyOn = false; setToggle(cmMFly, false); if cmMflyConn then pcall(function() cmMflyConn:Disconnect() end) cmMflyConn = nil end end
+        if cmOrbOn then cmOrbOn = false; setToggle(cmOrbTog, false); if cmOrbLoop then pcall(function() cmOrbLoop:Disconnect() end) cmOrbLoop = nil end end
         cmcOn = not cmcOn; setToggle(cmcToggle, cmcOn)
         if cmcLoop then pcall(function() cmcLoop:Disconnect() end) cmcLoop = nil end
         if cmcOn then
@@ -1612,32 +1642,44 @@ do
                 if cmcPull then cmcDist = math.max(-150, cmcDist - 60 * dt) end
                 if cmcPush then cmcDist = math.min(300, cmcDist + 60 * dt) end
                 cmDistLbl.Text = "Dist: " .. tostring(math.floor(cmcDist + 0.5)) .. " (B/P)"
+                local f1 = {}
+                if player.Character then table.insert(f1, player.Character) end
+                if cmcDot and cmcDot.Parent then table.insert(f1, cmcDot) end
                 local rp = RaycastParams.new()
                 rp.FilterType = Enum.RaycastFilterType.Exclude
-                rp.FilterDescendantsInstances = { player.Character }
+                rp.FilterDescendantsInstances = f1
                 local hit = Workspace:Raycast(ray.Origin, ray.Direction * 2000, rp)
+                local selfHit = hit and cmcCar and cmcCar.Parent and hit.Instance:IsDescendantOf(cmcCar)
                 local useHit = hit
-                if hit and hit.Instance:IsDescendantOf(cmcCar) then
+                if selfHit then
+                    local f2 = { cmcCar }
+                    if player.Character then table.insert(f2, player.Character) end
+                    if cmcDot and cmcDot.Parent then table.insert(f2, cmcDot) end
                     local r2 = RaycastParams.new()
                     r2.FilterType = Enum.RaycastFilterType.Exclude
-                    r2.FilterDescendantsInstances = { cmcCar, player.Character }
+                    r2.FilterDescendantsInstances = f2
                     useHit = Workspace:Raycast(hit.Position + ray.Direction * 0.5, ray.Direction * 2000, r2)
                 end
-                local target
-                if useHit and (useHit.Position - ray.Origin).Magnitude <= 1000 then
-                    local okB, _, bbSize = pcall(function() return cmcCar:GetBoundingBox() end)
-                    local hover = (okB and bbSize) and (bbSize.Y * 0.5 + 0.5) or 2
-                    target = useHit.Position + Vector3.new(0, hover, 0) + ray.Direction * cmcDist
-                elseif hit and hit.Instance:IsDescendantOf(cmcCar) then
-                    target = piv.Position
+                local surfHit = useHit and (useHit.Position - ray.Origin).Magnitude <= 1000
+                local aim
+                if surfHit then
+                    aim = useHit.Position
+                elseif selfHit then
+                    aim = piv.Position
                 else
                     local dist = (cmcBase > 0 and cmcBase or (ray.Origin - piv.Position).Magnitude) + cmcDist
                     if dist < 5 then dist = 5 end
-                    target = ray.Origin + ray.Direction * dist
+                    aim = ray.Origin + ray.Direction * dist
                 end
                 if cmcDot and cmcDot.Parent then
                     cmcDot.Transparency = 0.3
-                    pcall(function() cmcDot.CFrame = CFrame.new(target) end)
+                    pcall(function() cmcDot.CFrame = CFrame.new(aim) end)
+                end
+                local target = aim
+                if surfHit then
+                    local okB, _, bbSize = pcall(function() return cmcCar:GetBoundingBox() end)
+                    local hover = (okB and bbSize) and (bbSize.Y * 0.5 + 0.5) or 2
+                    target = aim + Vector3.new(0, hover, 0) + ray.Direction * cmcDist
                 end
                 local vy = (cmcUp and 1 or 0) - (cmcDown and 1 or 0)
                 if vy ~= 0 then cmcAlt = math.clamp(cmcAlt + vy * cmMflySpeed * dt, -500, 500) end
@@ -1711,28 +1753,173 @@ do
             if cmcDot and cmcDot.Parent then cmcDot.Transparency = 1 end
         end
     end)
+
+    local cmOrbOn, cmOrbSpeed, cmOrbLoop = false, 60, nil
+    local cmOrbAng, cmOrbRad, cmOrbY, cmOrbRot = 0, 15, 0, CFrame.new(0, 0, 0)
+    cmOrbApply.MouseButton1Click:Connect(function()
+        local n = tonumber(cmOrbBox.Text)
+        if n then cmOrbSpeed = math.clamp(n, -360, 360); cmOrbBox.Text = tostring(cmOrbSpeed); flashOk(cmOrbBox)
+        else flashErr(cmOrbBox) end
+    end)
+    cmOrbTog.MouseButton1Click:Connect(function()
+        if not cmNeedCar() then return end
+        if cmKflyOn then cmKflyOn = false; setToggle(cmKFly, false); if cmKflyConn then pcall(function() cmKflyConn:Disconnect() end) cmKflyConn = nil end end
+        if cmMflyOn then cmMflyOn = false; setToggle(cmMFly, false); if cmMflyConn then pcall(function() cmMflyConn:Disconnect() end) cmMflyConn = nil end end
+        if cmcOn then cmcOn = false; setToggle(cmcToggle, false); cmcHolding = false; if cmcLoop then pcall(function() cmcLoop:Disconnect() end) cmcLoop = nil end end
+        cmOrbOn = not cmOrbOn; setToggle(cmOrbTog, cmOrbOn)
+        if cmOrbLoop then pcall(function() cmOrbLoop:Disconnect() end) cmOrbLoop = nil end
+        if cmOrbOn then
+            local ch = player.Character
+            local rp = ch and ch:FindFirstChild("HumanoidRootPart")
+            local okP, piv = pcall(function() return cmCar:GetPivot() end)
+            if not rp or not okP or not piv then
+                cmStatus.Text = "Need character + car"; cmStatus.TextColor3 = COL_RED
+                cmOrbOn = false; setToggle(cmOrbTog, false)
+                return
+            end
+            local off = piv.Position - rp.Position
+            cmOrbRad = math.max(Vector3.new(off.X, 0, off.Z).Magnitude, 5)
+            cmOrbY = off.Y
+            cmOrbAng = math.atan2(off.X, off.Z)
+            cmOrbRot = piv - piv.Position
+            cmStatus.Text = string.format("Orbit ON (%d/s, R %d)", cmOrbSpeed, math.floor(cmOrbRad + 0.5))
+            cmOrbLoop = RunService.Heartbeat:Connect(function(dt)
+                if not cmOrbOn then return end
+                if not cmCar or not cmCar.Parent then
+                    cmOrbOn = false; setToggle(cmOrbTog, false)
+                    cmStatus.Text = "Car lost - Find car again"; cmStatus.TextColor3 = COL_RED
+                    return
+                end
+                local ch2 = player.Character
+                local rp2 = ch2 and ch2:FindFirstChild("HumanoidRootPart")
+                if not rp2 then return end
+                cmOrbAng = cmOrbAng + math.rad(cmOrbSpeed) * dt
+                local off2 = Vector3.new(math.sin(cmOrbAng) * cmOrbRad, cmOrbY, math.cos(cmOrbAng) * cmOrbRad)
+                pcall(function() cmCar:PivotTo(CFrame.new(rp2.Position + off2) * cmOrbRot) end)
+                for _, p in ipairs(cmCar:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        pcall(function() p.AssemblyLinearVelocity = Vector3.zero; p.AssemblyAngularVelocity = Vector3.zero end)
+                    end
+                end
+            end)
+        else
+            if cmCar and cmCar.Parent then
+                for _, p in ipairs(cmCar:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        pcall(function() p.AssemblyLinearVelocity = Vector3.zero; p.AssemblyAngularVelocity = Vector3.zero end)
+                    end
+                end
+            end
+            cmStatus.Text = "Orbit OFF"
+        end
+    end)
+    ----------------------------------------------------------------
+    -- Car Noclip: phase world props, keep cars + ground solid
+    ----------------------------------------------------------------
+    local cnOn, cnSaved, cnConns, cnCarCache = false, {}, {}, {}
+    local cnConcreteSolid = false
+    local function cnIsCarPart(inst)
+        local a = inst.Parent
+        while a and a ~= Workspace do
+            if a:IsA("Model") then
+                if cnCarCache[a] == nil then
+                    local nm = string.lower(a.Name)
+                    cnCarCache[a] = (nm:find("car") ~= nil) or isVehicleModel(a)
+                end
+                if cnCarCache[a] then return true end
+            end
+            a = a.Parent
+        end
+        return false
+    end
+    local function cnKeepSolid(p)
+        local nm = string.lower(p.Name)
+        if nm:find("floor") or nm:find("ground") then return true end
+        local c = p.Color
+        if c.G > c.R and c.G > c.B and c.G > 0.3 then return true end
+        if c.R > c.B and c.G > c.B * 0.8 and c.R > 0.25 and (c.R - c.B) > 0.1 then return true end
+        local mn = string.lower(p.Material.Name)
+        if mn:find("grass") or mn:find("dirt") or mn:find("mud") or mn:find("sand")
+            or mn:find("soil") or mn:find("asphalt") or mn:find("ground") then
+            return true
+        end
+        return false
+    end
+    local function cnIsConcrete(p)
+        local ok, r = pcall(function() return string.lower(p.Material.Name):find("concrete") ~= nil end)
+        return ok and r
+    end
+    cmNoclipBtn.MouseButton1Click:Connect(function()
+        cnOn = not cnOn; setToggle(cmNoclipBtn, cnOn)
+        if cnOn then
+            cnCarCache = {}
+            local kept, cut = 0, 0
+            for _, d in ipairs(Workspace:GetDescendants()) do
+                if d:IsA("BasePart") and not cnIsCarPart(d) then
+                    if cnKeepSolid(d) or (cnConcreteSolid and cnIsConcrete(d)) then kept = kept + 1
+                    else
+                        if cnSaved[d] == nil then cnSaved[d] = { c = d.CanCollide, t = d.CanTouch } end
+                        d.CanCollide, d.CanTouch = false, false
+                        cut = cut + 1
+                    end
+                end
+            end
+            local dc
+            dc = Workspace.DescendantAdded:Connect(function(d)
+                if d:IsA("BasePart") and not cnIsCarPart(d) and not cnKeepSolid(d)
+                    and not (cnConcreteSolid and cnIsConcrete(d)) then
+                    if cnSaved[d] == nil then cnSaved[d] = { c = d.CanCollide, t = d.CanTouch } end
+                    d.CanCollide, d.CanTouch = false, false
+                end
+            end)
+            table.insert(cnConns, dc)
+            cmStatus.Text = string.format("Noclip ON (%d phased, %d kept)", cut, kept)
+        else
+            for p, v in pairs(cnSaved) do pcall(function() p.CanCollide = v.c; p.CanTouch = v.t end) end
+            cnSaved = {}
+            for _, c in ipairs(cnConns) do pcall(function() c:Disconnect() end) end
+            cnConns = {}
+            cmStatus.Text = "Noclip OFF"
+        end
+    end)
+    cmConcTog.MouseButton1Click:Connect(function()
+        cnConcreteSolid = not cnConcreteSolid; setToggle(cmConcTog, cnConcreteSolid)
+        if cnOn then
+            for p, v in pairs(cnSaved) do
+                if p and p.Parent and cnIsConcrete(p) then
+                    if cnConcreteSolid then
+                        pcall(function() p.CanCollide = v.c; p.CanTouch = v.t end)
+                    else
+                        pcall(function() p.CanCollide, p.CanTouch = false, false end)
+                    end
+                end
+            end
+            cmStatus.Text = cnConcreteSolid and "Concrete: solid" or "Concrete: phased"
+        end
+    end)
 end
 
---------------------------------------------------------------------
--- BROOKHAVEN MODULE (Tab: Brookhaven) [FIXED]
---------------------------------------------------------------------
 do
     local page = pages["Brookhaven"]
     local y = 4
     pageLabel(page, y, "Brookhaven Car (name .. 'Car')")
     local bhRescan = pageApply(page, y - 2, 258, "Find car")
     y = y + 22
-    -- FIX: each speed row now has its own Y + label (original overlapped same yOff)
+
     pageLabel(page, y, "MaxSpeed");          local bhSpeedBox = pageBox(page, y - 2, 160, 90, "50");   local bhSpeedApply = pageApply(page, y - 2, 258); y = y + 30
     pageLabel(page, y, "Turbo string");      local bhTurboBox = pageBox(page, y - 2, 160, 90, "TurboEnabled"); local bhTurboApply = pageApply(page, y - 2, 258); y = y + 30
     pageLabel(page, y, "Speed Multiplier");  local bhMultBox = pageBox(page, y - 2, 160, 90, "2");     local bhMultApply = pageApply(page, y - 2, 258); y = y + 34
 
-    pageLabel(page, y, "Noclip");       local bhNoclip = pageToggle(page, y - 2, 160); y = y + 34
+    pageLabel(page, y, "Car Noclip");   local bhCarNoclip = pageToggle(page, y - 2, 160); y = y + 34
 
     pageLabel(page, y, "Player mods", 200); y = y + 22
     pageLabel(page, y, "Infinite Jump"); local bhInfJ = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "Noclip"); local bhNoclip = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "Fly Speed"); local bhFlyBox = pageBox(page, y - 2, 160, 90, "50"); local bhFlyApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
+    pageLabel(page, y, "Player Fly"); local bhFly = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "WalkSpeed");  local bhWSBox = pageBox(page, y - 2, 160, 90, "16"); local bhWSApply = pageApply(page, y - 2, 258); y = y + 30
-    pageLabel(page, y, "JumpPower");  local bhJPBox = pageBox(page, y - 2, 160, 90, "50"); local bhJPApply = pageApply(page, y - 2, 258); y = y + 34
+    pageLabel(page, y, "JumpPower");  local bhJPBox = pageBox(page, y - 2, 160, 90, "50"); local bhJPApply = pageApply(page, y - 2, 258); y = y + 30
+    pageLabel(page, y, "Character Hitbox"); local bhHBBox = pageBox(page, y - 2, 160, 90, "1"); local bhHBApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
     local bhRespawn = pageWideBtn(page, y, "Respawn"); y = y + 34
     local bhStatus = Instance.new("TextLabel")
     bhStatus.Size = UDim2.new(1, -8, 0, 16); bhStatus.Position = UDim2.new(0, 4, 0, y)
@@ -1741,7 +1928,9 @@ do
     page.CanvasSize = UDim2.new(0, 0, 0, y + 30)
 
     local bhCar, baseMax = nil, nil
-    local noclipOn, infJOn = false, false
+    local noclipOn, infJOn, pflyOn, carNcOn = false, false, false, false
+    local pflySpeed, pflyConn, ncChar, standOff = 50, nil, nil, 3
+    local carNcConns, carNcOrig = {}, {}
     local noclipConns, infJConn, origColl = {}, nil, {}
 
     local function bhCarFromSeat()
@@ -1824,19 +2013,20 @@ do
         table.sort(names)
         return (#names > 0) and table.concat(names, ", ") or "(no values)"
     end
-    bhNoclip.MouseButton1Click:Connect(function()
+    bhCarNoclip.MouseButton1Click:Connect(function()
         if not bhNeedCar() then return end
-        noclipOn = not noclipOn; setToggle(bhNoclip, noclipOn)
-        if noclipOn then
+        carNcOn = not carNcOn; setToggle(bhCarNoclip, carNcOn)
+        if carNcOn then
+            carNcOrig = {}
             for _, p in ipairs(bhCar:GetDescendants()) do
                 if p:IsA("BasePart") then
-                    if origColl[p] == nil then origColl[p] = { c = p.CanCollide, t = p.CanTouch } end
+                    carNcOrig[p] = { c = p.CanCollide, t = p.CanTouch }
                     p.CanCollide, p.CanTouch = false, false
                 end
             end
             local hb
             hb = RunService.Heartbeat:Connect(function()
-                if not noclipOn then return end
+                if not carNcOn then return end
                 if not bhCar or not bhCar.Parent then
                     local c = bhFindCar()
                     if not c then return end
@@ -1845,21 +2035,121 @@ do
                 end
                 for _, p in ipairs(bhCar:GetDescendants()) do
                     if p:IsA("BasePart") then
-                        if origColl[p] == nil then origColl[p] = { c = p.CanCollide, t = p.CanTouch } end
+                        if carNcOrig[p] == nil then carNcOrig[p] = { c = p.CanCollide, t = p.CanTouch } end
                         if p.CanCollide or p.CanTouch then p.CanCollide, p.CanTouch = false, false end
                     end
                 end
             end)
+            table.insert(carNcConns, hb)
+            bhStatus.Text = "Car Noclip ON"
+        else
+            for p, d in pairs(carNcOrig) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t end) end
+            carNcOrig = {}
+            for _, c in ipairs(carNcConns) do pcall(function() c:Disconnect() end) end
+            carNcConns = {}
+            bhStatus.Text = "Car Noclip OFF"
+        end
+    end)
+    bhNoclip.MouseButton1Click:Connect(function()
+        local ch = player.Character
+        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+        local root = ch and ch:FindFirstChild("HumanoidRootPart")
+        if not hum or not root then bhStatus.Text = "No character"; bhStatus.TextColor3 = COL_RED return end
+        noclipOn = not noclipOn; setToggle(bhNoclip, noclipOn)
+        if noclipOn then
+            ncChar = ch
+            origColl = {}
+            for _, p in ipairs(ch:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    origColl[p] = { c = p.CanCollide, t = p.CanTouch }
+                    p.CanCollide, p.CanTouch = false, false
+                end
+            end
+            local rp0 = RaycastParams.new()
+            rp0.FilterType = Enum.RaycastFilterType.Exclude
+            rp0.FilterDescendantsInstances = { ch }
+            local hit0 = Workspace:Raycast(root.Position + Vector3.new(0, 2, 0), Vector3.new(0, -12, 0), rp0)
+            standOff = hit0 and (root.Position.Y - hit0.Position.Y) or (hum.HipHeight + root.Size.Y * 0.5)
+            local hb
+            hb = RunService.Heartbeat:Connect(function()
+                if not noclipOn then return end
+                local c2 = player.Character
+                local r2 = c2 and c2:FindFirstChild("HumanoidRootPart")
+                local h2 = c2 and c2:FindFirstChildOfClass("Humanoid")
+                if not r2 or not h2 then return end
+                if c2 ~= ncChar then
+                    ncChar = c2
+                    for _, p in ipairs(c2:GetDescendants()) do
+                        if p:IsA("BasePart") and origColl[p] == nil then
+                            origColl[p] = { c = p.CanCollide, t = p.CanTouch }
+                        end
+                    end
+                end
+                for _, p in ipairs(c2:GetDescendants()) do
+                    if p:IsA("BasePart") and (p.CanCollide or p.CanTouch) then
+                        p.CanCollide, p.CanTouch = false, false
+                    end
+                end
+                if r2.AssemblyLinearVelocity.Y > 1 then return end
+                local prm = RaycastParams.new()
+                prm.FilterType = Enum.RaycastFilterType.Exclude
+                prm.FilterDescendantsInstances = { c2 }
+                local h = Workspace:Raycast(r2.Position, Vector3.new(0, -(standOff + 6), 0), prm)
+                if h then
+                    local gy = h.Position.Y + standOff
+                    if r2.Position.Y <= gy + 0.5 then
+                        r2.CFrame = CFrame.new(r2.Position.X, gy, r2.Position.Z) * (r2.CFrame - r2.CFrame.Position)
+                    end
+                end
+            end)
             table.insert(noclipConns, hb)
-            bhStatus.Text = "Noclip ON"
+            bhStatus.Text = "Noclip ON (floor kept)"
         else
             for p, d in pairs(origColl) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t end) end
             origColl = {}
             for _, c in ipairs(noclipConns) do pcall(function() c:Disconnect() end) end
             noclipConns = {}
+            bhStatus.Text = "Noclip OFF"
         end
     end)
-    -- FIX: infinite jump via JumpRequest
+    bhFlyApply.MouseButton1Click:Connect(function()
+        local n = tonumber(bhFlyBox.Text)
+        if n and n >= 1 then pflySpeed = math.clamp(n, 1, 500); bhFlyBox.Text = tostring(pflySpeed); flashOk(bhFlyBox)
+        else flashErr(bhFlyBox) end
+    end)
+    bhFly.MouseButton1Click:Connect(function()
+        pflyOn = not pflyOn; setToggle(bhFly, pflyOn)
+        if pflyConn then pcall(function() pflyConn:Disconnect() end) pflyConn = nil end
+        if pflyOn then
+            bhStatus.Text = "Fly ON (WASD + E/Q)"
+            pflyConn = RunService.Heartbeat:Connect(function(dt)
+                if not pflyOn then return end
+                local ch = player.Character
+                local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+                local root = ch and ch:FindFirstChild("HumanoidRootPart")
+                if not hum or not root then return end
+                local md = hum.MoveDirection
+                local vel = Vector3.new(md.X, 0, md.Z) * pflySpeed
+                if UserInputService:IsKeyDown(Enum.KeyCode.E) then vel = vel + Vector3.new(0, pflySpeed, 0)
+                elseif UserInputService:IsKeyDown(Enum.KeyCode.Q) then vel = vel - Vector3.new(0, pflySpeed, 0) end
+                if vel.Magnitude < 0.01 then
+                    pcall(function() root.AssemblyLinearVelocity = Vector3.zero end)
+                    return
+                end
+                pcall(function()
+                    root.CFrame = root.CFrame + vel * math.min(dt, 0.05)
+                    root.AssemblyLinearVelocity = Vector3.zero
+                    root.AssemblyAngularVelocity = Vector3.zero
+                end)
+            end)
+        else
+            local ch = player.Character
+            local root = ch and ch:FindFirstChild("HumanoidRootPart")
+            if root then pcall(function() root.AssemblyLinearVelocity = Vector3.zero end) end
+            bhStatus.Text = "Fly OFF"
+        end
+    end)
+
     bhInfJ.MouseButton1Click:Connect(function()
         infJOn = not infJOn; setToggle(bhInfJ, infJOn)
         if infJConn then pcall(function() infJConn:Disconnect() end) infJConn = nil end
@@ -1909,15 +2199,39 @@ do
             else flashErr(bhJPBox) end
         end
     end)
+    local chHbMult, chHbOrig, chHbChar = 1, nil, nil
+    local function chHbApply()
+        local ch = player.Character
+        local rp = ch and ch:FindFirstChild("HumanoidRootPart")
+        if not rp then bhStatus.Text = "No character"; bhStatus.TextColor3 = COL_RED return false end
+        if ch ~= chHbChar then chHbChar = ch; chHbOrig = rp.Size end
+        pcall(function()
+            rp.Size = chHbOrig * chHbMult
+            rp.CanCollide = false
+        end)
+        return true
+    end
+    bhHBApply.MouseButton1Click:Connect(function()
+        local n = tonumber(bhHBBox.Text)
+        if n and n >= 0.5 and n <= 20 then
+            chHbMult = n
+            if chHbApply() then
+                bhHBBox.Text = tostring(chHbMult); flashOk(bhHBBox)
+                bhStatus.Text = "Hitbox x" .. tostring(chHbMult); bhStatus.TextColor3 = COL_GREEN
+            end
+        else flashErr(bhHBBox) end
+    end)
+    player.CharacterAdded:Connect(function(ch)
+        ch:WaitForChild("HumanoidRootPart", 5)
+        task.wait(0.5)
+        if chHbMult ~= 1 then chHbApply() end
+    end)
     bhRespawn.MouseButton1Click:Connect(function()
         local ch = player.Character; local hum = ch and ch:FindFirstChildOfClass("Humanoid")
         if hum then hum.Health = 0 end
     end)
 end
 
---------------------------------------------------------------------
--- INF SMILE MODULE (Tab: INF Smile) [FIXED precedence + loop]
---------------------------------------------------------------------
 do
     local page = pages["INF Smile"]
     local function isTarget(v, keys)
@@ -2013,7 +2327,7 @@ do
                 if isKind(v) and v.Name and string.lower(v.Name):find("smilegate") then table.insert(f, v) end
             end
         elseif key == "AntiHack" then
-            -- FIXED: parenthesised kind check
+
             for _, v in ipairs(Workspace:GetDescendants()) do
                 if isKind(v) and v.Name and isTarget(v, { "anti", "hack", "anticheat", "cheat", "exploit", "bypass", "security" }) then table.insert(f, v) end
             end
@@ -2136,12 +2450,9 @@ do
     end)
 end
 
---------------------------------------------------------------------
--- BACKDOOR MODULE (Tab: Backdoor) [FIXED forward-declare bug]
---------------------------------------------------------------------
 do
     local page = pages["Backdoor"]
-    -- FIX: declare BEFORE copy handler uses them
+
     local resultItems, backdoorsFound = {}, {}
     local exclusions = { "FireOnServer", "SetDefaultColorOnClient", "TakeControl", "ReleaseControl", "SendToClient", "BroadcastToAll", "UpdateClient", "SyncData", "NetworkEvent", "RemoteCall", "ClientEvent", "ServerEvent", "Replicate", "Dispatch", "TriggerClient", "InvokeServer" }
 
@@ -2242,9 +2553,6 @@ do
     page.CanvasSize = UDim2.new(0, 0, 0, y + 320)
 end
 
---------------------------------------------------------------------
--- UTILITY MODULE (Tab: Utility)
---------------------------------------------------------------------
 do
     local page = pages["Utility"]
     local y = 6
