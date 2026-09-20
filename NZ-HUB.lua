@@ -1510,6 +1510,7 @@ do
     local cmcCar, cmcOn, cmcHolding, cmcLoop = nil, false, false, nil
     local cmcDot, cmcTagT, cmcColChanged = nil, 0, {}
     local cmcUp, cmcDown = false, false
+    local cmcAlt = 0
     local cmcSpinX, cmcSpinY, cmcSpinZ = 0, 90, 0
     local cmcOrbit, cmcDist, cmcBase, cmcSpinOn = false, 0, 0, false
     cmSpinTog.MouseButton1Click:Connect(function()
@@ -1541,6 +1542,7 @@ do
         if cmcOn then
             cmStatus.Text = "Mouse Control ON - hold Left Click"
             cmcDist = 0; cmDistLbl.Text = "Wheel Dist: 0"
+            cmcAlt = 0
             if not cmcDot or not cmcDot.Parent then
                 pcall(function()
                     if cmcDot then cmcDot:Destroy() end
@@ -1633,10 +1635,10 @@ do
                     cmcDot.Transparency = 0.3
                     pcall(function() cmcDot.CFrame = CFrame.new(target) end)
                 end
-                local newPos = target
-                local rot = piv - piv.Position
                 local vy = (cmcUp and 1 or 0) - (cmcDown and 1 or 0)
-                if vy ~= 0 then newPos = newPos + Vector3.new(0, vy * cmMflySpeed * dt) end
+                if vy ~= 0 then cmcAlt = math.clamp(cmcAlt + vy * cmMflySpeed * dt, -500, 500) end
+                local newPos = target + Vector3.new(0, cmcAlt, 0)
+                local rot = piv - piv.Position
                 local spinCF = CFrame.new(0, 0, 0)
                 if cmcSpinOn then
                     spinCF = CFrame.Angles(math.rad(cmcSpinX) * dt, math.rad(cmcSpinY) * dt, math.rad(cmcSpinZ) * dt)
