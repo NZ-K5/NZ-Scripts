@@ -114,6 +114,7 @@ local function findRiddenModelFallback()
 end
 
 local WIN_W, WIN_H = 640, 440
+if isMobile then WIN_W, WIN_H = 380, 420 end
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "NZ-HUB"
@@ -280,6 +281,7 @@ local function selectTab(name)
     end
 end
 for n, b in pairs(tabBtns) do b.MouseButton1Click:Connect(function() selectTab(n) end) end
+if isMobile then for _, b in pairs(tabBtns) do b.TextSize = 9 end end
 selectTab("Car Mods")
 
 local FULL_H, MIN_H = WIN_H, 36
@@ -1246,14 +1248,68 @@ do
     pageLabel(pageA, py, "Fling Power");       local cmFPBox = pageBox(pageA, py - 2, 160, 90, "500"); local cmFPApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
     pageLabel(pageA, py, "Keyboard Fly"); local cmKFly = pageToggle(pageA, py - 2, 160); py = py + 30
     pageLabel(pageA, py, "Mouse Fly");    local cmMFly = pageToggle(pageA, py - 2, 160); py = py + 30
+    pageLabel(pageA, py, "Fly Up / Down"); local kfUpH, kfDnH = false, false
+    local kfUpBtn = pageToggle(pageA, py - 2, 160, 76); kfUpBtn.Text = "Up"; kfUpBtn.TextColor3 = COL_TEXT; kfUpBtn.BackgroundColor3 = COL_BG_ALT
+    local kfDnBtn = pageToggle(pageA, py - 2, 242, 76); kfDnBtn.Text = "Down"; kfDnBtn.TextColor3 = COL_TEXT; kfDnBtn.BackgroundColor3 = COL_BG_ALT
+    py = py + 30
+    local function kfHold(btn, setter)
+        btn.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                setter(true)
+                TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = COL_GREEN }):Play()
+            end
+        end)
+        btn.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                setter(false)
+                TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = COL_BG_ALT }):Play()
+            end
+        end)
+    end
+    kfHold(kfUpBtn, function(v) kfUpH = v end)
+    kfHold(kfDnBtn, function(v) kfDnH = v end)
     pageLabel(pageA, py, "Car Float");    local cmFloat = pageToggle(pageA, py - 2, 160); py = py + 30
     pageLabel(pageA, py, "Car Jump (R-Click)"); local cmJump = pageToggle(pageA, py - 2, 160); py = py + 30
+    local cmJumpBtn = pageWideBtn(pageA, py, "JUMP"); py = py + 34
     pageLabel(pageA, py, "Car Fling");    local cmFling = pageToggle(pageA, py - 2, 160); py = py + 34
     pageLabel(pageA, py, "Car Mouse Control"); local cmcToggle = pageToggle(pageA, py - 2, 160); py = py + 30
     local cmcMode = pageWideBtn(pageA, py, "Spin: In-place"); py = py + 34
     pageLabel(pageA, py, "Spin X Y Z"); local cmSpinX = pageBox(pageA, py - 2, 150, 52, "0"); local cmSpinY = pageBox(pageA, py - 2, 208, 52, "90"); local cmSpinZ = pageBox(pageA, py - 2, 266, 52, "0"); local cmSpinApply = pageApply(pageA, py - 2, 324, "Set"); py = py + 30
     pageLabel(pageA, py, "Spin Enabled"); local cmSpinTog = pageToggle(pageA, py - 2, 160); setToggle(cmSpinTog, false); py = py + 30
     local cmDistLbl = pageLabel(pageA, py, "Dist: 0 (B/P)", 200); py = py + 22
+    local cmcUp, cmcDown, cmcPull, cmcPush = false, false, false, false
+    local mcTouch = { { "Up", "up" }, { "Down", "down" }, { "In", "in" }, { "Out", "out" } }
+    for i, d in ipairs(mcTouch) do
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(0, 80, 0, 28)
+        b.Position = UDim2.new(0, 4 + (i - 1) * 86, 0, py)
+        b.BackgroundColor3 = COL_BG_ALT
+        b.Text = d[1]
+        b.TextColor3 = COL_TEXT
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 11
+        b.BorderSizePixel = 0
+        b.AutoButtonColor = false
+        b.Parent = pageA
+        corner(b, 6)
+        stroke(b, COL_BORDER, 1)
+        local key = d[2]
+        local function mcSet(v)
+            if key == "up" then cmcUp = v
+            elseif key == "down" then cmcDown = v
+            elseif key == "in" then cmcPull = v
+            else cmcPush = v end
+            if v then TweenService:Create(b, TweenInfo.new(0.1), { BackgroundColor3 = COL_GREEN }):Play()
+            else TweenService:Create(b, TweenInfo.new(0.15), { BackgroundColor3 = COL_BG_ALT }):Play() end
+        end
+        b.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then mcSet(true) end
+        end)
+        b.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then mcSet(false) end
+        end)
+    end
+    py = py + 32
     local cmBrake = pageWideBtn(pageA, py, "Instant Brake (X)"); py = py + 34
     pageLabel(pageA, py, "Car Scale"); local cmScaleBox = pageBox(pageA, py - 2, 160, 90, "1"); local cmScaleApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 30
     pageLabel(pageA, py, "Car Hitbox"); local cmHBBox = pageBox(pageA, py - 2, 160, 90, "1"); local cmHBApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
@@ -1358,8 +1414,8 @@ do
                 local cr = cmRoot(); if not cr then return end
                 local md = hum.MoveDirection
                 local vel = Vector3.new(md.X, 0, md.Z) * cmFlySpeed
-                if UserInputService:IsKeyDown(Enum.KeyCode.Q) then vel = vel + Vector3.new(0, cmFlySpeed, 0)
-                elseif UserInputService:IsKeyDown(Enum.KeyCode.E) then vel = vel - Vector3.new(0, cmFlySpeed, 0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Q) or kfUpH then vel = vel + Vector3.new(0, cmFlySpeed, 0)
+                elseif UserInputService:IsKeyDown(Enum.KeyCode.E) or kfDnH then vel = vel - Vector3.new(0, cmFlySpeed, 0) end
                 if vel.Magnitude > 0 then
                     pcall(function() cr.AssemblyLinearVelocity = vel; cr.CFrame = cr.CFrame + vel * 0.016 end)
                 end
@@ -1385,8 +1441,8 @@ do
                 local hd = Vector3.new(dir.X, 0, dir.Z)
                 hd = hd.Magnitude > 0.01 and hd.Unit or Vector3.zero
                 local up = Vector3.zero
-                if UserInputService:IsKeyDown(Enum.KeyCode.Q) then up = Vector3.new(0, cmMflySpeed, 0)
-                elseif UserInputService:IsKeyDown(Enum.KeyCode.E) then up = Vector3.new(0, -cmMflySpeed, 0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Q) or kfUpH then up = Vector3.new(0, cmMflySpeed, 0)
+                elseif UserInputService:IsKeyDown(Enum.KeyCode.E) or kfDnH then up = Vector3.new(0, -cmMflySpeed, 0) end
                 local vel = hd * cmMflySpeed + up
                 pcall(function() cr.AssemblyLinearVelocity = vel; cr.CFrame = cr.CFrame + vel * 0.016 end)
             end)
@@ -1411,6 +1467,11 @@ do
                 end
             end)
         end
+    end)
+    cmJumpBtn.MouseButton1Click:Connect(function()
+        if not cmNeedCar() then return end
+        local cr = cmRoot()
+        if cr then pcall(function() cr.AssemblyLinearVelocity = Vector3.new(cr.AssemblyLinearVelocity.X, cmJumpH, cr.AssemblyLinearVelocity.Z) end) end
     end)
     cmJump.MouseButton1Click:Connect(function()
         if not cmNeedCar() then return end
@@ -1542,8 +1603,6 @@ do
 
     local cmcCar, cmcOn, cmcHolding, cmcLoop = nil, false, false, nil
     local cmcDot, cmcTagT, cmcColChanged = nil, 0, {}
-    local cmcUp, cmcDown = false, false
-    local cmcPull, cmcPush = false, false
     local cmcAlt = 0
     local cmcSpinX, cmcSpinY, cmcSpinZ = 0, 90, 0
     local cmcOrbit, cmcDist, cmcBase, cmcSpinOn = false, 0, 0, false
