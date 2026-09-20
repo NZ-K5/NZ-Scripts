@@ -235,7 +235,7 @@ tabBar.Position = UDim2.new(0, 12, 0, 42)
 tabBar.BackgroundTransparency = 1
 tabBar.Parent = main
 
-local TAB_DEFS = { "Car Mods", "Brookhaven", "INF Smile", "Backdoor", "Utility" }
+local TAB_DEFS = { "Car Mods", "Brookhaven", "Player", "INF Smile", "Backdoor", "Utility" }
 local tabBtns, pages = {}, {}
 local function createPage(name)
     local pg = Instance.new("ScrollingFrame")
@@ -1231,7 +1231,7 @@ do
     local pageA = pages["Car Mods"]
     local py = pageA.CanvasSize.Y.Offset + 8
 
-    pageLabel(pageA, py, "Brookhaven car mods", 200)
+    pageLabel(pageA, py, "Server-Sided Car Mods", 200)
     local cmRescan = pageApply(pageA, py - 2, 278, "Find car")
     py = py + 26
     local cmStatus = Instance.new("TextLabel")
@@ -1324,9 +1324,9 @@ do
     local function cmIsNeutral(c)
         local mx = math.max(c.R, c.G, c.B)
         local mn = math.min(c.R, c.G, c.B)
-        if mx < 0.12 then return true end
-        if mn > 0.85 then return true end
-        if (mx - mn) < 0.12 then return true end
+        if mx < 0.2 then return true end
+        if mn > 0.8 then return true end
+        if (mx - mn) < 0.15 then return true end
         return false
     end
     cmCar = cmFindCar()
@@ -1499,7 +1499,11 @@ do
         if not cmNeedCar() then return end
         local mats = { "Plastic", "Neon", "Metal", "Wood", "Slate", "Concrete", "DiamondPlate" }
         local ms = mats[math.random(1, #mats)]
-        local col = Color3.fromRGB(math.random(50, 255), math.random(50, 255), math.random(50, 255))
+        local col = Color3.fromRGB(255, 0, 0)
+        for _ = 1, 25 do
+            local c = Color3.fromRGB(math.random(0, 255), math.random(0, 255), math.random(0, 255))
+            if not cmIsNeutral(c) then col = c break end
+        end
         local n = 0
         for _, p in ipairs(cmCar:GetDescendants()) do
             if p:IsA("BasePart") and not cmIsNeutral(p.Color) then
@@ -1911,16 +1915,6 @@ do
     pageLabel(page, y, "Speed Multiplier");  local bhMultBox = pageBox(page, y - 2, 160, 90, "2");     local bhMultApply = pageApply(page, y - 2, 258); y = y + 34
 
     pageLabel(page, y, "Car Noclip");   local bhCarNoclip = pageToggle(page, y - 2, 160); y = y + 34
-
-    pageLabel(page, y, "Player mods", 200); y = y + 22
-    pageLabel(page, y, "Infinite Jump"); local bhInfJ = pageToggle(page, y - 2, 160); y = y + 30
-    pageLabel(page, y, "Noclip"); local bhNoclip = pageToggle(page, y - 2, 160); y = y + 30
-    pageLabel(page, y, "Fly Speed"); local bhFlyBox = pageBox(page, y - 2, 160, 90, "50"); local bhFlyApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
-    pageLabel(page, y, "Player Fly"); local bhFly = pageToggle(page, y - 2, 160); y = y + 30
-    pageLabel(page, y, "WalkSpeed");  local bhWSBox = pageBox(page, y - 2, 160, 90, "16"); local bhWSApply = pageApply(page, y - 2, 258); y = y + 30
-    pageLabel(page, y, "JumpPower");  local bhJPBox = pageBox(page, y - 2, 160, 90, "50"); local bhJPApply = pageApply(page, y - 2, 258); y = y + 30
-    pageLabel(page, y, "Character Hitbox"); local bhHBBox = pageBox(page, y - 2, 160, 90, "1"); local bhHBApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
-    local bhRespawn = pageWideBtn(page, y, "Respawn"); y = y + 34
     local bhStatus = Instance.new("TextLabel")
     bhStatus.Size = UDim2.new(1, -8, 0, 16); bhStatus.Position = UDim2.new(0, 4, 0, y)
     bhStatus.BackgroundTransparency = 1; bhStatus.Text = "Status: Ready"; bhStatus.TextColor3 = COL_GREEN
@@ -1928,10 +1922,8 @@ do
     page.CanvasSize = UDim2.new(0, 0, 0, y + 30)
 
     local bhCar, baseMax = nil, nil
-    local noclipOn, infJOn, pflyOn, carNcOn = false, false, false, false
-    local pflySpeed, pflyConn, ncChar, standOff = 50, nil, nil, 3
+    local carNcOn = false
     local carNcConns, carNcOrig = {}, {}
-    local noclipConns, infJConn, origColl = {}, nil, {}
 
     local function bhCarFromSeat()
         local ch = player.Character
@@ -2050,11 +2042,57 @@ do
             bhStatus.Text = "Car Noclip OFF"
         end
     end)
+    bhSpeedApply.MouseButton1Click:Connect(function()
+        if not bhNeedCar() then return end
+        local v = bhVal("MaxSpeed")
+        if v and v:IsA("NumberValue") then
+            local n = tonumber(bhSpeedBox.Text); if n then v.Value = n; baseMax = n; bhStatus.Text = "MaxSpeed = " .. n; flashOk(bhSpeedBox) else flashErr(bhSpeedBox) end
+        else bhStatus.Text = "MaxSpeed not found (" .. bhListVals() .. ")"; bhStatus.TextColor3 = COL_RED end
+    end)
+    bhTurboApply.MouseButton1Click:Connect(function()
+        if not bhNeedCar() then return end
+        local v = bhVal("Turbo")
+        if v and v:IsA("StringValue") then v.Value = bhTurboBox.Text; bhStatus.Text = "Turbo set"; flashOk(bhTurboBox)
+        else bhStatus.Text = "Turbo not found (" .. bhListVals() .. ")"; bhStatus.TextColor3 = COL_RED end
+    end)
+    bhMultApply.MouseButton1Click:Connect(function()
+        local m = tonumber(bhMultBox.Text)
+        if not m then flashErr(bhMultBox) return end
+        if not bhNeedCar() then return end
+        local v = bhVal("MaxSpeed")
+        if v and v:IsA("NumberValue") then
+            if not baseMax then baseMax = v.Value end
+            v.Value = baseMax * m
+            flashOk(bhMultBox)
+            bhStatus.Text = "Multiplier x" .. tostring(m)
+        else bhStatus.Text = "MaxSpeed not found (" .. bhListVals() .. ")"; bhStatus.TextColor3 = COL_RED end
+    end)
+end
+
+do
+    local page = pages["Player"]
+    local y = 4
+    pageLabel(page, y, "Infinite Jump"); local bhInfJ = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "Noclip"); local bhNoclip = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "Fly Speed"); local bhFlyBox = pageBox(page, y - 2, 160, 90, "50"); local bhFlyApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
+    pageLabel(page, y, "Player Fly"); local bhFly = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "WalkSpeed");  local bhWSBox = pageBox(page, y - 2, 160, 90, "16"); local bhWSApply = pageApply(page, y - 2, 258); y = y + 30
+    pageLabel(page, y, "JumpPower");  local bhJPBox = pageBox(page, y - 2, 160, 90, "50"); local bhJPApply = pageApply(page, y - 2, 258); y = y + 30
+    pageLabel(page, y, "Character Hitbox"); local bhHBBox = pageBox(page, y - 2, 160, 90, "1"); local bhHBApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
+    local bhRespawn = pageWideBtn(page, y, "Respawn"); y = y + 34
+    local plStatus = Instance.new("TextLabel")
+    plStatus.Size = UDim2.new(1, -8, 0, 16); plStatus.Position = UDim2.new(0, 4, 0, y)
+    plStatus.BackgroundTransparency = 1; plStatus.Text = "Status: Ready"; plStatus.TextColor3 = COL_GREEN
+    plStatus.Font = Enum.Font.Gotham; plStatus.TextSize = 10; plStatus.TextXAlignment = Enum.TextXAlignment.Left; plStatus.Parent = page
+    page.CanvasSize = UDim2.new(0, 0, 0, y + 30)
+    local noclipOn, infJOn, pflyOn = false, false, false
+    local pflySpeed, pflyConn, ncChar, standOff = 50, nil, nil, 3
+    local noclipConns, infJConn, origColl = {}, nil, {}
     bhNoclip.MouseButton1Click:Connect(function()
         local ch = player.Character
         local hum = ch and ch:FindFirstChildOfClass("Humanoid")
         local root = ch and ch:FindFirstChild("HumanoidRootPart")
-        if not hum or not root then bhStatus.Text = "No character"; bhStatus.TextColor3 = COL_RED return end
+        if not hum or not root then plStatus.Text = "No character"; plStatus.TextColor3 = COL_RED return end
         noclipOn = not noclipOn; setToggle(bhNoclip, noclipOn)
         if noclipOn then
             ncChar = ch
@@ -2103,13 +2141,24 @@ do
                 end
             end)
             table.insert(noclipConns, hb)
-            bhStatus.Text = "Noclip ON (floor kept)"
+            plStatus.Text = "Noclip ON (floor kept)"
         else
             for p, d in pairs(origColl) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t end) end
             origColl = {}
             for _, c in ipairs(noclipConns) do pcall(function() c:Disconnect() end) end
             noclipConns = {}
-            bhStatus.Text = "Noclip OFF"
+            plStatus.Text = "Noclip OFF"
+        end
+    end)
+    bhInfJ.MouseButton1Click:Connect(function()
+        infJOn = not infJOn; setToggle(bhInfJ, infJOn)
+        if infJConn then pcall(function() infJConn:Disconnect() end) infJConn = nil end
+        if infJOn then
+            infJConn = UserInputService.JumpRequest:Connect(function()
+                local ch = player.Character
+                local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+                if hum then pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end) end
+            end)
         end
     end)
     bhFlyApply.MouseButton1Click:Connect(function()
@@ -2121,7 +2170,7 @@ do
         pflyOn = not pflyOn; setToggle(bhFly, pflyOn)
         if pflyConn then pcall(function() pflyConn:Disconnect() end) pflyConn = nil end
         if pflyOn then
-            bhStatus.Text = "Fly ON (WASD + E/Q)"
+            plStatus.Text = "Fly ON (WASD + E/Q)"
             pflyConn = RunService.Heartbeat:Connect(function(dt)
                 if not pflyOn then return end
                 local ch = player.Character
@@ -2146,43 +2195,8 @@ do
             local ch = player.Character
             local root = ch and ch:FindFirstChild("HumanoidRootPart")
             if root then pcall(function() root.AssemblyLinearVelocity = Vector3.zero end) end
-            bhStatus.Text = "Fly OFF"
+            plStatus.Text = "Fly OFF"
         end
-    end)
-
-    bhInfJ.MouseButton1Click:Connect(function()
-        infJOn = not infJOn; setToggle(bhInfJ, infJOn)
-        if infJConn then pcall(function() infJConn:Disconnect() end) infJConn = nil end
-        if infJOn then
-            infJConn = UserInputService.JumpRequest:Connect(function()
-                local ch = player.Character
-                local hum = ch and ch:FindFirstChildOfClass("Humanoid")
-                if hum then pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end) end
-            end)
-        end
-    end)
-    bhSpeedApply.MouseButton1Click:Connect(function()
-        if not bhNeedCar() then return end
-        local v = bhVal("MaxSpeed")
-        if v and v:IsA("NumberValue") then
-            local n = tonumber(bhSpeedBox.Text); if n then v.Value = n; baseMax = n; bhStatus.Text = "MaxSpeed = " .. n; flashOk(bhSpeedBox) else flashErr(bhSpeedBox) end
-        else bhStatus.Text = "MaxSpeed not found (" .. bhListVals() .. ")"; bhStatus.TextColor3 = COL_RED end
-    end)
-    bhTurboApply.MouseButton1Click:Connect(function()
-        if not bhNeedCar() then return end
-        local v = bhVal("Turbo")
-        if v and v:IsA("StringValue") then v.Value = bhTurboBox.Text; bhStatus.Text = "Turbo set"; flashOk(bhTurboBox)
-        else bhStatus.Text = "Turbo not found (" .. bhListVals() .. ")"; bhStatus.TextColor3 = COL_RED end
-    end)
-    bhMultApply.MouseButton1Click:Connect(function()
-        local m = tonumber(bhMultBox.Text)
-        if not m then flashErr(bhMultBox) return end
-        local v = bhVal("MaxSpeed")
-        if v and v:IsA("NumberValue") then
-            if not baseMax then baseMax = v.Value end
-            v.Value = baseMax * m
-            flashOk(bhMultBox)
-        else bhStatus.Text = "MaxSpeed value not found in car"; bhStatus.TextColor3 = COL_RED end
     end)
     bhWSApply.MouseButton1Click:Connect(function()
         local ch = player.Character; local hum = ch and ch:FindFirstChildOfClass("Humanoid")
@@ -2195,7 +2209,7 @@ do
             if n then
                 pcall(function() hum.JumpPower = n end)
                 pcall(function() hum.JumpHeight = n / 2 end)
-                flashOk(bhJPBox); bhStatus.Text = "Jump set"
+                flashOk(bhJPBox); plStatus.Text = "Jump set"
             else flashErr(bhJPBox) end
         end
     end)
@@ -2203,7 +2217,7 @@ do
     local function chHbApply()
         local ch = player.Character
         local rp = ch and ch:FindFirstChild("HumanoidRootPart")
-        if not rp then bhStatus.Text = "No character"; bhStatus.TextColor3 = COL_RED return false end
+        if not rp then plStatus.Text = "No character"; plStatus.TextColor3 = COL_RED return false end
         if ch ~= chHbChar then chHbChar = ch; chHbOrig = rp.Size end
         pcall(function()
             rp.Size = chHbOrig * chHbMult
@@ -2217,7 +2231,7 @@ do
             chHbMult = n
             if chHbApply() then
                 bhHBBox.Text = tostring(chHbMult); flashOk(bhHBBox)
-                bhStatus.Text = "Hitbox x" .. tostring(chHbMult); bhStatus.TextColor3 = COL_GREEN
+                plStatus.Text = "Hitbox x" .. tostring(chHbMult); plStatus.TextColor3 = COL_GREEN
             end
         else flashErr(bhHBBox) end
     end)
@@ -2248,7 +2262,6 @@ do
     local names = { "Infect", "Kill", "SmileGate", "AntiHack", "Spear", "FireLava", "Weight", "Orb", "BlackHole", "Laser" }
     for _, n in ipairs(names) do flags[n] = false; stores[n] = {} end
     local antiInfOn, dupSad, toolCDOn, toolCDVal, toolLoop, seisConn, seisAcc = false, nil, false, 0, nil, nil, 0
-
     local y = 4
     pageLabel(page, y, "Infectious Smile map cleanup"); y = y + 22
     local btns = {}
