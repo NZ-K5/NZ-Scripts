@@ -1243,7 +1243,7 @@ do
     local cmcMode = pageWideBtn(pageA, py, "Spin: In-place"); py = py + 34
     pageLabel(pageA, py, "Spin X Y Z"); local cmSpinX = pageBox(pageA, py - 2, 150, 52, "0"); local cmSpinY = pageBox(pageA, py - 2, 208, 52, "90"); local cmSpinZ = pageBox(pageA, py - 2, 266, 52, "0"); local cmSpinApply = pageApply(pageA, py - 2, 324, "Set"); py = py + 30
     pageLabel(pageA, py, "Spin Enabled"); local cmSpinTog = pageToggle(pageA, py - 2, 160); setToggle(cmSpinTog, false); py = py + 30
-    local cmDistLbl = pageLabel(pageA, py, "Wheel Dist: 0", 200); py = py + 22
+    local cmDistLbl = pageLabel(pageA, py, "Dist: 0 (B/P)", 200); py = py + 22
     local cmBrake = pageWideBtn(pageA, py, "Instant Brake (X)"); py = py + 34
     pageLabel(pageA, py, "Car Scale"); local cmScaleBox = pageBox(pageA, py - 2, 160, 90, "1"); local cmScaleApply = pageApply(pageA, py - 2, 258, "Set"); py = py + 34
     local cmCustom = pageWideBtn(pageA, py, "Car Modded Customization"); py = py + 34
@@ -1510,6 +1510,7 @@ do
     local cmcCar, cmcOn, cmcHolding, cmcLoop = nil, false, false, nil
     local cmcDot, cmcTagT, cmcColChanged = nil, 0, {}
     local cmcUp, cmcDown = false, false
+    local cmcPull, cmcPush = false, false
     local cmcAlt = 0
     local cmcSpinX, cmcSpinY, cmcSpinZ = 0, 90, 0
     local cmcOrbit, cmcDist, cmcBase, cmcSpinOn = false, 0, 0, false
@@ -1541,7 +1542,7 @@ do
         if cmcLoop then pcall(function() cmcLoop:Disconnect() end) cmcLoop = nil end
         if cmcOn then
             cmStatus.Text = "Mouse Control ON - hold Left Click"
-            cmcDist = 0; cmDistLbl.Text = "Wheel Dist: 0"
+            cmcDist = 0; cmDistLbl.Text = "Dist: 0 (B/P)"
             cmcAlt = 0
             if not cmcDot or not cmcDot.Parent then
                 pcall(function()
@@ -1608,6 +1609,9 @@ do
                 if not okR or not ray then return end
                 local okP, piv = pcall(function() return cmcCar:GetPivot() end)
                 if not okP or not piv then return end
+                if cmcPull then cmcDist = math.max(-150, cmcDist - 60 * dt) end
+                if cmcPush then cmcDist = math.min(300, cmcDist + 60 * dt) end
+                cmDistLbl.Text = "Dist: " .. tostring(math.floor(cmcDist + 0.5)) .. " (B/P)"
                 local rp = RaycastParams.new()
                 rp.FilterType = Enum.RaycastFilterType.Exclude
                 rp.FilterDescendantsInstances = { player.Character }
@@ -1673,22 +1677,13 @@ do
             cmStatus.Text = "Mouse Control OFF"
         end
     end)
-    local cmMouse = player:GetMouse()
-    cmMouse.WheelForward:Connect(function()
-        if not cmcOn or cmcHolding then return end
-        cmcDist = math.clamp(cmcDist + 5, -150, 300)
-        cmDistLbl.Text = "Wheel Dist: " .. tostring(cmcDist)
-    end)
-    cmMouse.WheelBackward:Connect(function()
-        if not cmcOn or cmcHolding then return end
-        cmcDist = math.clamp(cmcDist - 5, -150, 300)
-        cmDistLbl.Text = "Wheel Dist: " .. tostring(cmcDist)
-    end)
     UserInputService.InputBegan:Connect(function(input, gp)
         if input.UserInputType == Enum.UserInputType.Keyboard then
             if isAnyTextBoxFocused() then return end
             if input.KeyCode == Enum.KeyCode.Q then cmcUp = true return end
             if input.KeyCode == Enum.KeyCode.E then cmcDown = true return end
+            if input.KeyCode == Enum.KeyCode.P then cmcPull = true return end
+            if input.KeyCode == Enum.KeyCode.B then cmcPush = true return end
             return
         end
         if gp or isAnyTextBoxFocused() then return end
@@ -1707,6 +1702,8 @@ do
         if input.UserInputType == Enum.UserInputType.Keyboard then
             if input.KeyCode == Enum.KeyCode.Q then cmcUp = false return end
             if input.KeyCode == Enum.KeyCode.E then cmcDown = false return end
+            if input.KeyCode == Enum.KeyCode.P then cmcPull = false return end
+            if input.KeyCode == Enum.KeyCode.B then cmcPush = false return end
             return
         end
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
