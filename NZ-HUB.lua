@@ -114,7 +114,11 @@ local function findRiddenModelFallback()
 end
 
 local WIN_W, WIN_H = 640, 440
-if isMobile then WIN_W, WIN_H = 380, 420 end
+if isMobile then
+    local vp0 = camera.ViewportSize
+    WIN_W = math.clamp(vp0.X - 20, 300, 420)
+    WIN_H = math.clamp(vp0.Y - 120, 320, 440)
+end
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "NZ-HUB"
@@ -248,7 +252,7 @@ local function createPage(name)
     pg.ScrollBarThickness = 4
     pg.ScrollBarImageColor3 = COL_ACCENT
     pg.CanvasSize = UDim2.new(0, 0, 0, 500)
-    pg.ScrollingDirection = Enum.ScrollingDirection.Y
+    pg.ScrollingDirection = isMobile and Enum.ScrollingDirection.XY or Enum.ScrollingDirection.Y
     pg.Visible = false
     pg.Parent = main
     return pg
@@ -314,6 +318,9 @@ UserInputService.InputBegan:Connect(function(input, gp)
         minBtn.Text = minimized and "+" or "-"
         tabBar.Visible = not minimized
     end
+end)
+camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+    main.Position = UDim2.new(0.5, -WIN_W / 2, 0.45, -WIN_H / 2)
 end)
 
 local function pageLabel(parent, y, text, w)
