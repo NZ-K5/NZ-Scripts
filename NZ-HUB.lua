@@ -1508,6 +1508,7 @@ do
     -- Car Mouse Control: scan seated, drive unseated via cursor
     ----------------------------------------------------------------
     local cmcCar, cmcOn, cmcHolding, cmcLoop = nil, false, false, nil
+    local cmcDot, cmcTagT, cmcColChanged = nil, 0, {}
     local cmcUp, cmcDown = false, false
     local cmcSpinX, cmcSpinY, cmcSpinZ = 0, 90, 0
     local cmcOrbit, cmcDist, cmcBase, cmcSpinOn = false, 0, 0, false
@@ -1539,6 +1540,53 @@ do
         if cmcLoop then pcall(function() cmcLoop:Disconnect() end) cmcLoop = nil end
         if cmcOn then
             cmStatus.Text = "Mouse Control ON - hold Left Click"
+            cmcDist = 0; cmDistLbl.Text = "Wheel Dist: 0"
+            if not cmcDot or not cmcDot.Parent then
+                pcall(function()
+                    if cmcDot then cmcDot:Destroy() end
+                    local d = Instance.new("Part")
+                    d.Name = "_NZCursorDot"
+                    d.Shape = Enum.PartType.Ball
+                    d.Size = Vector3.new(0.6, 0.6, 0.6)
+                    d.Color = Color3.fromRGB(0, 255, 150)
+                    d.Material = Enum.Material.Neon
+                    d.Transparency = 1
+                    d.Anchored = true
+                    d.CanCollide = false
+                    d.CanQuery = false
+                    d.CanTouch = false
+                    d.Parent = Workspace
+                    cmcDot = d
+                end)
+            end
+            pcall(function()
+                local ps = game:GetService("PhysicsService")
+                pcall(function() ps:RegisterCollisionGroup("NZMyCar") end)
+                pcall(function() ps:RegisterCollisionGroup("NZOtherCars") end)
+                ps:CollisionGroupSetCollidable("NZMyCar", "NZOtherCars", false)
+                ps:CollisionGroupSetCollidable("NZMyCar", "Default", true)
+                ps:CollisionGroupSetCollidable("NZOtherCars", "Default", true)
+            end)
+            local function cmcTagCars()
+                if not cmcCar or not cmcCar.Parent then return end
+                for _, p in ipairs(cmcCar:GetDescendants()) do
+                    if p:IsA("BasePart") then
+                        if cmcColChanged[p] == nil then cmcColChanged[p] = p.CollisionGroup end
+                        pcall(function() p.CollisionGroup = "NZMyCar" end)
+                    end
+                end
+                for _, m in ipairs(Workspace:GetDescendants()) do
+                    if m:IsA("Model") and m ~= cmcCar and m.Name:find("Car") then
+                        for _, p in ipairs(m:GetDescendants()) do
+                            if p:IsA("BasePart") then
+                                if cmcColChanged[p] == nil then cmcColChanged[p] = p.CollisionGroup end
+                                pcall(function() p.CollisionGroup = "NZOtherCars" end)
+                            end
+                        end
+                    end
+                end
+            end
+            cmcTagCars()
             cmcLoop = RunService.Heartbeat:Connect(function(dt)
                 if not cmcOn or not cmcHolding then return end
                 if not cmcCar or not cmcCar.Parent then
@@ -1546,6 +1594,8 @@ do
                     cmStatus.Text = "Car lost - Scan again"; cmStatus.TextColor3 = COL_RED
                     return
                 end
+                cmcTagT = cmcTagT + dt
+                if cmcTagT >= 3 then cmcTagT = 0 cmcTagCars() end
                 local ch = player.Character
                 local hum = ch and ch:FindFirstChildOfClass("Humanoid")
                 if hum and hum.SeatPart then return end
@@ -1560,17 +1610,28 @@ do
                 rp.FilterType = Enum.RaycastFilterType.Exclude
                 rp.FilterDescendantsInstances = { player.Character }
                 local hit = Workspace:Raycast(ray.Origin, ray.Direction * 2000, rp)
-                local target
+                local useHit = hit
                 if hit and hit.Instance:IsDescendantOf(cmcCar) then
-                    target = piv.Position
-                elseif hit and (hit.Position - ray.Origin).Magnitude <= 1000 then
+                    local r2 = RaycastParams.new()
+                    r2.FilterType = Enum.RaycastFilterType.Exclude
+                    r2.FilterDescendantsInstances = { cmcCar, player.Character }
+                    useHit = Workspace:Raycast(hit.Position + ray.Direction * 0.5, ray.Direction * 2000, r2)
+                end
+                local target
+                if useHit and (useHit.Position - ray.Origin).Magnitude <= 1000 then
                     local okB, _, bbSize = pcall(function() return cmcCar:GetBoundingBox() end)
                     local hover = (okB and bbSize) and (bbSize.Y * 0.5 + 0.5) or 2
-                    target = hit.Position + Vector3.new(0, hover, 0) + ray.Direction * cmcDist
+                    target = useHit.Position + Vector3.new(0, hover, 0) + ray.Direction * cmcDist
+                elseif hit and hit.Instance:IsDescendantOf(cmcCar) then
+                    target = piv.Position
                 else
                     local dist = (cmcBase > 0 and cmcBase or (ray.Origin - piv.Position).Magnitude) + cmcDist
                     if dist < 5 then dist = 5 end
                     target = ray.Origin + ray.Direction * dist
+                end
+                if cmcDot and cmcDot.Parent then
+                    cmcDot.Transparency = 0.3
+                    pcall(function() cmcDot.CFrame = CFrame.new(target) end)
                 end
                 local newPos = target
                 local rot = piv - piv.Position
@@ -1597,6 +1658,9 @@ do
             end)
         else
             cmcHolding = false
+            for p, g in pairs(cmcColChanged) do pcall(function() p.CollisionGroup = g end) end
+            cmcColChanged = {}
+            if cmcDot then pcall(function() cmcDot:Destroy() end) cmcDot = nil end
             if cmcCar and cmcCar.Parent then
                 for _, p in ipairs(cmcCar:GetDescendants()) do
                     if p:IsA("BasePart") then
@@ -1643,7 +1707,10 @@ do
             if input.KeyCode == Enum.KeyCode.E then cmcDown = false return end
             return
         end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then cmcHolding = false end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            cmcHolding = false
+            if cmcDot and cmcDot.Parent then cmcDot.Transparency = 1 end
+        end
     end)
 end
 
