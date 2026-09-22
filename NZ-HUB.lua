@@ -1883,9 +1883,6 @@ do
             cmStatus.Text = "Orbit OFF"
         end
     end)
-    ----------------------------------------------------------------
-    -- Car Noclip: phase world props, keep cars + ground solid
-    ----------------------------------------------------------------
     local cnOn, cnSaved, cnConns, cnCarCache = false, {}, {}, {}
     local cnConcreteSolid = false
     local function cnIsCarPart(inst)
@@ -1967,6 +1964,53 @@ do
             cmStatus.Text = cnConcreteSolid and "Concrete: solid" or "Concrete: phased"
         end
     end)
+    local function floatBtn(text, x, y, onPress, onRelease)
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(0, 56, 0, 56)
+        b.Position = UDim2.new(1, x, 0.5, y)
+        b.BackgroundColor3 = COL_BG_ALT
+        b.BackgroundTransparency = 0.15
+        b.Text = text
+        b.TextColor3 = COL_TEXT
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 12
+        b.BorderSizePixel = 0
+        b.AutoButtonColor = false
+        b.Parent = gui
+        corner(b, 28)
+        stroke(b, COL_ACCENT, 1)
+        local dragging, moved, sp, bp = false, false, nil, nil
+        b.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging, moved = true, false
+                sp = input.Position
+                bp = b.Position
+                if onPress then onPress() end
+            end
+        end)
+        b.InputChanged:Connect(function(input)
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local d = input.Position - sp
+                if math.abs(d.X) + math.abs(d.Y) > 8 then moved = true end
+                if moved then b.Position = UDim2.new(bp.X.Scale, bp.X.Offset + d.X, bp.Y.Scale, bp.Y.Offset + d.Y) end
+            end
+        end)
+        b.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+                if onRelease then onRelease(moved) end
+            end
+        end)
+        return b
+    end
+    floatBtn("JUMP", -70, -100, nil, function(moved)
+        if moved then return end
+        if not cmNeedCar() then return end
+        local cr = cmRoot()
+        if cr then pcall(function() cr.AssemblyLinearVelocity = Vector3.new(cr.AssemblyLinearVelocity.X, cmJumpH, cr.AssemblyLinearVelocity.Z) end) end
+    end)
+    floatBtn("UP", -70, -38, function() kfUpH = true end, function() kfUpH = false end)
+    floatBtn("DN", -70, 24, function() kfDnH = true end, function() kfDnH = false end)
 end
 
 do
