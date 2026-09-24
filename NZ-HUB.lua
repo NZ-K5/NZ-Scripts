@@ -2191,6 +2191,7 @@ do
     pageLabel(page, y, "Character Hitbox"); local bhHBBox = pageBox(page, y - 2, 160, 90, "1"); local bhHBApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
     local bhRespawn = pageWideBtn(page, y, "Respawn"); y = y + 34
     pageLabel(page, y, "ESP"); local espTog = pageToggle(page, y - 2, 160); espTog.Text = "ESP: Off"; y = y + 30
+    pageLabel(page, y, "ESP Radius"); local espRadBox = pageBox(page, y - 2, 160, 90, "500"); local espRadApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
     local espDestroy = pageWideBtn(page, y, "Destroy ESP"); y = y + 34
     pageLabel(page, y, "Aimbot"); local abTog = pageToggle(page, y - 2, 160); abTog.Text = "Aimbot: Off"; y = y + 30
     pageLabel(page, y, "Aim Radius"); local abBox = pageBox(page, y - 2, 160, 90, "120"); local abApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
@@ -2360,6 +2361,12 @@ do
         if hum then hum.Health = 0 end
     end)
     local espOn, espTracked, espConn, espAcc, espFrame, espPhase = false, {}, nil, 0, 0, 0
+    local espRad = 500
+    espRadApply.MouseButton1Click:Connect(function()
+        local n = tonumber(espRadBox.Text)
+        if n then espRad = math.clamp(n, 50, 10000); espRadBox.Text = tostring(espRad); flashOk(espRadBox)
+        else flashErr(espRadBox) end
+    end)
     local function espTeam(plr)
         local col = Color3.fromRGB(255, 255, 255)
         pcall(function()
@@ -2455,7 +2462,9 @@ do
                     local hum, root = e.hum, e.root
                     if hum and root and hum.Health > 0 then
                         local d = (camPos - root.Position).Magnitude
-                        if d <= 400 or (espFrame + (e.phase or 0)) % 3 == 0 then
+                        if d > espRad then
+                            hideSet(e)
+                        elseif d <= 400 or (espFrame + (e.phase or 0)) % 3 == 0 then
                             local v, on = cam:WorldToViewportPoint(root.Position)
                             if on then
                                 local h = math.clamp(1500 / math.max(d, 1), 20, 300)
