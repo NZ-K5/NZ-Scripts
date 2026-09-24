@@ -2204,6 +2204,76 @@ do
     local noclipOn, infJOn, pflyOn = false, false, false
     local pflySpeed, pflyConn, ncChar, standOff = 50, nil, nil, 3
     local noclipConns, infJConn, origColl = {}, nil, {}
+    local lagClone, lagChar, lagTrans, lagT, lagCount = nil, nil, {}, 0, 0
+    local function lagClear()
+        if lagClone then pcall(function() lagClone:Destroy() end) lagClone = nil end
+        lagChar = nil
+    end
+    local function lagShow()
+        lagCount = lagCount + 1
+        if lagCount > 1 then return end
+        local ch = player.Character
+        if not ch then lagCount = 0 return end
+        lagChar = ch
+        lagTrans = {}
+        for _, p in ipairs(ch:GetDescendants()) do
+            if p:IsA("BasePart") then lagTrans[p] = p.Transparency p.Transparency = 1 end
+        end
+        local hum = ch:FindFirstChildOfClass("Humanoid")
+        if hum then hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None end
+        lagT = 4
+    end
+    local function lagHide()
+        lagCount = lagCount - 1
+        if lagCount < 0 then lagCount = 0 end
+        if lagCount > 0 then return end
+        lagT = 0
+        local ch = player.Character
+        if ch then
+            for _, p in ipairs(ch:GetDescendants()) do
+                if p:IsA("BasePart") and lagTrans[p] ~= nil then p.Transparency = lagTrans[p] end
+            end
+            local hum = ch:FindFirstChildOfClass("Humanoid")
+            if hum then hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer end
+        end
+        lagTrans = {}
+        lagClear()
+    end
+    local function lagTick(dt)
+        if lagCount <= 0 then return end
+        local ch = player.Character
+        if not ch then return end
+        if ch ~= lagChar then
+            lagClear()
+            lagChar = ch
+            lagTrans = {}
+            for _, p in ipairs(ch:GetDescendants()) do
+                if p:IsA("BasePart") then lagTrans[p] = p.Transparency p.Transparency = 1 end
+            end
+            local hum = ch:FindFirstChildOfClass("Humanoid")
+            if hum then hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None end
+        end
+        lagT = lagT + dt
+        if lagT >= 4 then
+            lagT = 0
+            lagClear()
+            local m = Instance.new("Model")
+            m.Name = player.Name
+            for _, p in ipairs(ch:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    local c = p:Clone()
+                    c.Anchored = true
+                    c.CanCollide = false
+                    c.CanQuery = false
+                    c.CanTouch = false
+                    c.Transparency = lagTrans[p] or 0
+                    c.Parent = m
+                end
+            end
+            m.Parent = Workspace
+            lagClone = m
+        end
+    end
     bhNoclip.MouseButton1Click:Connect(function()
         local ch = player.Character
         local hum = ch and ch:FindFirstChildOfClass("Humanoid")
@@ -2225,8 +2295,9 @@ do
             local hit0 = Workspace:Raycast(root.Position + Vector3.new(0, 2, 0), Vector3.new(0, -12, 0), rp0)
             standOff = hit0 and (root.Position.Y - hit0.Position.Y) or (hum.HipHeight + root.Size.Y * 0.5)
             local hb
-            hb = RunService.Heartbeat:Connect(function()
+            hb = RunService.Heartbeat:Connect(function(dt)
                 if not noclipOn then return end
+                lagTick(dt)
                 local c2 = player.Character
                 local r2 = c2 and c2:FindFirstChild("HumanoidRootPart")
                 local h2 = c2 and c2:FindFirstChildOfClass("Humanoid")
@@ -2257,12 +2328,14 @@ do
                 end
             end)
             table.insert(noclipConns, hb)
+            lagShow()
             plStatus.Text = "Noclip ON (floor kept)"
         else
             for p, d in pairs(origColl) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t end) end
             origColl = {}
             for _, c in ipairs(noclipConns) do pcall(function() c:Disconnect() end) end
             noclipConns = {}
+            lagHide()
             plStatus.Text = "Noclip OFF"
         end
     end)
@@ -2286,9 +2359,11 @@ do
         pflyOn = not pflyOn; setToggle(bhFly, pflyOn)
         if pflyConn then pcall(function() pflyConn:Disconnect() end) pflyConn = nil end
         if pflyOn then
+            lagShow()
             plStatus.Text = "Fly ON (WASD + E/Q)"
             pflyConn = RunService.Heartbeat:Connect(function(dt)
                 if not pflyOn then return end
+                lagTick(dt)
                 local ch = player.Character
                 local hum = ch and ch:FindFirstChildOfClass("Humanoid")
                 local root = ch and ch:FindFirstChild("HumanoidRootPart")
@@ -2311,6 +2386,7 @@ do
             local ch = player.Character
             local root = ch and ch:FindFirstChild("HumanoidRootPart")
             if root then pcall(function() root.AssemblyLinearVelocity = Vector3.zero end) end
+            lagHide()
             plStatus.Text = "Fly OFF"
         end
     end)
@@ -2364,7 +2440,7 @@ do
     local espRad = 500
     espRadApply.MouseButton1Click:Connect(function()
         local n = tonumber(espRadBox.Text)
-        if n then espRad = math.clamp(n, 50, 10000); espRadBox.Text = tostring(espRad); flashOk(espRadBox)
+        if n then espRad = math.clamp(n, 50, 10000); espRadBox.Text = tostring(espRad); flashOk(espRadBox); plStatus.Text = "ESP radius " .. tostring(espRad)
         else flashErr(espRadBox) end
     end)
     local function espTeam(plr)
