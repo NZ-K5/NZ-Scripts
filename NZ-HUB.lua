@@ -2492,7 +2492,7 @@ do
         for plr, set in pairs(espTracked) do espDrop(set) espTracked[plr] = nil end
         plStatus.Text = "ESP destroyed"
     end)
-    local abOn, abRadius, abTeam, abConn, abCircle = false, 120, true, nil, nil
+    local abOn, abRadius, abTeam, abConn, abCircle, abHolding = false, 120, true, nil, nil, false
     abApply.MouseButton1Click:Connect(function()
         local n = tonumber(abBox.Text)
         if n then abRadius = math.clamp(n, 20, 600); abBox.Text = tostring(abRadius); flashOk(abBox)
@@ -2518,7 +2518,7 @@ do
                     abCircle = c
                 end)
             end
-            plStatus.Text = "Aimbot ON"
+            plStatus.Text = "Aimbot ON (hold R-Click)"
             abConn = RunService.RenderStepped:Connect(function()
                 local cam = Workspace.CurrentCamera
                 if not cam then return end
@@ -2527,7 +2527,7 @@ do
                     abCircle.Radius = abRadius
                     abCircle.Visible = abOn
                 end
-                if not abOn then return end
+                if not abOn or not abHolding then return end
                 local cx, cy = cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5
                 local best, bestPart, bestD = nil, nil, abRadius
                 for _, plr in ipairs(Players:GetPlayers()) do
@@ -2568,7 +2568,55 @@ do
             end)
         else
             if abCircle then abCircle.Visible = false end
+            abHolding = false
             plStatus.Text = "Aimbot OFF"
+        end
+    end)
+    local abFloat = Instance.new("TextButton")
+    abFloat.Size = UDim2.new(0, 56, 0, 56)
+    abFloat.Position = UDim2.new(0, 14, 0.5, -28)
+    abFloat.BackgroundColor3 = COL_BG_ALT
+    abFloat.BackgroundTransparency = 0.15
+    abFloat.Text = "AIM"
+    abFloat.TextColor3 = COL_TEXT
+    abFloat.Font = Enum.Font.GothamBold
+    abFloat.TextSize = 12
+    abFloat.BorderSizePixel = 0
+    abFloat.AutoButtonColor = false
+    abFloat.Parent = gui
+    corner(abFloat, 28)
+    stroke(abFloat, COL_ACCENT, 1)
+    local abDrag, abSP, abBP = false, nil, nil
+    abFloat.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            abDrag = true
+            abSP = input.Position
+            abBP = abFloat.Position
+            abHolding = true
+        end
+    end)
+    abFloat.InputChanged:Connect(function(input)
+        if abDrag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local d = input.Position - abSP
+            if math.abs(d.X) + math.abs(d.Y) > 8 then
+                abFloat.Position = UDim2.new(abBP.X.Scale, abBP.X.Offset + d.X, abBP.Y.Scale, abBP.Y.Offset + d.Y)
+            end
+        end
+    end)
+    abFloat.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            abDrag = false
+            abHolding = false
+        end
+    end)
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 and not isAnyTextBoxFocused() then
+            abHolding = true
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            abHolding = false
         end
     end)
 end
