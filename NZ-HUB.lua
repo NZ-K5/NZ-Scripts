@@ -2190,6 +2190,11 @@ do
     pageLabel(page, y, "JumpPower");  local bhJPBox = pageBox(page, y - 2, 160, 90, "50"); local bhJPApply = pageApply(page, y - 2, 258); y = y + 30
     pageLabel(page, y, "Character Hitbox"); local bhHBBox = pageBox(page, y - 2, 160, 90, "1"); local bhHBApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
     local bhRespawn = pageWideBtn(page, y, "Respawn"); y = y + 34
+    pageLabel(page, y, "ESP"); local espTog = pageToggle(page, y - 2, 160); espTog.Text = "ESP: Off"; y = y + 30
+    local espDestroy = pageWideBtn(page, y, "Destroy ESP"); y = y + 34
+    pageLabel(page, y, "Aimbot"); local abTog = pageToggle(page, y - 2, 160); abTog.Text = "Aimbot: Off"; y = y + 30
+    pageLabel(page, y, "Aim Radius"); local abBox = pageBox(page, y - 2, 160, 90, "120"); local abApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
+    pageLabel(page, y, "Team Check"); local abTeamTog = pageToggle(page, y - 2, 160); setToggle(abTeamTog, true); y = y + 34
     local plStatus = Instance.new("TextLabel")
     plStatus.Size = UDim2.new(1, -8, 0, 16); plStatus.Position = UDim2.new(0, 4, 0, y)
     plStatus.BackgroundTransparency = 1; plStatus.Text = "Status: Ready"; plStatus.TextColor3 = COL_GREEN
@@ -2353,6 +2358,218 @@ do
     bhRespawn.MouseButton1Click:Connect(function()
         local ch = player.Character; local hum = ch and ch:FindFirstChildOfClass("Humanoid")
         if hum then hum.Health = 0 end
+    end)
+    local espOn, espTracked, espConn, espAcc, espFrame, espPhase = false, {}, nil, 0, 0, 0
+    local function espTeam(plr)
+        local col = Color3.fromRGB(255, 255, 255)
+        pcall(function()
+            if plr.Team then col = plr.TeamColor.Color end
+        end)
+        return col
+    end
+    local function espMake()
+        local box = Drawing.new("Square")
+        box.Visible = false
+        box.Filled = false
+        box.Thickness = 1.5
+        local name = Drawing.new("Text")
+        name.Visible = false
+        name.Centered = true
+        name.Size = 13
+        name.Outline = true
+        local tracer = Drawing.new("Line")
+        tracer.Visible = false
+        tracer.Thickness = 1.2
+        return { box = box, name = name, tracer = tracer }
+    end
+    local function espDrop(set)
+        pcall(function() set.box:Remove() end)
+        pcall(function() set.name:Remove() end)
+        pcall(function() set.tracer:Remove() end)
+    end
+    local function espHide(set)
+        set.box.Visible = false
+        set.name.Visible = false
+        set.tracer.Visible = false
+    end
+    local function espCache(plr)
+        local e = espTracked[plr]
+        if not e then
+            e = espMake()
+            e.phase = espPhase
+            espPhase = espPhase + 1
+            if espPhase >= 3 then espPhase = 0 end
+            espTracked[plr] = e
+        end
+        e.char = plr.Character
+        e.hum = e.char and e.char:FindFirstChildOfClass("Humanoid")
+        e.root = e.char and e.char:FindFirstChild("HumanoidRootPart")
+        e.team = plr.Team
+        e.col = espTeam(plr)
+        e.label = plr.Name
+        return e
+    end
+    local function espSync()
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= player and not espTracked[plr] then
+                espCache(plr)
+            end
+        end
+        for plr, set in pairs(espTracked) do
+            if plr.Parent ~= Players then
+                espDrop(set)
+                espTracked[plr] = nil
+            end
+        end
+    end
+    espTog.MouseButton1Click:Connect(function()
+        if not espOn then
+            local okD, test = pcall(function() return Drawing.new("Square") end)
+            if not okD or not test then plStatus.Text = "Drawing unsupported"; plStatus.TextColor3 = COL_RED return end
+            pcall(function() test:Remove() end)
+        end
+        espOn = not espOn; setToggle(espTog, espOn, "ESP: On", "ESP: Off")
+        if espConn then pcall(function() espConn:Disconnect() end) espConn = nil end
+        if espOn then
+            espSync()
+            plStatus.Text = "ESP ON"
+            espConn = RunService.RenderStepped:Connect(function(dt)
+                espAcc = espAcc + dt
+                if espAcc >= 2 then espAcc = 0 espSync() end
+                espFrame = espFrame + 1
+                local cam = Workspace.CurrentCamera
+                if not cam then return end
+                local ch0 = player.Character
+                local root0 = ch0 and ch0:FindFirstChild("HumanoidRootPart")
+                local from
+                if root0 then
+                    local v, on = cam:WorldToViewportPoint(root0.Position)
+                    if on then from = Vector2.new(v.X, v.Y) end
+                end
+                if not from then from = Vector2.new(cam.ViewportSize.X * 0.5, cam.ViewportSize.Y) end
+                local camPos = cam.CFrame.Position
+                for plr, e in pairs(espTracked) do
+                    if not e.root or not e.root.Parent or e.char ~= plr.Character or e.team ~= plr.Team then
+                        espCache(plr)
+                    end
+                    local hum, root = e.hum, e.root
+                    if hum and root and hum.Health > 0 then
+                        local d = (camPos - root.Position).Magnitude
+                        if d <= 400 or (espFrame + (e.phase or 0)) % 3 == 0 then
+                            local v, on = cam:WorldToViewportPoint(root.Position)
+                            if on then
+                                local h = math.clamp(1500 / math.max(d, 1), 20, 300)
+                                local w = h * 0.6
+                                e.box.Size = Vector2.new(w, h)
+                                e.box.Position = Vector2.new(v.X - w * 0.5, v.Y - h * 0.5)
+                                e.box.Color = e.col
+                                e.box.Visible = true
+                                e.name.Text = e.label .. " [" .. math.floor(d + 0.5) .. "]"
+                                e.name.Position = Vector2.new(v.X, v.Y - h * 0.5 - 14)
+                                e.name.Color = e.col
+                                e.name.Visible = true
+                                e.tracer.From = from
+                                e.tracer.To = Vector2.new(v.X, v.Y)
+                                e.tracer.Color = e.col
+                                e.tracer.Visible = true
+                            else
+                                espHide(e)
+                            end
+                        end
+                    else
+                        espHide(e)
+                    end
+                end
+            end)
+        else
+            for _, set in pairs(espTracked) do espHide(set) end
+            plStatus.Text = "ESP OFF"
+        end
+    end)
+    espDestroy.MouseButton1Click:Connect(function()
+        espOn = false; setToggle(espTog, espOn, "ESP: On", "ESP: Off")
+        if espConn then pcall(function() espConn:Disconnect() end) espConn = nil end
+        for plr, set in pairs(espTracked) do espDrop(set) espTracked[plr] = nil end
+        plStatus.Text = "ESP destroyed"
+    end)
+    local abOn, abRadius, abTeam, abConn, abCircle = false, 120, true, nil, nil
+    abApply.MouseButton1Click:Connect(function()
+        local n = tonumber(abBox.Text)
+        if n then abRadius = math.clamp(n, 20, 600); abBox.Text = tostring(abRadius); flashOk(abBox)
+            if abCircle then abCircle.Radius = abRadius end
+        else flashErr(abBox) end
+    end)
+    abTeamTog.MouseButton1Click:Connect(function()
+        abTeam = not abTeam; setToggle(abTeamTog, abTeam)
+    end)
+    abTog.MouseButton1Click:Connect(function()
+        abOn = not abOn; setToggle(abTog, abOn, "Aimbot: On", "Aimbot: Off")
+        if abConn then pcall(function() abConn:Disconnect() end) abConn = nil end
+        if abOn then
+            if not abCircle or not abCircle.Parent then
+                pcall(function()
+                    if abCircle then abCircle:Remove() end
+                    local c = Drawing.new("Circle")
+                    c.Visible = false
+                    c.NumSides = 64
+                    c.Thickness = 1.5
+                    c.Color = Color3.fromRGB(255, 60, 60)
+                    c.Radius = abRadius
+                    abCircle = c
+                end)
+            end
+            plStatus.Text = "Aimbot ON"
+            abConn = RunService.RenderStepped:Connect(function()
+                local cam = Workspace.CurrentCamera
+                if not cam then return end
+                if abCircle then
+                    abCircle.Position = Vector2.new(cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5)
+                    abCircle.Radius = abRadius
+                    abCircle.Visible = abOn
+                end
+                if not abOn then return end
+                local cx, cy = cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5
+                local best, bestPart, bestD = nil, nil, abRadius
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= player then
+                        local ch = plr.Character
+                        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+                        if hum and hum.Health > 0 then
+                            if not (abTeam and plr.Team and player.Team and plr.Team == player.Team) then
+                                local part = ch:FindFirstChild("Head") or ch:FindFirstChild("HumanoidRootPart")
+                                if part then
+                                    local v, on = cam:WorldToViewportPoint(part.Position)
+                                    if on then
+                                        local d = (Vector2.new(v.X, v.Y) - Vector2.new(cx, cy)).Magnitude
+                                        if d <= bestD then best, bestPart, bestD = plr, part, d end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                if best and bestPart and bestPart.Parent then
+                    local ch0 = player.Character
+                    local camPos = cam.CFrame.Position
+                    local dir = bestPart.Position - camPos
+                    local prm = RaycastParams.new()
+                    prm.FilterType = Enum.RaycastFilterType.Exclude
+                    local f = {}
+                    if ch0 then table.insert(f, ch0) end
+                    if best.Character then table.insert(f, best.Character) end
+                    prm.FilterDescendantsInstances = f
+                    local hit = Workspace:Raycast(camPos, dir, prm)
+                    if not hit then
+                        pcall(function()
+                            cam.CFrame = cam.CFrame:Lerp(CFrame.new(camPos, bestPart.Position), 0.4)
+                        end)
+                    end
+                end
+            end)
+        else
+            if abCircle then abCircle.Visible = false end
+            plStatus.Text = "Aimbot OFF"
+        end
     end)
 end
 
