@@ -240,7 +240,7 @@ tabBar.Position = UDim2.new(0, 12, 0, 42)
 tabBar.BackgroundTransparency = 1
 tabBar.Parent = main
 
-local TAB_DEFS = { "Car Mods", "Brookhaven", "Player", "INF Smile", "Backdoor", "Utility" }
+local TAB_DEFS = { "Car Mods", "Brookhaven", "Player", "Project Lazarus", "INF Smile", "Backdoor", "Utility" }
 local tabBtns, pages = {}, {}
 local function createPage(name)
     local pg = Instance.new("ScrollingFrame")
@@ -2188,6 +2188,8 @@ do
     pageLabel(page, y, "Player Fly"); local bhFly = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "WalkSpeed");  local bhWSBox = pageBox(page, y - 2, 160, 90, "16"); local bhWSApply = pageApply(page, y - 2, 258); y = y + 30
     pageLabel(page, y, "JumpPower");  local bhJPBox = pageBox(page, y - 2, 160, 90, "50"); local bhJPApply = pageApply(page, y - 2, 258); y = y + 30
+    pageLabel(page, y, "Enable Jump"); local bhJumpTog = pageToggle(page, y - 2, 160); setToggle(bhJumpTog, true); y = y + 30
+    pageLabel(page, y, "Enable Third-Person"); local bhTPTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "Character Hitbox"); local bhHBBox = pageBox(page, y - 2, 160, 90, "1"); local bhHBApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
     local bhRespawn = pageWideBtn(page, y, "Respawn"); y = y + 34
     pageLabel(page, y, "ESP"); local espTog = pageToggle(page, y - 2, 160); espTog.Text = "ESP: Off"; y = y + 30
@@ -2403,6 +2405,37 @@ do
                 pcall(function() hum.JumpHeight = n / 2 end)
                 flashOk(bhJPBox); plStatus.Text = "Jump set"
             else flashErr(bhJPBox) end
+        end
+    end)
+    local jumpAllow = true
+    local function applyJump()
+        local ch = player.Character
+        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+        if hum then pcall(function() hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, jumpAllow) end) end
+    end
+    bhJumpTog.MouseButton1Click:Connect(function()
+        jumpAllow = not jumpAllow; setToggle(bhJumpTog, jumpAllow)
+        applyJump()
+        plStatus.Text = jumpAllow and "Jump enabled" or "Jump disabled"
+    end)
+    player.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        applyJump()
+    end)
+    local tpOn, tpMode, tpZoom = false, nil, nil
+    bhTPTog.MouseButton1Click:Connect(function()
+        tpOn = not tpOn; setToggle(bhTPTog, tpOn)
+        local cam = Workspace.CurrentCamera
+        if tpOn then
+            tpMode = player.CameraMode
+            if cam then tpZoom = cam.MaxZoomDistance end
+            player.CameraMode = Enum.CameraMode.Classic
+            if cam and cam.MaxZoomDistance < 12 then cam.MaxZoomDistance = 60 end
+            plStatus.Text = "Third-person on"
+        else
+            if tpMode then player.CameraMode = tpMode end
+            if tpZoom and cam then cam.MaxZoomDistance = tpZoom end
+            plStatus.Text = "Camera restored"
         end
     end)
     local chHbMult, chHbOrig, chHbChar = 1, nil, nil
@@ -2702,6 +2735,264 @@ do
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton2 then
             abHolding = false
+        end
+    end)
+end
+
+do
+    local page = pages["Project Lazarus"]
+    local y = 4
+    local lzStatus = Instance.new("TextLabel")
+    lzStatus.Size = UDim2.new(1, -8, 0, 16); lzStatus.Position = UDim2.new(0, 4, 0, y)
+    lzStatus.BackgroundTransparency = 1; lzStatus.Text = "Status: Ready"; lzStatus.TextColor3 = COL_GREEN
+    lzStatus.Font = Enum.Font.Gotham; lzStatus.TextSize = 10; lzStatus.TextXAlignment = Enum.TextXAlignment.Left; lzStatus.Parent = page
+    y = y + 20
+    pageLabel(page, y, "Change All Weapon Camos"); y = y + 22
+    local camoBtn = pageWideBtn(page, y, "Click To Select Camo"); y = y + 34
+    local camoList = Instance.new("ScrollingFrame")
+    camoList.Size = UDim2.new(0, 300, 0, 180)
+    camoList.Position = UDim2.new(0, 4, 0, y)
+    camoList.BackgroundColor3 = COL_BG_ALT
+    camoList.BorderSizePixel = 0
+    camoList.ScrollBarThickness = 4
+    camoList.ScrollBarImageColor3 = COL_ACCENT
+    camoList.Visible = false
+    camoList.ZIndex = 50
+    camoList.Parent = page
+    corner(camoList, 8)
+    stroke(camoList, COL_ACCENT, 1)
+    pageLabel(page, y, "Change Level"); local lvlBox = pageBox(page, y - 2, 160, 90, "1"); local lvlApply = pageApply(page, y - 2, 258); y = y + 30
+    pageLabel(page, y, "Peaceful Mode"); local peaceTog = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "Del Zombie Radius"); local zrBox = pageBox(page, y - 2, 150, 60, "30"); local zrApply = pageApply(page, y - 2, 216, "Set"); local zrTog = pageToggle(page, y - 2, 282, 70); y = y + 30
+    pageLabel(page, y, "Del InvisibleWalls"); local invTog = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "Change FOV"); local fovBox = pageBox(page, y - 2, 160, 90, "70"); local fovApply = pageApply(page, y - 2, 258); y = y + 30
+    pageLabel(page, y, "Infinite Health"); local infHTog = pageToggle(page, y - 2, 160); y = y + 34
+    page.CanvasSize = UDim2.new(0, 0, 0, y + 20)
+    local camoData = {
+        { name = "Common", items = { "Default", "Autumn", "Blue", "Desert", "Jungle", "Olive", "Red", "Snow", "Urban", "Violet", "Woodland" } },
+        { name = "Rare", items = { "Abyss", "Adjudicator", "Antarctic", "Alder", "Bark", "Bellis", "Below Zero", "Bright Green", "Bright Yellow", "Bronze", "Buried", "Burnt Sienna", "Buttermilk", "Carnation", "Copper", "Crimson", "Cursed", "Cyan", "Dark Indigo", "Dawn", "Decay", "Deep Orange", "Desolate", "Diffusion", "Dove", "Dream", "Dry Heat", "Dusty Rose", "Eco", "Enforcer", "Engineer", "Everest", "Fairway", "Flint", "Flowerfield", "Foliage", "Forager", "Gyrfalcon", "Hot Cocoa", "Hot Pink", "Illusion", "Knave", "Laurel", "Lavender", "Lilac", "Lime", "Lithium", "Magnolia", "Maroon", "Medic", "Midnight", "Navy", "North Star", "Olive Oil", "Olivine", "Pacific", "Pastel Violet", "Patchwork", "Pine Cone", "Pulse", "Raider", "Rainforest", "Rust", "Sand Matte", "Shamrock", "Sludge", "Stonework", "Storm", "Sunken", "Sunrise", "Sunset", "Sunstroke", "Teal", "Tidal", "Tundra", "Vaporwave" } },
+        { name = "Epic", items = { "Acid Drip", "Ancient", "Astro", "Bandit", "Buccellati", "Bumblebee", "Burgundy", "Calico", "Cartilage", "Caustic", "Cherry Blossom", "Cinders", "Copper Duds", "Curry", "Detective", "Dollhouse", "Dullahan", "E-Tech", "Eggplant", "Festive", "Friend", "Frosted", "Golden Wind", "Green Eggs", "Gremlin", "Guts", "Haunted", "Hyperion", "Kakapo", "Kirin", "Lambda", "Luminous", "Lycoris", "Maliwan", "Monkey", "Neapolitan", "Nerf", "Nordic", "Old Fashioned", "Pearl", "Phoenix", "Pink Devil", "Pumpkin", "Reaper", "Royal", "Shark", "Solitary", "Summer Waves", "Torque", "Toxic", "Tyto", "Vladof", "Watermelon" } },
+        { name = "Legendary", items = { "Diamond", "Gold", "Malachite", "Obsidian", "Platinum" } },
+    }
+    local function lzCustom()
+        local uname = string.lower(player.Name)
+        local holders = {}
+        local function addHolder(x)
+            if x then
+                for _, h in ipairs(holders) do if h == x then return end end
+                table.insert(holders, x)
+            end
+        end
+        addHolder(Players:FindFirstChild(player.Name))
+        local ch = player.Character
+        if ch then addHolder(ch) end
+        for _, r in ipairs({ Workspace, game:GetService("ReplicatedStorage"), Lighting, Players }) do
+            local ok, kids = pcall(function() return r:GetChildren() end)
+            if ok then
+                for _, k in ipairs(kids) do
+                    if string.lower(k.Name) == uname then addHolder(k) end
+                    if (k:IsA("Folder") or k:IsA("Model")) and string.lower(k.Name) == "players" then
+                        local ok2, sub = pcall(function() return k:GetChildren() end)
+                        if ok2 then
+                            for _, s in ipairs(sub) do
+                                if string.lower(s.Name) == uname then addHolder(s) end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        for _, h in ipairs(holders) do
+            for _, f in ipairs(h:GetDescendants()) do
+                if f:IsA("Folder") and f.Name == "Customization" then return f end
+            end
+        end
+        return nil
+    end
+    local function lzMe()
+        local ch = player.Character
+        if ch then return ch end
+        return Workspace:FindFirstChild(player.Name)
+    end
+    local function lzSetCamo(camo)
+        local f = lzCustom()
+        if not f then lzStatus.Text = "Customization not found"; lzStatus.TextColor3 = COL_RED return false end
+        local n = 0
+        for _, v in ipairs(f:GetDescendants()) do
+            if v:IsA("StringValue") and v.Name == "Selected" then
+                local ok = pcall(function() v.Value = camo end)
+                if ok then n = n + 1 end
+            end
+        end
+        lzStatus.Text = camo .. " (" .. n .. " weapons)"; lzStatus.TextColor3 = COL_GREEN
+        return true
+    end
+    local ly = 0
+    for _, g in ipairs(camoData) do
+        local h = Instance.new("TextLabel")
+        h.Size = UDim2.new(1, -8, 0, 20); h.Position = UDim2.new(0, 4, 0, ly)
+        h.BackgroundTransparency = 1; h.Text = g.name .. " — " .. #g.items
+        h.TextColor3 = COL_ACCENT; h.Font = Enum.Font.GothamBold; h.TextSize = 12
+        h.TextXAlignment = Enum.TextXAlignment.Left; h.Parent = camoList; h.ZIndex = 51
+        ly = ly + 22
+        for _, cn in ipairs(g.items) do
+            local b = Instance.new("TextButton")
+            b.Size = UDim2.new(1, -8, 0, 22); b.Position = UDim2.new(0, 4, 0, ly)
+            b.BackgroundColor3 = COL_BG_ALT; b.Text = cn; b.TextColor3 = COL_TEXT
+            b.Font = Enum.Font.Gotham; b.TextSize = 11; b.BorderSizePixel = 0
+            b.AutoButtonColor = false; b.Parent = camoList; b.ZIndex = 51
+            corner(b, 4)
+            local pick = cn
+            b.MouseButton1Click:Connect(function()
+                camoBtn.Text = pick
+                camoList.Visible = false
+                lzSetCamo(pick)
+            end)
+            ly = ly + 24
+        end
+    end
+    camoList.CanvasSize = UDim2.new(0, 0, 0, ly + 4)
+    camoBtn.MouseButton1Click:Connect(function()
+        camoList.Visible = not camoList.Visible
+    end)
+    lvlApply.MouseButton1Click:Connect(function()
+        local n = tonumber(lvlBox.Text)
+        if not n then flashErr(lvlBox) return end
+        local m = lzMe()
+        local lv = m and m:FindFirstChild("Leveling")
+        local v = lv and lv:FindFirstChild("Level")
+        if (not v or not v:IsA("IntValue")) and m then
+            local direct = m:FindFirstChild("Level")
+            if direct and direct:IsA("IntValue") then v = direct end
+        end
+        if v and v:IsA("IntValue") then
+            v.Value = math.floor(n); flashOk(lvlBox)
+            lvlBox.Text = tostring(math.floor(n))
+            lzStatus.Text = "Level " .. tostring(math.floor(n)); lzStatus.TextColor3 = COL_GREEN
+        else
+            lzStatus.Text = "Level not found"; lzStatus.TextColor3 = COL_RED
+        end
+    end)
+    local function lzKillZombies(maxDist)
+        local bf = Workspace:FindFirstChild("Baddies")
+        if not bf then return 0 end
+        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        local n = 0
+        for _, m in ipairs(bf:GetChildren()) do
+            if m:IsA("Model") and m.Name == "Zombie" then
+                local skip = false
+                if maxDist then
+                    if not root then skip = true
+                    else
+                        local ok, piv = pcall(function() return m:GetPivot() end)
+                        if not ok or (piv.Position - root.Position).Magnitude > maxDist then skip = true end
+                    end
+                end
+                if not skip then
+                    local ok = pcall(function() m:Destroy() end)
+                    if ok then n = n + 1 end
+                end
+            end
+        end
+        return n
+    end
+    local peaceOn = false
+    peaceTog.MouseButton1Click:Connect(function()
+        peaceOn = not peaceOn; setToggle(peaceTog, peaceOn)
+        if peaceOn then
+            lzStatus.Text = "Peaceful ON"
+            task.spawn(function()
+                while peaceOn do
+                    lzKillZombies(nil)
+                    task.wait(1.5)
+                end
+            end)
+        else
+            lzStatus.Text = "Peaceful OFF"
+        end
+    end)
+    local zrOn, zrRad = false, 30
+    zrApply.MouseButton1Click:Connect(function()
+        local n = tonumber(zrBox.Text)
+        if n then zrRad = math.clamp(n, 5, 500); zrBox.Text = tostring(zrRad); flashOk(zrBox)
+        else flashErr(zrBox) end
+    end)
+    zrTog.MouseButton1Click:Connect(function()
+        zrOn = not zrOn; setToggle(zrTog, zrOn)
+        if zrOn then
+            lzStatus.Text = "Radius delete ON (" .. tostring(zrRad) .. ")"
+            task.spawn(function()
+                while zrOn do
+                    lzKillZombies(zrRad)
+                    task.wait(1)
+                end
+            end)
+        else
+            lzStatus.Text = "Radius delete OFF"
+        end
+    end)
+    local invSaved = {}
+    invTog.MouseButton1Click:Connect(function()
+        local on = invTog.Text == "OFF"
+        setToggle(invTog, on)
+        if on then
+            local ig = Workspace:FindFirstChild("Ignore")
+            if ig then
+                for _, f in ipairs(ig:GetChildren()) do
+                    if f:IsA("Folder") then
+                        local nl = string.lower(f.Name)
+                        if nl:find("invisib") or nl:find("nvisib") or nl:find("nsivib") then
+                            table.insert(invSaved, { Item = f, Parent = f.Parent })
+                            pcall(function() f.Parent = nil end)
+                        end
+                    end
+                end
+            end
+            lzStatus.Text = "InvisibleWalls deleted (" .. #invSaved .. ")"
+        else
+            local c = 0
+            for _, d in ipairs(invSaved) do
+                if d.Item then
+                    pcall(function()
+                        d.Item.Parent = d.Parent
+                        c = c + 1
+                    end)
+                end
+            end
+            invSaved = {}
+            lzStatus.Text = "InvisibleWalls restored (" .. c .. ")"
+        end
+    end)
+    fovApply.MouseButton1Click:Connect(function()
+        local n = tonumber(fovBox.Text)
+        if not n then flashErr(fovBox) return end
+        local m = lzMe()
+        local v = m and m:FindFirstChild("CamFOV")
+        if v and v:IsA("NumberValue") then
+            v.Value = n; flashOk(fovBox)
+            fovBox.Text = tostring(n)
+            lzStatus.Text = "FOV " .. tostring(n); lzStatus.TextColor3 = COL_GREEN
+        else
+            lzStatus.Text = "CamFOV not found"; lzStatus.TextColor3 = COL_RED
+        end
+    end)
+    local infHOn = false
+    infHTog.MouseButton1Click:Connect(function()
+        infHOn = not infHOn; setToggle(infHTog, infHOn)
+        if infHOn then
+            lzStatus.Text = "Infinite Health ON"
+            task.spawn(function()
+                while infHOn do
+                    local m = lzMe()
+                    local v = m and m:FindFirstChild("Health")
+                    if v and v:IsA("IntConstrainedValue") then
+                        pcall(function() v.Value = 0 end)
+                    end
+                    task.wait(0.5)
+                end
+            end)
+        else
+            lzStatus.Text = "Infinite Health OFF"
         end
     end)
 end
