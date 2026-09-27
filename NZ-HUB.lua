@@ -274,7 +274,9 @@ for i, name in ipairs(TAB_DEFS) do
     tabBtns[name] = b
     pages[name] = createPage(name)
 end
+local currentTab = "Car Mods"
 local function selectTab(name)
+    currentTab = name
     for n, pg in pairs(pages) do pg.Visible = (n == name) end
     for n, b in pairs(tabBtns) do
         if n == name then
@@ -288,39 +290,68 @@ for n, b in pairs(tabBtns) do b.MouseButton1Click:Connect(function() selectTab(n
 if isMobile then for _, b in pairs(tabBtns) do b.TextSize = 9 end end
 selectTab("Car Mods")
 
-local FULL_H, MIN_H = WIN_H, 36
+local FULL_H = WIN_H
+local MINI_S = 64
 local minimized = false
 local function tweenMain(h)
     TweenService:Create(main, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
         Size = UDim2.new(0, WIN_W, 0, h),
     }):Play()
 end
+local miniBtn = Instance.new("TextButton")
+miniBtn.Size = UDim2.new(0, 48, 0, 48)
+miniBtn.Position = UDim2.new(0.5, -24, 0.5, -24)
+miniBtn.BackgroundColor3 = COL_BG_ALT
+miniBtn.Text = "+"
+miniBtn.TextColor3 = COL_TEXT
+miniBtn.Font = Enum.Font.GothamBold
+miniBtn.TextSize = 28
+miniBtn.BorderSizePixel = 0
+miniBtn.Visible = false
+miniBtn.Parent = main
+corner(miniBtn, 12)
+stroke(miniBtn, COL_ACCENT, 1)
+local function setMinimized(on)
+    minimized = on
+    if on then
+        titleBar.Visible = false
+        tabBar.Visible = false
+        for _, pg in pairs(pages) do pg.Visible = false end
+        miniBtn.Visible = true
+        blur.Size = 0
+        main.Position = UDim2.new(1, -MINI_S - 12, 1, -MINI_S - 12)
+        TweenService:Create(main, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, MINI_S, 0, MINI_S),
+        }):Play()
+    else
+        miniBtn.Visible = false
+        titleBar.Visible = true
+        tabBar.Visible = true
+        selectTab(currentTab)
+        blur.Size = 6
+        main.Position = UDim2.new(0.5, -WIN_W / 2, 0.45, -WIN_H / 2)
+        tweenMain(FULL_H)
+    end
+end
 task.spawn(function() task.wait(0.05) tweenMain(FULL_H) end)
 minBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    tweenMain(minimized and MIN_H or FULL_H)
-    minBtn.Text = minimized and "+" or "-"
-    tabBar.Visible = not minimized
-    for _, pg in pairs(pages) do pg.Visible = (not minimized) and (pg == pages["Car Mods"] or pg.Visible) end
-    if not minimized then
-
-        for n, pg in pairs(pages) do
-            if pg.Visible then selectTab(n) break end
-        end
-        selectTab("Car Mods")
-    end
+    setMinimized(true)
+end)
+miniBtn.MouseButton1Click:Connect(function()
+    setMinimized(false)
 end)
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.Insert then
-        minimized = not minimized
-        tweenMain(minimized and MIN_H or FULL_H)
-        minBtn.Text = minimized and "+" or "-"
-        tabBar.Visible = not minimized
+        setMinimized(not minimized)
     end
 end)
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
-    main.Position = UDim2.new(0.5, -WIN_W / 2, 0.45, -WIN_H / 2)
+    if minimized then
+        main.Position = UDim2.new(1, -MINI_S - 12, 1, -MINI_S - 12)
+    else
+        main.Position = UDim2.new(0.5, -WIN_W / 2, 0.45, -WIN_H / 2)
+    end
 end)
 
 local function pageLabel(parent, y, text, w)
@@ -2198,6 +2229,8 @@ do
     pageLabel(page, y, "Aimbot"); local abTog = pageToggle(page, y - 2, 160); abTog.Text = "Aimbot: Off"; y = y + 30
     pageLabel(page, y, "Aim Radius"); local abBox = pageBox(page, y - 2, 160, 90, "120"); local abApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
     pageLabel(page, y, "Team Check"); local abTeamTog = pageToggle(page, y - 2, 160); setToggle(abTeamTog, false); y = y + 34
+    pageLabel(page, y, "Clicks Per Click"); local mcCountBox = pageBox(page, y - 2, 160, 90, "1"); local mcCountApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
+    pageLabel(page, y, "Click Delay"); local mcDelayBox = pageBox(page, y - 2, 160, 90, "0.1"); local mcDelayApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
     local plStatus = Instance.new("TextLabel")
     plStatus.Size = UDim2.new(1, -8, 0, 16); plStatus.Position = UDim2.new(0, 4, 0, y)
     plStatus.BackgroundTransparency = 1; plStatus.Text = "Status: Ready"; plStatus.TextColor3 = COL_GREEN
@@ -2743,6 +2776,34 @@ do
             abHolding = false
         end
     end)
+    local mcCount, mcDelay = 1, 0.1
+    mcCountApply.MouseButton1Click:Connect(function()
+        local n = tonumber(mcCountBox.Text)
+        if n then mcCount = math.clamp(math.floor(n), 1, 50); mcCountBox.Text = tostring(mcCount); flashOk(mcCountBox)
+        else flashErr(mcCountBox) end
+    end)
+    mcDelayApply.MouseButton1Click:Connect(function()
+        local n = tonumber(mcDelayBox.Text)
+        if n then mcDelay = math.clamp(n, 0, 2); mcDelayBox.Text = tostring(mcDelay); flashOk(mcDelayBox)
+        else flashErr(mcDelayBox) end
+    end)
+    UserInputService.InputBegan:Connect(function(input, gp)
+        if gp or isAnyTextBoxFocused() then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and mcCount > 1 then
+            local ch = player.Character
+            local tool = ch and ch:FindFirstChildOfClass("Tool")
+            if tool then
+                local n, dl = mcCount, mcDelay
+                task.spawn(function()
+                    for _ = 2, n do
+                        task.wait(dl)
+                        local c2 = player.Character
+                        if tool.Parent == c2 then pcall(function() tool:Activate() end) else break end
+                    end
+                end)
+            end
+        end
+    end)
 end
 
 do
@@ -2772,7 +2833,6 @@ do
     pageLabel(page, y, "Del Zombie Radius"); local zrBox = pageBox(page, y - 2, 150, 60, "30"); local zrApply = pageApply(page, y - 2, 216, "Set"); local zrTog = pageToggle(page, y - 2, 282, 70); y = y + 30
     pageLabel(page, y, "Del InvisibleWalls"); local invTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "Change FOV"); local fovBox = pageBox(page, y - 2, 160, 90, "70"); local fovApply = pageApply(page, y - 2, 258); y = y + 30
-    pageLabel(page, y, "Infinite Health"); local infHTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "Zombie Esp"); local zespTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "Zombie Aimbot"); local zAimTog = pageToggle(page, y - 2, 160); zAimTog.Text = "Zombie Aimbot: Off"; y = y + 30
     pageLabel(page, y, "Zombie Aim Radius"); local zAbBox = pageBox(page, y - 2, 160, 90, "120"); local zAbApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
@@ -2867,16 +2927,27 @@ do
     lvlApply.MouseButton1Click:Connect(function()
         local n = tonumber(lvlBox.Text)
         if not n then flashErr(lvlBox) return end
-        local m = lzMe()
-        local lv = m and m:FindFirstChild("Leveling")
-        local v = lv and lv:FindFirstChild("Level")
-        if (not v or not v:IsA("IntValue")) and m then
-            local direct = m:FindFirstChild("Level")
-            if direct and direct:IsA("IntValue") then v = direct end
+        local holder = Players:FindFirstChild(player.Name)
+        local plv = holder and holder:FindFirstChild("Leveling")
+        local v = plv and plv:FindFirstChild("Level")
+        if (not v or not v:IsA("IntValue")) then
+            local m = lzMe()
+            local lv = m and m:FindFirstChild("Leveling")
+            v = lv and lv:FindFirstChild("Level")
         end
-        if (not v or not v:IsA("IntValue")) and m then
-            for _, d in ipairs(m:GetDescendants()) do
-                if d:IsA("IntValue") and d.Name == "Level" then v = d break end
+        if (not v or not v:IsA("IntValue")) then
+            local m = lzMe()
+            if m then
+                local direct = m:FindFirstChild("Level")
+                if direct and direct:IsA("IntValue") then v = direct end
+            end
+        end
+        if (not v or not v:IsA("IntValue")) then
+            local m = lzMe()
+            if m then
+                for _, d in ipairs(m:GetDescendants()) do
+                    if d:IsA("IntValue") and d.Name == "Level" then v = d break end
+                end
             end
         end
         if v and v:IsA("IntValue") then
@@ -2977,39 +3048,31 @@ do
             lzStatus.Text = "InvisibleWalls restored (" .. c .. ")"
         end
     end)
+    local fovVal, fovLoop = nil, false
     fovApply.MouseButton1Click:Connect(function()
         local n = tonumber(fovBox.Text)
         if not n then flashErr(fovBox) return end
-        local m = lzMe()
-        local v = m and m:FindFirstChild("CamFOV")
-        if v and v:IsA("NumberValue") then
-            v.Value = n; flashOk(fovBox)
-            fovBox.Text = tostring(n)
-            lzStatus.Text = "FOV " .. tostring(n); lzStatus.TextColor3 = COL_GREEN
-        else
-            lzStatus.Text = "CamFOV not found"; lzStatus.TextColor3 = COL_RED
-        end
-    end)
-    local infHOn = false
-    infHTog.MouseButton1Click:Connect(function()
-        infHOn = not infHOn; setToggle(infHTog, infHOn)
-        if infHOn then
-            lzStatus.Text = "Infinite Health ON"
+        fovVal = n
+        fovBox.Text = tostring(n)
+        flashOk(fovBox)
+        lzStatus.Text = "FOV looping " .. tostring(n); lzStatus.TextColor3 = COL_GREEN
+        if not fovLoop then
+            fovLoop = true
             task.spawn(function()
-                while infHOn do
-                    local m = lzMe()
-                    local v = m and m:FindFirstChild("Health")
-                    if v and v:IsA("IntConstrainedValue") then
-                        pcall(function() v.Value = 0 end)
+                while true do
+                    if fovVal then
+                        local m = lzMe()
+                        local v = m and m:FindFirstChild("CamFOV")
+                        if v and v:IsA("NumberValue") then
+                            pcall(function() v.Value = fovVal end)
+                        end
                     end
-                    task.wait(0.5)
+                    task.wait(1)
                 end
             end)
-        else
-            lzStatus.Text = "Infinite Health OFF"
         end
     end)
-    local zespOn, zespSets, zespConn = false, {}, nil
+    local zespOn, zespSets, zespConn, zespFrame, zespPhase, zespCircle = false, {}, nil, 0, 0, nil
     zespTog.MouseButton1Click:Connect(function()
         zespOn = not zespOn; setToggle(zespTog, zespOn)
         if zespConn then pcall(function() zespConn:Disconnect() end) zespConn = nil end
@@ -3021,10 +3084,26 @@ do
                 return
             end
             pcall(function() test:Remove() end)
+            if not zespCircle then
+                pcall(function()
+                    local c = Drawing.new("Circle")
+                    c.Visible = false
+                    c.NumSides = 64
+                    c.Thickness = 1.5
+                    c.Color = Color3.fromRGB(0, 255, 100)
+                    zespCircle = c
+                end)
+            end
             lzStatus.Text = "Zombie ESP ON"
             zespConn = RunService.RenderStepped:Connect(function()
                 local cam = Workspace.CurrentCamera
                 if not cam then return end
+                zespFrame = zespFrame + 1
+                if zespCircle then
+                    zespCircle.Position = Vector2.new(cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5)
+                    zespCircle.Radius = _G.__NZZAbRadius or 120
+                    zespCircle.Visible = zespOn
+                end
                 local seen = {}
                 local pool = {}
                 local bf = Workspace:FindFirstChild("Baddies")
@@ -3048,26 +3127,33 @@ do
                         name.Size = 13
                         name.Outline = true
                         name.Color = Color3.fromRGB(0, 255, 100)
-                        set = { box = box, name = name }
+                        set = { box = box, name = name, phase = zespPhase, part = nil, hum = nil }
+                        zespPhase = zespPhase + 1
+                        if zespPhase >= 2 then zespPhase = 0 end
                         zespSets[m] = set
                     end
-                    local part = m:FindFirstChild("Head") or m:FindFirstChild("HumanoidRootPart") or m:FindFirstChildWhichIsA("BasePart")
-                    local hum = m:FindFirstChildOfClass("Humanoid")
+                    if not set.part or not set.part.Parent then
+                        set.part = m:FindFirstChild("Head") or m:FindFirstChild("HumanoidRootPart") or m:FindFirstChildWhichIsA("BasePart")
+                        set.hum = m:FindFirstChildOfClass("Humanoid")
+                    end
+                    local part, hum = set.part, set.hum
                     if part and (not hum or hum.Health > 0) then
-                        local v, on = cam:WorldToViewportPoint(part.Position)
-                        if on then
-                            local d = (cam.CFrame.Position - part.Position).Magnitude
-                            local h = math.clamp(1500 / math.max(d, 1), 20, 300)
-                            local w = h * 0.6
-                            set.box.Size = Vector2.new(w, h)
-                            set.box.Position = Vector2.new(v.X - w * 0.5, v.Y - h * 0.5)
-                            set.box.Visible = true
-                            set.name.Text = "Zombie [" .. math.floor(d + 0.5) .. "]"
-                            set.name.Position = Vector2.new(v.X, v.Y - h * 0.5 - 14)
-                            set.name.Visible = true
-                        else
-                            set.box.Visible = false
-                            set.name.Visible = false
+                        local d = (cam.CFrame.Position - part.Position).Magnitude
+                        if d <= 250 or (zespFrame + (set.phase or 0)) % 2 == 0 then
+                            local v, on = cam:WorldToViewportPoint(part.Position)
+                            if on then
+                                local h = math.clamp(1500 / math.max(d, 1), 20, 300)
+                                local w = h * 0.6
+                                set.box.Size = Vector2.new(w, h)
+                                set.box.Position = Vector2.new(v.X - w * 0.5, v.Y - h * 0.5)
+                                set.box.Visible = true
+                                set.name.Text = "Zombie [" .. math.floor(d + 0.5) .. "]"
+                                set.name.Position = Vector2.new(v.X, v.Y - h * 0.5 - 14)
+                                set.name.Visible = true
+                            else
+                                set.box.Visible = false
+                                set.name.Visible = false
+                            end
                         end
                     else
                         set.box.Visible = false
@@ -3088,13 +3174,14 @@ do
                 pcall(function() set.name:Remove() end)
                 zespSets[m] = nil
             end
+            if zespCircle then zespCircle.Visible = false end
             lzStatus.Text = "Zombie ESP OFF"
         end
     end)
     local zAbOn, zAbRadius, zAbConn, zHolding = false, 120, nil, false
     zAbApply.MouseButton1Click:Connect(function()
         local n = tonumber(zAbBox.Text)
-        if n then zAbRadius = math.clamp(n, 20, 600); zAbBox.Text = tostring(zAbRadius); flashOk(zAbBox)
+        if n then zAbRadius = math.clamp(n, 20, 600); zAbBox.Text = tostring(zAbRadius); flashOk(zAbBox); _G.__NZZAbRadius = zAbRadius
         else flashErr(zAbBox) end
     end)
     zAimTog.MouseButton1Click:Connect(function()
