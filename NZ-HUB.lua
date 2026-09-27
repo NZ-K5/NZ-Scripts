@@ -337,8 +337,31 @@ task.spawn(function() task.wait(0.05) tweenMain(FULL_H) end)
 minBtn.MouseButton1Click:Connect(function()
     setMinimized(true)
 end)
+local miniDrag, miniStart, miniOrig, miniMoved = false, nil, nil, false
 miniBtn.MouseButton1Click:Connect(function()
+    if miniMoved then miniMoved = false return end
     setMinimized(false)
+end)
+miniBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        miniDrag = true
+        miniStart = input.Position
+        miniOrig = main.Position
+    end
+end)
+miniBtn.InputChanged:Connect(function(input)
+    if miniDrag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local d = input.Position - miniStart
+        if math.abs(d.X) + math.abs(d.Y) > 10 then miniMoved = true end
+        if miniMoved then
+            main.Position = UDim2.new(miniOrig.X.Scale, miniOrig.X.Offset + d.X, miniOrig.Y.Scale, miniOrig.Y.Offset + d.Y)
+        end
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        miniDrag = false
+    end
 end)
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
@@ -2230,7 +2253,8 @@ do
     pageLabel(page, y, "Aim Radius"); local abBox = pageBox(page, y - 2, 160, 90, "120"); local abApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
     pageLabel(page, y, "Team Check"); local abTeamTog = pageToggle(page, y - 2, 160); setToggle(abTeamTog, false); y = y + 34
     pageLabel(page, y, "Clicks Per Click"); local mcCountBox = pageBox(page, y - 2, 160, 90, "1"); local mcCountApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
-    pageLabel(page, y, "Click Delay"); local mcDelayBox = pageBox(page, y - 2, 160, 90, "0.1"); local mcDelayApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
+    pageLabel(page, y, "Click Delay"); local mcDelayBox = pageBox(page, y - 2, 160, 90, "0.1"); local mcDelayApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
+    pageLabel(page, y, "Multi-click"); local mcTog = pageToggle(page, y - 2, 160); y = y + 34
     local plStatus = Instance.new("TextLabel")
     plStatus.Size = UDim2.new(1, -8, 0, 16); plStatus.Position = UDim2.new(0, 4, 0, y)
     plStatus.BackgroundTransparency = 1; plStatus.Text = "Status: Ready"; plStatus.TextColor3 = COL_GREEN
@@ -2776,7 +2800,7 @@ do
             abHolding = false
         end
     end)
-    local mcCount, mcDelay = 1, 0.1
+    local mcCount, mcDelay, mcOn, mcFiring = 1, 0.1, false, false
     mcCountApply.MouseButton1Click:Connect(function()
         local n = tonumber(mcCountBox.Text)
         if n then mcCount = math.clamp(math.floor(n), 1, 50); mcCountBox.Text = tostring(mcCount); flashOk(mcCountBox)
@@ -2787,21 +2811,33 @@ do
         if n then mcDelay = math.clamp(n, 0, 2); mcDelayBox.Text = tostring(mcDelay); flashOk(mcDelayBox)
         else flashErr(mcDelayBox) end
     end)
+    mcTog.MouseButton1Click:Connect(function()
+        mcOn = not mcOn; setToggle(mcTog, mcOn)
+        plStatus.Text = mcOn and "Multi-click ON" or "Multi-click OFF"
+    end)
     UserInputService.InputBegan:Connect(function(input, gp)
-        if gp or isAnyTextBoxFocused() then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 and mcCount > 1 then
-            local ch = player.Character
-            local tool = ch and ch:FindFirstChildOfClass("Tool")
-            if tool then
-                local n, dl = mcCount, mcDelay
-                task.spawn(function()
-                    for _ = 2, n do
-                        task.wait(dl)
-                        local c2 = player.Character
-                        if tool.Parent == c2 then pcall(function() tool:Activate() end) else break end
-                    end
-                end)
-            end
+        if gp or isAnyTextBoxFocused() or mcFiring then return end
+        local t = input.UserInputType
+        if (t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch) and mcOn and mcCount > 1 then
+            local okV, vim = pcall(function() return game:GetService("VirtualInputManager") end)
+            if not okV or not vim then plStatus.Text = "VIM unsupported"; plStatus.TextColor3 = COL_RED return end
+            local pos = input.Position
+            local n, dl = mcCount, mcDelay
+            mcFiring = true
+            task.spawn(function()
+                for _ = 2, n do
+                    task.wait(dl)
+                    local okC = pcall(function()
+                        vim:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 1)
+                    end)
+                    task.wait(0.03)
+                    pcall(function()
+                        vim:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 1)
+                    end)
+                    if not okC then break end
+                end
+                mcFiring = false
+            end)
         end
     end)
 end
@@ -3072,7 +3108,7 @@ do
             end)
         end
     end)
-    local zespOn, zespSets, zespConn, zespFrame, zespPhase, zespCircle = false, {}, nil, 0, 0, nil
+    local zespOn, zespSets, zespConn, zespFrame, zespPhase = false, {}, nil, 0, 0
     zespTog.MouseButton1Click:Connect(function()
         zespOn = not zespOn; setToggle(zespTog, zespOn)
         if zespConn then pcall(function() zespConn:Disconnect() end) zespConn = nil end
@@ -3084,26 +3120,11 @@ do
                 return
             end
             pcall(function() test:Remove() end)
-            if not zespCircle then
-                pcall(function()
-                    local c = Drawing.new("Circle")
-                    c.Visible = false
-                    c.NumSides = 64
-                    c.Thickness = 1.5
-                    c.Color = Color3.fromRGB(0, 255, 100)
-                    zespCircle = c
-                end)
-            end
             lzStatus.Text = "Zombie ESP ON"
             zespConn = RunService.RenderStepped:Connect(function()
                 local cam = Workspace.CurrentCamera
                 if not cam then return end
                 zespFrame = zespFrame + 1
-                if zespCircle then
-                    zespCircle.Position = Vector2.new(cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5)
-                    zespCircle.Radius = _G.__NZZAbRadius or 120
-                    zespCircle.Visible = zespOn
-                end
                 local seen = {}
                 local pool = {}
                 local bf = Workspace:FindFirstChild("Baddies")
@@ -3174,24 +3195,40 @@ do
                 pcall(function() set.name:Remove() end)
                 zespSets[m] = nil
             end
-            if zespCircle then zespCircle.Visible = false end
             lzStatus.Text = "Zombie ESP OFF"
         end
     end)
-    local zAbOn, zAbRadius, zAbConn, zHolding = false, 120, nil, false
+    local zAbOn, zAbRadius, zAbConn, zHolding, zAbCircle = false, 120, nil, false, nil
     zAbApply.MouseButton1Click:Connect(function()
         local n = tonumber(zAbBox.Text)
-        if n then zAbRadius = math.clamp(n, 20, 600); zAbBox.Text = tostring(zAbRadius); flashOk(zAbBox); _G.__NZZAbRadius = zAbRadius
+        if n then zAbRadius = math.clamp(n, 20, 600); zAbBox.Text = tostring(zAbRadius); flashOk(zAbBox)
+            if zAbCircle then zAbCircle.Radius = zAbRadius end
         else flashErr(zAbBox) end
     end)
     zAimTog.MouseButton1Click:Connect(function()
         zAbOn = not zAbOn; setToggle(zAimTog, zAbOn, "Zombie Aimbot: On", "Zombie Aimbot: Off")
         if zAbConn then pcall(function() zAbConn:Disconnect() end) zAbConn = nil end
         if zAbOn then
+            if not zAbCircle then
+                pcall(function()
+                    local c = Drawing.new("Circle")
+                    c.Visible = false
+                    c.NumSides = 64
+                    c.Thickness = 1.5
+                    c.Color = Color3.fromRGB(0, 255, 100)
+                    c.Radius = zAbRadius
+                    zAbCircle = c
+                end)
+            end
             lzStatus.Text = "Zombie Aim ON (hold R-Click)"
             zAbConn = RunService.RenderStepped:Connect(function()
                 local cam = Workspace.CurrentCamera
                 if not cam then return end
+                if zAbCircle then
+                    zAbCircle.Position = Vector2.new(cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5)
+                    zAbCircle.Radius = zAbRadius
+                    zAbCircle.Visible = zAbOn
+                end
                 if not zAbOn or (not zHolding and not _G.__NZZHold) then return end
                 if _G.__NZAbLock then return end
                 local cx, cy = cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5
@@ -3235,6 +3272,7 @@ do
             end)
         else
             zHolding = false
+            if zAbCircle then zAbCircle.Visible = false end
             lzStatus.Text = "Zombie Aim OFF"
         end
     end)
