@@ -2197,7 +2197,7 @@ do
     local espDestroy = pageWideBtn(page, y, "Destroy ESP"); y = y + 34
     pageLabel(page, y, "Aimbot"); local abTog = pageToggle(page, y - 2, 160); abTog.Text = "Aimbot: Off"; y = y + 30
     pageLabel(page, y, "Aim Radius"); local abBox = pageBox(page, y - 2, 160, 90, "120"); local abApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
-    pageLabel(page, y, "Team Check"); local abTeamTog = pageToggle(page, y - 2, 160); setToggle(abTeamTog, true); y = y + 34
+    pageLabel(page, y, "Team Check"); local abTeamTog = pageToggle(page, y - 2, 160); setToggle(abTeamTog, false); y = y + 34
     local plStatus = Instance.new("TextLabel")
     plStatus.Size = UDim2.new(1, -8, 0, 16); plStatus.Position = UDim2.new(0, 4, 0, y)
     plStatus.BackgroundTransparency = 1; plStatus.Text = "Status: Ready"; plStatus.TextColor3 = COL_GREEN
@@ -2610,7 +2610,7 @@ do
         for plr, set in pairs(espTracked) do espDrop(set) espTracked[plr] = nil end
         plStatus.Text = "ESP destroyed"
     end)
-    local abOn, abRadius, abTeam, abConn, abCircle, abHolding = false, 120, true, nil, nil, false
+    local abOn, abRadius, abTeam, abConn, abCircle, abHolding = false, 120, false, nil, nil, false
     abApply.MouseButton1Click:Connect(function()
         local n = tonumber(abBox.Text)
         if n then abRadius = math.clamp(n, 20, 600); abBox.Text = tostring(abRadius); flashOk(abBox)
@@ -2646,6 +2646,7 @@ do
                     abCircle.Visible = abOn
                 end
                 if not abOn or not abHolding then return end
+                _G.__NZAbLock = false
                 local cx, cy = cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5
                 local best, bestPart, bestD = nil, nil, abRadius
                 for _, plr in ipairs(Players:GetPlayers()) do
@@ -2678,15 +2679,18 @@ do
                     prm.FilterDescendantsInstances = f
                     local hit = Workspace:Raycast(camPos, dir, prm)
                     if not hit then
+                        _G.__NZAbLock = true
                         pcall(function()
                             cam.CFrame = cam.CFrame:Lerp(CFrame.new(camPos, bestPart.Position), 0.4)
                         end)
+                        plStatus.Text = "Aim: " .. best.Name
                     end
                 end
             end)
         else
             if abCircle then abCircle.Visible = false end
             abHolding = false
+            _G.__NZAbLock = false
             plStatus.Text = "Aimbot OFF"
         end
     end)
@@ -2711,6 +2715,7 @@ do
             abSP = input.Position
             abBP = abFloat.Position
             abHolding = true
+            _G.__NZZHold = true
         end
     end)
     abFloat.InputChanged:Connect(function(input)
@@ -2725,6 +2730,7 @@ do
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             abDrag = false
             abHolding = false
+            _G.__NZZHold = false
         end
     end)
     UserInputService.InputBegan:Connect(function(input)
@@ -2766,7 +2772,10 @@ do
     pageLabel(page, y, "Del Zombie Radius"); local zrBox = pageBox(page, y - 2, 150, 60, "30"); local zrApply = pageApply(page, y - 2, 216, "Set"); local zrTog = pageToggle(page, y - 2, 282, 70); y = y + 30
     pageLabel(page, y, "Del InvisibleWalls"); local invTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "Change FOV"); local fovBox = pageBox(page, y - 2, 160, 90, "70"); local fovApply = pageApply(page, y - 2, 258); y = y + 30
-    pageLabel(page, y, "Infinite Health"); local infHTog = pageToggle(page, y - 2, 160); y = y + 34
+    pageLabel(page, y, "Infinite Health"); local infHTog = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "Zombie Esp"); local zespTog = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "Zombie Aimbot"); local zAimTog = pageToggle(page, y - 2, 160); zAimTog.Text = "Zombie Aimbot: Off"; y = y + 30
+    pageLabel(page, y, "Zombie Aim Radius"); local zAbBox = pageBox(page, y - 2, 160, 90, "120"); local zAbApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
     page.CanvasSize = UDim2.new(0, 0, 0, y + 20)
     local camoData = {
         { name = "Common", items = { "Default", "Autumn", "Blue", "Desert", "Jungle", "Olive", "Red", "Snow", "Urban", "Violet", "Woodland" } },
@@ -2864,6 +2873,11 @@ do
         if (not v or not v:IsA("IntValue")) and m then
             local direct = m:FindFirstChild("Level")
             if direct and direct:IsA("IntValue") then v = direct end
+        end
+        if (not v or not v:IsA("IntValue")) and m then
+            for _, d in ipairs(m:GetDescendants()) do
+                if d:IsA("IntValue") and d.Name == "Level" then v = d break end
+            end
         end
         if v and v:IsA("IntValue") then
             v.Value = math.floor(n); flashOk(lvlBox)
@@ -2993,6 +3007,158 @@ do
             end)
         else
             lzStatus.Text = "Infinite Health OFF"
+        end
+    end)
+    local zespOn, zespSets, zespConn = false, {}, nil
+    zespTog.MouseButton1Click:Connect(function()
+        zespOn = not zespOn; setToggle(zespTog, zespOn)
+        if zespConn then pcall(function() zespConn:Disconnect() end) zespConn = nil end
+        if zespOn then
+            local okD, test = pcall(function() return Drawing.new("Square") end)
+            if not okD or not test then
+                zespOn = false; setToggle(zespTog, false)
+                lzStatus.Text = "Drawing unsupported"; lzStatus.TextColor3 = COL_RED
+                return
+            end
+            pcall(function() test:Remove() end)
+            lzStatus.Text = "Zombie ESP ON"
+            zespConn = RunService.RenderStepped:Connect(function()
+                local cam = Workspace.CurrentCamera
+                if not cam then return end
+                local seen = {}
+                local pool = {}
+                local bf = Workspace:FindFirstChild("Baddies")
+                if bf then
+                    for _, m in ipairs(bf:GetChildren()) do
+                        if m:IsA("Model") and m.Name == "Zombie" then table.insert(pool, m) end
+                    end
+                end
+                for _, m in ipairs(pool) do
+                    seen[m] = true
+                    local set = zespSets[m]
+                    if not set then
+                        local box = Drawing.new("Square")
+                        box.Visible = false
+                        box.Filled = false
+                        box.Thickness = 1.5
+                        box.Color = Color3.fromRGB(0, 255, 100)
+                        local name = Drawing.new("Text")
+                        name.Visible = false
+                        name.Centered = true
+                        name.Size = 13
+                        name.Outline = true
+                        name.Color = Color3.fromRGB(0, 255, 100)
+                        set = { box = box, name = name }
+                        zespSets[m] = set
+                    end
+                    local part = m:FindFirstChild("Head") or m:FindFirstChild("HumanoidRootPart") or m:FindFirstChildWhichIsA("BasePart")
+                    local hum = m:FindFirstChildOfClass("Humanoid")
+                    if part and (not hum or hum.Health > 0) then
+                        local v, on = cam:WorldToViewportPoint(part.Position)
+                        if on then
+                            local d = (cam.CFrame.Position - part.Position).Magnitude
+                            local h = math.clamp(1500 / math.max(d, 1), 20, 300)
+                            local w = h * 0.6
+                            set.box.Size = Vector2.new(w, h)
+                            set.box.Position = Vector2.new(v.X - w * 0.5, v.Y - h * 0.5)
+                            set.box.Visible = true
+                            set.name.Text = "Zombie [" .. math.floor(d + 0.5) .. "]"
+                            set.name.Position = Vector2.new(v.X, v.Y - h * 0.5 - 14)
+                            set.name.Visible = true
+                        else
+                            set.box.Visible = false
+                            set.name.Visible = false
+                        end
+                    else
+                        set.box.Visible = false
+                        set.name.Visible = false
+                    end
+                end
+                for m, set in pairs(zespSets) do
+                    if not seen[m] or not m.Parent then
+                        pcall(function() set.box:Remove() end)
+                        pcall(function() set.name:Remove() end)
+                        zespSets[m] = nil
+                    end
+                end
+            end)
+        else
+            for m, set in pairs(zespSets) do
+                pcall(function() set.box:Remove() end)
+                pcall(function() set.name:Remove() end)
+                zespSets[m] = nil
+            end
+            lzStatus.Text = "Zombie ESP OFF"
+        end
+    end)
+    local zAbOn, zAbRadius, zAbConn, zHolding = false, 120, nil, false
+    zAbApply.MouseButton1Click:Connect(function()
+        local n = tonumber(zAbBox.Text)
+        if n then zAbRadius = math.clamp(n, 20, 600); zAbBox.Text = tostring(zAbRadius); flashOk(zAbBox)
+        else flashErr(zAbBox) end
+    end)
+    zAimTog.MouseButton1Click:Connect(function()
+        zAbOn = not zAbOn; setToggle(zAimTog, zAbOn, "Zombie Aimbot: On", "Zombie Aimbot: Off")
+        if zAbConn then pcall(function() zAbConn:Disconnect() end) zAbConn = nil end
+        if zAbOn then
+            lzStatus.Text = "Zombie Aim ON (hold R-Click)"
+            zAbConn = RunService.RenderStepped:Connect(function()
+                local cam = Workspace.CurrentCamera
+                if not cam then return end
+                if not zAbOn or (not zHolding and not _G.__NZZHold) then return end
+                if _G.__NZAbLock then return end
+                local cx, cy = cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5
+                local best, bestPart, bestD = nil, nil, zAbRadius
+                local bf = Workspace:FindFirstChild("Baddies")
+                if bf then
+                    for _, m in ipairs(bf:GetChildren()) do
+                        if m:IsA("Model") and m.Name == "Zombie" then
+                            local hum = m:FindFirstChildOfClass("Humanoid")
+                            if not hum or hum.Health > 0 then
+                                local part = m:FindFirstChild("Head") or m:FindFirstChild("HumanoidRootPart") or m:FindFirstChildWhichIsA("BasePart")
+                                if part then
+                                    local v, on = cam:WorldToViewportPoint(part.Position)
+                                    if on then
+                                        local d = (Vector2.new(v.X, v.Y) - Vector2.new(cx, cy)).Magnitude
+                                        if d <= bestD then best, bestPart, bestD = m, part, d end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                if best and bestPart and bestPart.Parent then
+                    local ch0 = player.Character
+                    local camPos = cam.CFrame.Position
+                    local dir = bestPart.Position - camPos
+                    local prm = RaycastParams.new()
+                    prm.FilterType = Enum.RaycastFilterType.Exclude
+                    local f = {}
+                    if ch0 then table.insert(f, ch0) end
+                    table.insert(f, best)
+                    prm.FilterDescendantsInstances = f
+                    local hit = Workspace:Raycast(camPos, dir, prm)
+                    if not hit then
+                        pcall(function()
+                            cam.CFrame = cam.CFrame:Lerp(CFrame.new(camPos, bestPart.Position), 0.4)
+                        end)
+                        lzStatus.Text = "ZAim"
+                    end
+                end
+            end)
+        else
+            zHolding = false
+            lzStatus.Text = "Zombie Aim OFF"
+        end
+    end)
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 and not isAnyTextBoxFocused() then
+            zHolding = true
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            zHolding = false
         end
     end)
 end
