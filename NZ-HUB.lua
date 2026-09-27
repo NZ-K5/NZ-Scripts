@@ -2526,7 +2526,7 @@ do
         local ch = player.Character; local hum = ch and ch:FindFirstChildOfClass("Humanoid")
         if hum then hum.Health = 0 end
     end)
-    local espOn, espTracked, espConn, espAcc, espFrame, espPhase = false, {}, nil, 0, 0, 0
+    local espOn, espTracked, espConn, espAcc, espFrame, espPhase, espLastT, espLastS = false, {}, nil, 0, 0, 0, -1, -1
     local espRad = 500
     espRadApply.MouseButton1Click:Connect(function()
         local n = tonumber(espRadBox.Text)
@@ -2608,7 +2608,16 @@ do
             plStatus.Text = "ESP ON"
             espConn = RunService.RenderStepped:Connect(function(dt)
                 espAcc = espAcc + dt
-                if espAcc >= 2 then espAcc = 0 espSync() end
+                if espAcc >= 2 then
+                    espAcc = 0
+                    espSync()
+                    local total = 0
+                    for _ in pairs(espTracked) do total = total + 1 end
+                    if total ~= espLastT or pShown ~= espLastS then
+                        espLastT, espLastS = total, pShown
+                        plStatus.Text = "ESP " .. pShown .. "/" .. total .. " in range"
+                    end
+                end
                 espFrame = espFrame + 1
                 local cam = Workspace.CurrentCamera
                 if not cam then return end
@@ -2621,6 +2630,7 @@ do
                 end
                 if not from then from = Vector2.new(cam.ViewportSize.X * 0.5, cam.ViewportSize.Y) end
                 local camPos = cam.CFrame.Position
+                local pShown = 0
                 for plr, e in pairs(espTracked) do
                     if not e.root or not e.root.Parent or e.char ~= plr.Character or e.team ~= plr.Team then
                         espCache(plr)
@@ -2647,6 +2657,7 @@ do
                                 e.tracer.To = Vector2.new(v.X, v.Y)
                                 e.tracer.Color = e.col
                                 e.tracer.Visible = true
+                                pShown = pShown + 1
                             else
                                 espHide(e)
                             end
@@ -2738,7 +2749,7 @@ do
                     if not hit then
                         _G.__NZAbLock = true
                         pcall(function()
-                            cam.CFrame = cam.CFrame:Lerp(CFrame.new(camPos, bestPart.Position), 0.4)
+                            cam.CFrame = cam.CFrame:Lerp(CFrame.new(camPos, bestPart.Position), 0.65)
                         end)
                         plStatus.Text = "Aim: " .. best.Name
                     end
@@ -3103,12 +3114,12 @@ do
                             pcall(function() v.Value = fovVal end)
                         end
                     end
-                    task.wait(1)
+                    task.wait(0.25)
                 end
             end)
         end
     end)
-    local zespOn, zespSets, zespConn, zespFrame, zespPhase = false, {}, nil, 0, 0
+    local zespOn, zespSets, zespConn, zespFrame, zespPhase, zespTick = false, {}, nil, 0, 0, 0
     zespTog.MouseButton1Click:Connect(function()
         zespOn = not zespOn; setToggle(zespTog, zespOn)
         if zespConn then pcall(function() zespConn:Disconnect() end) zespConn = nil end
@@ -3126,6 +3137,7 @@ do
                 if not cam then return end
                 zespFrame = zespFrame + 1
                 local seen = {}
+                local zShown = 0
                 local pool = {}
                 local bf = Workspace:FindFirstChild("Baddies")
                 if bf then
@@ -3160,7 +3172,10 @@ do
                     local part, hum = set.part, set.hum
                     if part and (not hum or hum.Health > 0) then
                         local d = (cam.CFrame.Position - part.Position).Magnitude
-                        if d <= 250 or (zespFrame + (set.phase or 0)) % 2 == 0 then
+                        if d > 1500 then
+                            set.box.Visible = false
+                            set.name.Visible = false
+                        elseif d <= 250 or (zespFrame + (set.phase or 0)) % 2 == 0 then
                             local v, on = cam:WorldToViewportPoint(part.Position)
                             if on then
                                 local h = math.clamp(1500 / math.max(d, 1), 20, 300)
@@ -3168,9 +3183,10 @@ do
                                 set.box.Size = Vector2.new(w, h)
                                 set.box.Position = Vector2.new(v.X - w * 0.5, v.Y - h * 0.5)
                                 set.box.Visible = true
-                                set.name.Text = "Zombie [" .. math.floor(d + 0.5) .. "]"
-                                set.name.Position = Vector2.new(v.X, v.Y - h * 0.5 - 14)
-                                set.name.Visible = true
+                            set.name.Text = "Zombie [" .. math.floor(d + 0.5) .. "]"
+                            set.name.Position = Vector2.new(v.X, v.Y - h * 0.5 - 14)
+                            set.name.Visible = true
+                            zShown = zShown + 1
                             else
                                 set.box.Visible = false
                                 set.name.Visible = false
@@ -3187,6 +3203,10 @@ do
                         pcall(function() set.name:Remove() end)
                         zespSets[m] = nil
                     end
+                end
+                if os.clock() - zespTick >= 1 then
+                    zespTick = os.clock()
+                    lzStatus.Text = "ZESP " .. zShown .. " shown"
                 end
             end)
         else
@@ -3264,7 +3284,7 @@ do
                     local hit = Workspace:Raycast(camPos, dir, prm)
                     if not hit then
                         pcall(function()
-                            cam.CFrame = cam.CFrame:Lerp(CFrame.new(camPos, bestPart.Position), 0.4)
+                            cam.CFrame = cam.CFrame:Lerp(CFrame.new(camPos, bestPart.Position), 0.65)
                         end)
                         lzStatus.Text = "ZAim"
                     end
