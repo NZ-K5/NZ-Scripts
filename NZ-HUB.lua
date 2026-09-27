@@ -3027,6 +3027,19 @@ do
     end
     local giveAllBtn = pageWideBtn(page, y, "Give All Perks"); y = y + 34
     local remAllBtn = pageWideBtn(page, y, "Remove All Perks"); y = y + 34
+    pageLabel(page, y, "Gamepasses", 200); y = y + 22
+    local gpData = {
+        { "Give Glock Expansion", "Glock Expansion", 797889459 },
+        { "Give AK Expansion", "AK Expansion", 26939810 },
+        { "Give M16 Expansion", "M16 Expansion", 16679404 },
+    }
+    local gpBtns = {}
+    for _, gd in ipairs(gpData) do
+        local b = pageWideBtn(page, y, gd[1]); y = y + 34
+        table.insert(gpBtns, b)
+    end
+    local gpAllBtn = pageWideBtn(page, y, "Give All GamePasses"); y = y + 34
+    local gpRemBtn = pageWideBtn(page, y, "Remove All GamePasses"); y = y + 34
     page.CanvasSize = UDim2.new(0, 0, 0, y + 20)
     local camoData = {
         { name = "Common", items = { "Default", "Autumn", "Blue", "Desert", "Jungle", "Olive", "Red", "Snow", "Urban", "Violet", "Woodland" } },
@@ -3536,6 +3549,49 @@ do
         end
         lzStatus.Text = "Removed " .. n .. " perks"; lzStatus.TextColor3 = COL_YELLOW
     end)
+    local function lzGamepasses()
+        local cf = lzCustom()
+        local holder = cf and cf.Parent
+        local gf = holder and holder:FindFirstChild("GamePasses")
+        return gf
+    end
+    local function lzGivePass(nm, id)
+        local gf = lzGamepasses()
+        if not gf then lzStatus.Text = "GamePasses not found"; lzStatus.TextColor3 = COL_RED return 0 end
+        local v = gf:FindFirstChild(nm)
+        if not v then
+            v = Instance.new("IntValue")
+            v.Name = nm
+            v.Parent = gf
+        end
+        pcall(function() v.Value = id end)
+        return 1
+    end
+    for i, b in ipairs(gpBtns) do
+        local nm = gpData[i][2]
+        local id = gpData[i][3]
+        b.MouseButton1Click:Connect(function()
+            if lzGivePass(nm, id) > 0 then
+                lzStatus.Text = nm .. " given"; lzStatus.TextColor3 = COL_GREEN
+            end
+        end)
+    end
+    gpAllBtn.MouseButton1Click:Connect(function()
+        local n = 0
+        for _, gd in ipairs(gpData) do n = n + lzGivePass(gd[2], gd[3]) end
+        lzStatus.Text = "All gamepasses given (" .. n .. ")"; lzStatus.TextColor3 = COL_GREEN
+    end)
+    gpRemBtn.MouseButton1Click:Connect(function()
+        local gf = lzGamepasses()
+        local n = 0
+        if gf then
+            for _, gd in ipairs(gpData) do
+                local v = gf:FindFirstChild(gd[2])
+                if v then pcall(function() v:Destroy() end) n = n + 1 end
+            end
+        end
+        lzStatus.Text = "Removed " .. n .. " gamepasses"; lzStatus.TextColor3 = COL_YELLOW
+    end)
     local function cleanLZ()
         peaceOn = false
         zrOn = false
@@ -4015,7 +4071,7 @@ do
             fpsAcc, fpsN = 0, 0
         end
     end)
-    local gfxOn, gfxPreset, gfxSaved, gfxMade = false, "Optimized Realism", {}, {}
+    local gfxOn, gfxPreset, gfxSaved, gfxMade, gfxLoop = false, "Optimized Realism", {}, {}, false
     local gfxPresets = {
         ["Optimized Realism"] = { tech = Enum.LightingTechnology.ShadowMap, shadows = true, bright = 2, fog = 10000, bloom = 0.6, dof = 0, rays = 0.02, sat = 0.15, con = 0.1, atmo = 0.35, haze = 2 },
         ["Low Realism"] = { tech = Enum.LightingTechnology.Voxel, shadows = false, bright = 1.5, fog = 100000, bloom = 0, dof = 0, rays = 0, sat = 0, con = 0, atmo = 0.3, haze = 1 },
@@ -4032,10 +4088,17 @@ do
         end
     end
     local function gfxFx(class, props)
-        local e = Instance.new(class)
+        local e = nil
+        for _, d in ipairs(Lighting:GetChildren()) do
+            if d.ClassName == class and d.Name == "_NZFx" then e = d break end
+        end
+        if not e then
+            e = Instance.new(class)
+            e.Name = "_NZFx"
+            e.Parent = Lighting
+            table.insert(gfxMade, e)
+        end
         for k, v in pairs(props) do pcall(function() e[k] = v end) end
-        e.Parent = Lighting
-        table.insert(gfxMade, e)
         return e
     end
     local function gfxSave()
@@ -4131,6 +4194,16 @@ do
             gfxSave()
             gfxApply(gfxPreset)
             gfxStatus.Text = gfxPreset .. " ON"
+            if not gfxLoop then
+                gfxLoop = true
+                task.spawn(function()
+                    while gfxOn do
+                        task.wait(2)
+                        if gfxOn then gfxApply(gfxPreset) end
+                    end
+                    gfxLoop = false
+                end)
+            end
         else
             gfxRestore()
             gfxSaved = {}
