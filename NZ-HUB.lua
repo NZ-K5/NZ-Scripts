@@ -4191,9 +4191,14 @@ do
     gfxTog.MouseButton1Click:Connect(function()
         gfxOn = not gfxOn; setToggle(gfxTog, gfxOn)
         if gfxOn then
+            gfxStatus.Text = "Applying..."; gfxStatus.TextColor3 = COL_YELLOW
             gfxSave()
             gfxApply(gfxPreset)
-            gfxStatus.Text = gfxPreset .. " ON"
+            local want = gfxPresets[gfxPreset]
+            local stick = false
+            pcall(function()
+                stick = want and math.abs(Lighting.Brightness - want.bright) < 0.01
+            end)
             if not gfxLoop then
                 gfxLoop = true
                 task.spawn(function()
@@ -4203,6 +4208,11 @@ do
                     end
                     gfxLoop = false
                 end)
+            end
+            if stick then
+                gfxStatus.Text = gfxPreset .. " ON"; gfxStatus.TextColor3 = COL_GREEN
+            else
+                gfxStatus.Text = "Game is reverting graphics"; gfxStatus.TextColor3 = COL_RED
             end
         else
             gfxRestore()
