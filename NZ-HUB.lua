@@ -11,6 +11,11 @@ local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 
+for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanIS", "__NZCleanGFX" }) do
+    local fn = _G[k]
+    if fn then pcall(fn) end
+    _G[k] = nil
+end
 pcall(function()
     if _G.__NZHub then _G.__NZHub:Destroy() _G.__NZHub = nil end
     if _G.__NZFly then _G.__NZFly:Destroy() _G.__NZFly = nil end
@@ -201,7 +206,7 @@ closeBtn.AutoButtonColor = false
 closeBtn.Parent = titleBar
 corner(closeBtn, 6)
 closeBtn.MouseButton1Click:Connect(function()
-    for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanIS" }) do
+    for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanIS", "__NZCleanGFX" }) do
         local fn = _G[k]
         if fn then pcall(fn) end
         _G[k] = nil
@@ -650,7 +655,7 @@ do
     }
     local py = y0 + 196
     pageLabel(pageA, py, "Presets")
-    py = py + 20
+    py = py + 24
     local presetNames = { "Normal", "Truck", "PublicBus", "DragCarWeak", "DragCarStrong" }
     local presetBtns = {}
     for i, n in ipairs(presetNames) do
@@ -1344,7 +1349,7 @@ do
     pageLabel(pageA, py, "Car Fling");    local cmFling = pageToggle(pageA, py - 2, 160); py = py + 34
     pageLabel(pageA, py, "Car Mouse Control"); local cmcToggle = pageToggle(pageA, py - 2, 160); py = py + 30
     local cmcMode = pageWideBtn(pageA, py, "Spin: In-place"); py = py + 34
-    pageLabel(pageA, py, "Spin X Y Z"); local cmSpinX = pageBox(pageA, py - 2, 150, 52, "0"); local cmSpinY = pageBox(pageA, py - 2, 208, 52, "90"); local cmSpinZ = pageBox(pageA, py - 2, 266, 52, "0"); local cmSpinApply = pageApply(pageA, py - 2, 324, "Set"); py = py + 30
+    pageLabel(pageA, py, "Spin X Y Z", 140); local cmSpinX = pageBox(pageA, py - 2, 150, 52, "0"); local cmSpinY = pageBox(pageA, py - 2, 208, 52, "90"); local cmSpinZ = pageBox(pageA, py - 2, 266, 52, "0"); local cmSpinApply = pageApply(pageA, py - 2, 324, "Set"); py = py + 30
     pageLabel(pageA, py, "Spin Enabled"); local cmSpinTog = pageToggle(pageA, py - 2, 160); setToggle(cmSpinTog, false); py = py + 30
     local cmDistLbl = pageLabel(pageA, py, "Dist: 0 (B/P)", 200); py = py + 22
     local cmcUp, cmcDown, cmcPull, cmcPush = false, false, false, false
@@ -2118,7 +2123,7 @@ do
     local y = 4
     pageLabel(page, y, "Brookhaven Car (name .. 'Car')")
     local bhRescan = pageApply(page, y - 2, 258, "Find car")
-    y = y + 22
+    y = y + 26
 
     pageLabel(page, y, "MaxSpeed");          local bhSpeedBox = pageBox(page, y - 2, 160, 90, "50");   local bhSpeedApply = pageApply(page, y - 2, 258); y = y + 30
     pageLabel(page, y, "Turbo string");      local bhTurboBox = pageBox(page, y - 2, 160, 90, "TurboEnabled"); local bhTurboApply = pageApply(page, y - 2, 258); y = y + 30
@@ -2295,6 +2300,7 @@ do
     pageLabel(page, y, "Fly Speed"); local bhFlyBox = pageBox(page, y - 2, 160, 90, "50"); local bhFlyApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
     pageLabel(page, y, "Player Fly"); local bhFly = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "WalkSpeed");  local bhWSBox = pageBox(page, y - 2, 160, 90, "16"); local bhWSApply = pageApply(page, y - 2, 258); y = y + 30
+    pageLabel(page, y, "Speed Loop"); local wsLoopTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "JumpPower");  local bhJPBox = pageBox(page, y - 2, 160, 90, "50"); local bhJPApply = pageApply(page, y - 2, 258); y = y + 30
     pageLabel(page, y, "Enable Jump"); local bhJumpTog = pageToggle(page, y - 2, 160); setToggle(bhJumpTog, true); y = y + 30
     pageLabel(page, y, "Enable Third-Person"); local bhTPTog = pageToggle(page, y - 2, 160); y = y + 30
@@ -2315,7 +2321,8 @@ do
     plStatus.Font = Enum.Font.Gotham; plStatus.TextSize = 10; plStatus.TextXAlignment = Enum.TextXAlignment.Left; plStatus.Parent = page
     page.CanvasSize = UDim2.new(0, 0, 0, y + 30)
     local noclipOn, infJOn, pflyOn = false, false, false
-    local pflySpeed, pflyConn, ncChar, standOff = 50, nil, nil, 3
+    local pflySpeed, pflyConn, ncChar, standOff, flyWas = 50, nil, nil, 3, false
+    local wsVal, wsLoopOn, wsLoopRun = 16, false, false
     local noclipConns, infJConn, origColl = {}, nil, {}
     local lagClone, lagChar, lagTrans, lagT, lagCount = nil, nil, {}, 0, 0
     local function lagClear()
@@ -2396,10 +2403,15 @@ do
         if noclipOn then
             ncChar = ch
             origColl = {}
+            pcall(function()
+                local ps = game:GetService("PhysicsService")
+                pcall(function() ps:RegisterCollisionGroup("NZGhost") end)
+                ps:CollisionGroupSetCollidable("NZGhost", "Default", false)
+            end)
             for _, p in ipairs(ch:GetDescendants()) do
                 if p:IsA("BasePart") then
-                    origColl[p] = { c = p.CanCollide, t = p.CanTouch }
-                    p.CanCollide, p.CanTouch = false, false
+                    if origColl[p] == nil then origColl[p] = { c = p.CanCollide, t = p.CanTouch, g = p.CollisionGroup } end
+                    pcall(function() p.CollisionGroup = "NZGhost" end)
                 end
             end
             local rp0 = RaycastParams.new()
@@ -2419,15 +2431,17 @@ do
                     ncChar = c2
                     for _, p in ipairs(c2:GetDescendants()) do
                         if p:IsA("BasePart") and origColl[p] == nil then
-                            origColl[p] = { c = p.CanCollide, t = p.CanTouch }
+                            origColl[p] = { c = p.CanCollide, t = p.CanTouch, g = p.CollisionGroup }
                         end
                     end
                 end
                 for _, p in ipairs(c2:GetDescendants()) do
-                    if p:IsA("BasePart") and (p.CanCollide or p.CanTouch) then
-                        p.CanCollide, p.CanTouch = false, false
+                    if p:IsA("BasePart") and p.CollisionGroup ~= "NZGhost" then
+                        if origColl[p] == nil then origColl[p] = { c = p.CanCollide, t = p.CanTouch, g = p.CollisionGroup } end
+                        pcall(function() p.CollisionGroup = "NZGhost" end)
                     end
                 end
+                if h2.SeatPart then return end
                 if r2.AssemblyLinearVelocity.Y > 1 then return end
                 local prm = RaycastParams.new()
                 prm.FilterType = Enum.RaycastFilterType.Exclude
@@ -2444,7 +2458,7 @@ do
             lagShow()
             plStatus.Text = "Noclip ON (floor kept)"
         else
-            for p, d in pairs(origColl) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t end) end
+            for p, d in pairs(origColl) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t; if d.g then p.CollisionGroup = d.g end end) end
             origColl = {}
             for _, c in ipairs(noclipConns) do pcall(function() c:Disconnect() end) end
             noclipConns = {}
@@ -2486,26 +2500,49 @@ do
                 if UserInputService:IsKeyDown(Enum.KeyCode.E) then vel = vel + Vector3.new(0, pflySpeed, 0)
                 elseif UserInputService:IsKeyDown(Enum.KeyCode.Q) then vel = vel - Vector3.new(0, pflySpeed, 0) end
                 if vel.Magnitude < 0.01 then
-                    pcall(function() root.AssemblyLinearVelocity = Vector3.zero end)
+                    if flyWas then
+                        flyWas = false
+                        pcall(function() root.AssemblyLinearVelocity = Vector3.zero end)
+                    end
                     return
                 end
+                flyWas = true
                 pcall(function()
-                    root.CFrame = root.CFrame + vel * math.min(dt, 0.05)
-                    root.AssemblyLinearVelocity = Vector3.zero
-                    root.AssemblyAngularVelocity = Vector3.zero
+                    root.AssemblyLinearVelocity = vel
                 end)
             end)
         else
             local ch = player.Character
             local root = ch and ch:FindFirstChild("HumanoidRootPart")
             if root then pcall(function() root.AssemblyLinearVelocity = Vector3.zero end) end
+            flyWas = false
             lagHide()
             plStatus.Text = "Fly OFF"
         end
     end)
     bhWSApply.MouseButton1Click:Connect(function()
         local ch = player.Character; local hum = ch and ch:FindFirstChildOfClass("Humanoid")
-        if hum then local n = tonumber(bhWSBox.Text); if n then hum.WalkSpeed = n; flashOk(bhWSBox) else flashErr(bhWSBox) end end
+        if hum then local n = tonumber(bhWSBox.Text); if n then hum.WalkSpeed = n; wsVal = n; flashOk(bhWSBox) else flashErr(bhWSBox) end end
+    end)
+    wsLoopTog.MouseButton1Click:Connect(function()
+        wsLoopOn = not wsLoopOn; setToggle(wsLoopTog, wsLoopOn)
+        if wsLoopOn and not wsLoopRun then
+            wsLoopRun = true
+            task.spawn(function()
+                while wsLoopOn do
+                    local ch = player.Character
+                    local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        local n = tonumber(bhWSBox.Text)
+                        if n then wsVal = n end
+                        hum.WalkSpeed = wsVal
+                    end
+                    task.wait(0.5)
+                end
+                wsLoopRun = false
+            end)
+        end
+        plStatus.Text = wsLoopOn and "Speed loop ON" or "Speed loop OFF"
     end)
     bhJPApply.MouseButton1Click:Connect(function()
         local ch = player.Character; local hum = ch and ch:FindFirstChildOfClass("Humanoid")
@@ -2910,10 +2947,11 @@ do
         if pflyConn then pcall(function() pflyConn:Disconnect() end) pflyConn = nil end
         if abConn then pcall(function() abConn:Disconnect() end) abConn = nil end
         if espConn then pcall(function() espConn:Disconnect() end) espConn = nil end
-        for p, d in pairs(origColl) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t end) end
-        origColl = {}
-        for _, c in ipairs(noclipConns) do pcall(function() c:Disconnect() end) end
-        noclipConns = {}
+            for p, d in pairs(origColl) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t; if d.g then p.CollisionGroup = d.g end end) end
+            origColl = {}
+            for _, c in ipairs(noclipConns) do pcall(function() c:Disconnect() end) end
+            noclipConns = {}
+            wsLoopOn = false
         for plr, set in pairs(espTracked) do
             pcall(function() set.box:Remove() end)
             pcall(function() set.name:Remove() end)
@@ -2972,13 +3010,23 @@ do
     stroke(camoList, COL_ACCENT, 1)
     pageLabel(page, y, "Change Level"); local lvlBox = pageBox(page, y - 2, 160, 90, "1"); local lvlApply = pageApply(page, y - 2, 258); y = y + 30
     pageLabel(page, y, "Peaceful Mode"); local peaceTog = pageToggle(page, y - 2, 160); y = y + 30
-    pageLabel(page, y, "Del Zombie Radius"); local zrBox = pageBox(page, y - 2, 150, 60, "30"); local zrApply = pageApply(page, y - 2, 216, "Set"); local zrTog = pageToggle(page, y - 2, 282, 70); y = y + 30
+    pageLabel(page, y, "Del Zombie Radius", 140); local zrBox = pageBox(page, y - 2, 150, 60, "30"); local zrApply = pageApply(page, y - 2, 216, "Set"); local zrTog = pageToggle(page, y - 2, 282, 70); y = y + 30
     pageLabel(page, y, "Del InvisibleWalls"); local invTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "Change FOV"); local fovBox = pageBox(page, y - 2, 160, 90, "70"); local fovApply = pageApply(page, y - 2, 258); y = y + 30
     pageLabel(page, y, "Zombie Esp"); local zespTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "Zombie Aimbot"); local zAimTog = pageToggle(page, y - 2, 160); zAimTog.Text = "Zombie Aimbot: Off"; y = y + 30
     pageLabel(page, y, "Zombie Aim Radius"); local zAbBox = pageBox(page, y - 2, 160, 90, "120"); local zAbApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
-    pageLabel(page, y, "Zombie Hitbox"); local zhbBox = pageBox(page, y - 2, 160, 90, "15"); local zhbApply = pageApply(page, y - 2, 258, "Set"); local zhbTog = pageToggle(page, y - 2, 282, 70); y = y + 34
+    pageLabel(page, y, "Freeze All Zombies"); local zhbTog = pageToggle(page, y - 2, 160); y = y + 34
+    pageLabel(page, y, "Perk Stuff", 200); y = y + 22
+    local perkNames = { "Double Tap Root Beer", "Quick Revive", "Juggernog", "Speed Cola", "Mule Kick" }
+    local perkLabels = { "Give Double Tap", "Give Quick Revive", "Give Juggernog", "Give Speed Cola", "Give Mule Kick" }
+    local perkBtns = {}
+    for i, nm in ipairs(perkNames) do
+        local b = pageWideBtn(page, y, perkLabels[i]); y = y + 34
+        perkBtns[nm] = b
+    end
+    local giveAllBtn = pageWideBtn(page, y, "Give All Perks"); y = y + 34
+    local remAllBtn = pageWideBtn(page, y, "Remove All Perks"); y = y + 34
     page.CanvasSize = UDim2.new(0, 0, 0, y + 20)
     local camoData = {
         { name = "Common", items = { "Default", "Autumn", "Blue", "Desert", "Jungle", "Olive", "Red", "Snow", "Urban", "Violet", "Woodland" } },
@@ -3393,12 +3441,7 @@ do
             zHolding = false
         end
     end)
-    local zhbOn, zhbMult, zhbOrig = false, 15, {}
-    zhbApply.MouseButton1Click:Connect(function()
-        local n = tonumber(zhbBox.Text)
-        if n then zhbMult = math.clamp(n, 1, 100); zhbBox.Text = tostring(zhbMult); flashOk(zhbBox)
-        else flashErr(zhbBox) end
-    end)
+    local zhbOn, zhbMult, zhbOrig = false, 100, {}
     local function zhbApplyModel(m)
         local rp = m:FindFirstChild("HumanoidRootPart") or m:FindFirstChildWhichIsA("BasePart")
         if not rp then return end
@@ -3416,7 +3459,7 @@ do
     zhbTog.MouseButton1Click:Connect(function()
         zhbOn = not zhbOn; setToggle(zhbTog, zhbOn)
         if zhbOn then
-            lzStatus.Text = "Zombie Hitbox x" .. tostring(zhbMult)
+            lzStatus.Text = "Frozen x" .. tostring(zhbMult)
             task.spawn(function()
                 while zhbOn do
                     local bf = Workspace:FindFirstChild("Baddies")
@@ -3438,8 +3481,60 @@ do
                 end)
             end
             zhbOrig = {}
-            lzStatus.Text = "Zombie Hitbox OFF"
+            lzStatus.Text = "Unfrozen"
         end
+    end)
+    local function lzPerkFolder()
+        local bp = player:FindFirstChild("Backpack")
+        if not bp then return nil end
+        local f = bp:FindFirstChild("Perks")
+        if not f then
+            local ok, nf = pcall(function()
+                local nn = Instance.new("Folder")
+                nn.Name = "Perks"
+                nn.Parent = bp
+                return nn
+            end)
+            if ok then f = nf end
+        end
+        return f
+    end
+    local function lzGivePerk(nm)
+        local f = lzPerkFolder()
+        if not f then lzStatus.Text = "No backpack"; lzStatus.TextColor3 = COL_RED return 0 end
+        local v = f:FindFirstChild(nm)
+        if not v then
+            v = Instance.new("BoolValue")
+            v.Name = nm
+            v.Parent = f
+        end
+        pcall(function() v.Value = true end)
+        return 1
+    end
+    for nm, b in pairs(perkBtns) do
+        local want = nm
+        b.MouseButton1Click:Connect(function()
+            if lzGivePerk(want) > 0 then
+                lzStatus.Text = want .. " given"; lzStatus.TextColor3 = COL_GREEN
+            end
+        end)
+    end
+    giveAllBtn.MouseButton1Click:Connect(function()
+        local n = 0
+        for _, nm in ipairs(perkNames) do n = n + lzGivePerk(nm) end
+        lzStatus.Text = "All perks given (" .. n .. ")"; lzStatus.TextColor3 = COL_GREEN
+    end)
+    remAllBtn.MouseButton1Click:Connect(function()
+        local bp = player:FindFirstChild("Backpack")
+        local f = bp and bp:FindFirstChild("Perks")
+        local n = 0
+        if f then
+            for _, nm in ipairs(perkNames) do
+                local v = f:FindFirstChild(nm)
+                if v then pcall(function() v:Destroy() end) n = n + 1 end
+            end
+        end
+        lzStatus.Text = "Removed " .. n .. " perks"; lzStatus.TextColor3 = COL_YELLOW
     end)
     local function cleanLZ()
         peaceOn = false
@@ -3735,10 +3830,14 @@ do
         tb.Text = text; tb.TextColor3 = col or COL_TEXT; tb.TextSize = 11; tb.Font = Enum.Font.Gotham
         tb.BackgroundTransparency = 1; tb.TextXAlignment = Enum.TextXAlignment.Left; tb.ClearTextOnFocus = false; tb.Parent = fr
         table.insert(resultItems, fr)
+        listFrame.Size = UDim2.new(1, -8, 0, math.max(300, #resultItems * 34 + 10))
+        page.CanvasSize = UDim2.new(0, 0, 0, y + math.max(320, #resultItems * 34 + 40))
     end
     local function clearResults()
         for _, it in ipairs(resultItems) do it:Destroy() end
         resultItems, backdoorsFound = {}, {}
+        listFrame.Size = UDim2.new(1, -8, 0, 300)
+        page.CanvasSize = UDim2.new(0, 0, 0, y + 320)
         bdStatus.Text = "System Ready"; bdStatus.TextColor3 = COL_GREEN
     end
     local function isExcluded(nm)
@@ -3837,7 +3936,7 @@ do
         if cb then pcall(cb, tostring(game.PlaceId)) copyPlace.Text = "Copied!" task.wait(1) copyPlace.Text = "Copy PlaceId" end
     end)
     destroyBtn.MouseButton1Click:Connect(function()
-        for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanIS" }) do
+        for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanIS", "__NZCleanGFX" }) do
             local fn = _G[k]
             if fn then pcall(fn) end
             _G[k] = nil
@@ -3859,6 +3958,15 @@ do
     local y = 4
     pageLabel(page, y, "FPS Unlock"); local fuBox = pageBox(page, y - 2, 160, 90, "144"); local fuApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
     pageLabel(page, y, "Fake FPS"); local ffBox = pageBox(page, y - 2, 160, 90, "9999"); local ffApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
+    pageLabel(page, y, "Graphic Mode"); local gfxTog = pageToggle(page, y - 2, 160); y = y + 30
+    local gfxNames = { "Optimized Realism", "Low Realism", "Medium Realism", "Ultra Realism" }
+    local gfxOptBtns = {}
+    for _, nm in ipairs(gfxNames) do
+        local b = pageWideBtn(page, y, nm)
+        b.TextColor3 = COL_TEXT_DIM
+        gfxOptBtns[nm] = b
+        y = y + 34
+    end
     local fpsLbl = Instance.new("TextLabel")
     fpsLbl.Size = UDim2.new(1, -8, 0, 16); fpsLbl.Position = UDim2.new(0, 4, 0, y)
     fpsLbl.BackgroundTransparency = 1; fpsLbl.Text = "FPS: -"; fpsLbl.TextColor3 = COL_GREEN
@@ -3907,6 +4015,134 @@ do
             fpsAcc, fpsN = 0, 0
         end
     end)
+    local gfxOn, gfxPreset, gfxSaved, gfxMade = false, "Optimized Realism", {}, {}
+    local gfxPresets = {
+        ["Optimized Realism"] = { tech = Enum.LightingTechnology.ShadowMap, shadows = true, bright = 2, fog = 10000, bloom = 0.6, dof = 0, rays = 0.02, sat = 0.15, con = 0.1, atmo = 0.35, haze = 2 },
+        ["Low Realism"] = { tech = Enum.LightingTechnology.Voxel, shadows = false, bright = 1.5, fog = 100000, bloom = 0, dof = 0, rays = 0, sat = 0, con = 0, atmo = 0.3, haze = 1 },
+        ["Medium Realism"] = { tech = Enum.LightingTechnology.ShadowMap, shadows = true, bright = 2.2, fog = 8000, bloom = 1, dof = 0.15, rays = 0.05, sat = 0.25, con = 0.15, atmo = 0.4, haze = 3 },
+        ["Ultra Realism"] = { tech = Enum.LightingTechnology.Future, shadows = true, bright = 2.5, fog = 6000, bloom = 1.6, dof = 0.4, rays = 0.09, sat = 0.35, con = 0.2, atmo = 0.5, haze = 5 },
+    }
+    local function gfxPaintOpts()
+        for nm, b in pairs(gfxOptBtns) do
+            if nm == gfxPreset then
+                TweenService:Create(b, TweenInfo.new(0.15), { BackgroundColor3 = COL_ACCENT, TextColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+            else
+                TweenService:Create(b, TweenInfo.new(0.15), { BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT_DIM }):Play()
+            end
+        end
+    end
+    local function gfxFx(class, props)
+        local e = Instance.new(class)
+        for k, v in pairs(props) do pcall(function() e[k] = v end) end
+        e.Parent = Lighting
+        table.insert(gfxMade, e)
+        return e
+    end
+    local function gfxSave()
+        gfxSaved = {}
+        for _, k in ipairs({ "Technology", "GlobalShadows", "Brightness", "FogColor", "FogEnd", "FogStart", "Ambient", "OutdoorAmbient" }) do
+            pcall(function() gfxSaved[k] = Lighting[k] end)
+        end
+        local at = Lighting:FindFirstChildOfClass("Atmosphere")
+        if at then
+            gfxSaved.atmo = {}
+            for _, k in ipairs({ "Density", "Offset", "Color", "Decay", "Glare", "Haze" }) do
+                pcall(function() gfxSaved.atmo[k] = at[k] end)
+            end
+        end
+    end
+    local function gfxClearMade()
+        for _, e in ipairs(gfxMade) do pcall(function() e:Destroy() end) end
+        gfxMade = {}
+    end
+    local function gfxRestore()
+        for k, v in pairs(gfxSaved) do
+            if k ~= "atmo" then pcall(function() Lighting[k] = v end) end
+        end
+        if gfxSaved.atmo then
+            local at = Lighting:FindFirstChildOfClass("Atmosphere")
+            if at then
+                for k, v in pairs(gfxSaved.atmo) do pcall(function() at[k] = v end) end
+            end
+        end
+        gfxClearMade()
+    end
+    local function gfxApply(name)
+        local p = gfxPresets[name]
+        if not p then return end
+        local mins = 720
+        pcall(function() mins = Lighting:GetMinutesAfterMidnight() end)
+        local day = mins > 360 and mins < 1080
+        pcall(function() Lighting.Technology = p.tech end)
+        pcall(function() Lighting.GlobalShadows = p.shadows end)
+        pcall(function() Lighting.Brightness = p.bright end)
+        pcall(function() Lighting.FogEnd = p.fog end)
+        pcall(function() Lighting.FogStart = 0 end)
+        pcall(function()
+            if day then
+                Lighting.FogColor = Color3.fromRGB(190, 200, 215)
+                Lighting.Ambient = Color3.fromRGB(140, 140, 150)
+                Lighting.OutdoorAmbient = Color3.fromRGB(120, 120, 130)
+            else
+                Lighting.FogColor = Color3.fromRGB(15, 18, 30)
+                Lighting.Ambient = Color3.fromRGB(35, 35, 45)
+                Lighting.OutdoorAmbient = Color3.fromRGB(30, 30, 40)
+            end
+        end)
+        local at = Lighting:FindFirstChildOfClass("Atmosphere")
+        if not at then
+            at = gfxFx("Atmosphere", {})
+        end
+        if at then
+            pcall(function()
+                at.Density = p.atmo
+                at.Haze = p.haze
+                if day then
+                    at.Color = Color3.fromRGB(200, 210, 225)
+                    at.Decay = Color3.fromRGB(150, 180, 200)
+                else
+                    at.Color = Color3.fromRGB(20, 25, 45)
+                    at.Decay = Color3.fromRGB(10, 15, 30)
+                end
+                at.Glare = 0
+            end)
+        end
+        gfxFx("BloomEffect", { Intensity = p.bloom, Size = 24, Threshold = day and 1.2 or 0.9 })
+        gfxFx("SunRaysEffect", { Intensity = p.rays, Spread = 0.3 })
+        gfxFx("ColorCorrectionEffect", { Saturation = p.sat, Contrast = p.con, TintColor = Color3.fromRGB(255, 255, 255) })
+        gfxFx("DepthOfFieldEffect", { FarIntensity = p.dof, FocusDistance = 500, InFocusRadius = 100, NearIntensity = 0 })
+    end
+    for nm, b in pairs(gfxOptBtns) do
+        local pick = nm
+        b.MouseButton1Click:Connect(function()
+            gfxPreset = pick
+            gfxPaintOpts()
+            gfxStatus.Text = pick
+            if gfxOn then
+                gfxRestore()
+                gfxApply(pick)
+            end
+        end)
+    end
+    gfxPaintOpts()
+    gfxTog.MouseButton1Click:Connect(function()
+        gfxOn = not gfxOn; setToggle(gfxTog, gfxOn)
+        if gfxOn then
+            gfxSave()
+            gfxApply(gfxPreset)
+            gfxStatus.Text = gfxPreset .. " ON"
+        else
+            gfxRestore()
+            gfxSaved = {}
+            gfxStatus.Text = "Graphics restored"
+        end
+    end)
+    local function cleanGFX()
+        gfxOn = false
+        gfxRestore()
+        gfxSaved = {}
+    end
+    _G.__NZCleanGFX = cleanGFX
 end
 
 print("NZ-HUB loaded: Car Mods / Brookhaven / Player / Project Lazarus / INF Smile / Backdoor / Utility / Graphics")
