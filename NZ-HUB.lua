@@ -201,6 +201,15 @@ closeBtn.AutoButtonColor = false
 closeBtn.Parent = titleBar
 corner(closeBtn, 6)
 closeBtn.MouseButton1Click:Connect(function()
+    for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanIS" }) do
+        local fn = _G[k]
+        if fn then pcall(fn) end
+        _G[k] = nil
+    end
+    _G.__NZFlyActive = false
+    _G.__NZAbLock = false
+    _G.__NZZHold = false
+    _G.__NZZAbRadius = nil
     if _G.__NZFlyStop then pcall(_G.__NZFlyStop) end
     if _G.__NZSitStop then pcall(_G.__NZSitStop) end
     if _G.__NZHoldFlingStop then pcall(_G.__NZHoldFlingStop) end
@@ -240,7 +249,7 @@ tabBar.Position = UDim2.new(0, 12, 0, 42)
 tabBar.BackgroundTransparency = 1
 tabBar.Parent = main
 
-local TAB_DEFS = { "Car Mods", "Brookhaven", "Player", "Project Lazarus", "INF Smile", "Backdoor", "Utility" }
+local TAB_DEFS = { "Car Mods", "Brookhaven", "Player", "Project Lazarus", "INF Smile", "Backdoor", "Utility", "Graphics" }
 local tabBtns, pages = {}, {}
 local function createPage(name)
     local pg = Instance.new("ScrollingFrame")
@@ -1385,6 +1394,7 @@ do
 
     local cmCar, cmFlySpeed, cmMflySpeed, cmJumpH, cmFloatH, cmFlingPow = nil, 50, 30, 50, 20, 500
     local cmKflyOn, cmMflyOn, cmFloatOn, cmJumpOn, cmFlingOn = false, false, false, false, false
+    local cmDead = false
     local cmKflyConn, cmMflyConn, cmFloatConn, cmJumpConn, cmFlingConn = nil, nil, nil, nil, nil
     local function cmCarFromSeat()
         local ch = player.Character
@@ -1589,6 +1599,7 @@ do
     cmBrake.MouseButton1Click:Connect(function() if not cmNeedCar() then return end cmZeroVel(cmCar) cmStatus.Text = "Braked" end)
     UserInputService.InputBegan:Connect(function(i, gp)
         if gp or isAnyTextBoxFocused() then return end
+        if cmDead then return end
         if i.KeyCode == Enum.KeyCode.X then
             if cmNeedCar() then cmZeroVel(cmCar) cmStatus.Text = "Braked (X)" end
         end
@@ -2065,6 +2076,41 @@ do
     end)
     floatBtn("UP", -70, -38, function() kfUpH = true end, function() kfUpH = false end)
     floatBtn("DN", -70, 24, function() kfDnH = true end, function() kfDnH = false end)
+    local function cleanCM()
+        cmDead = true
+        cmKflyOn = false
+        cmMflyOn = false
+        cmFloatOn = false
+        cmJumpOn = false
+        cmFlingOn = false
+        cmcOn = false
+        cmOrbOn = false
+        cmcHolding = false
+        for _, c in ipairs({ cmKflyConn, cmMflyConn, cmFloatConn, cmJumpConn, cmFlingConn, cmcLoop, cmOrbLoop }) do
+            if c then pcall(function() c:Disconnect() end) end
+        end
+        cmKflyConn, cmMflyConn, cmFloatConn, cmJumpConn, cmFlingConn, cmcLoop, cmOrbLoop = nil, nil, nil, nil, nil, nil, nil
+        if cmHbCar then
+            for p, s in pairs(cmHbOrig) do pcall(function() p.Size = s end) end
+        end
+        cmHbOrig = {}
+        cmHbCar = nil
+        for p, g in pairs(cmcColChanged) do pcall(function() p.CollisionGroup = g end) end
+        cmcColChanged = {}
+        for p, v in pairs(cnSaved) do pcall(function() p.CanCollide = v.c; p.CanTouch = v.t end) end
+        cnSaved = {}
+        for _, c in ipairs(cnConns) do pcall(function() c:Disconnect() end) end
+        cnConns = {}
+        if cmcDot then pcall(function() cmcDot:Destroy() end) cmcDot = nil end
+        if cmCar then
+            for _, p in ipairs(cmCar:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    pcall(function() p.AssemblyLinearVelocity = Vector3.zero; p.AssemblyAngularVelocity = Vector3.zero end)
+                end
+            end
+        end
+    end
+    _G.__NZCleanCM = cleanCM
 end
 
 do
@@ -2231,6 +2277,14 @@ do
             bhStatus.Text = "Multiplier x" .. tostring(m)
         else bhStatus.Text = "MaxSpeed not found (" .. bhListVals() .. ")"; bhStatus.TextColor3 = COL_RED end
     end)
+    local function cleanBH()
+        carNcOn = false
+        for p, d in pairs(carNcOrig) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t end) end
+        carNcOrig = {}
+        for _, c in ipairs(carNcConns) do pcall(function() c:Disconnect() end) end
+        carNcConns = {}
+    end
+    _G.__NZCleanBH = cleanBH
 end
 
 do
@@ -2738,21 +2792,11 @@ do
                 if best and bestPart and bestPart.Parent then
                     local ch0 = player.Character
                     local camPos = cam.CFrame.Position
-                    local dir = bestPart.Position - camPos
-                    local prm = RaycastParams.new()
-                    prm.FilterType = Enum.RaycastFilterType.Exclude
-                    local f = {}
-                    if ch0 then table.insert(f, ch0) end
-                    if best.Character then table.insert(f, best.Character) end
-                    prm.FilterDescendantsInstances = f
-                    local hit = Workspace:Raycast(camPos, dir, prm)
-                    if not hit then
-                        _G.__NZAbLock = true
-                        pcall(function()
-                            cam.CFrame = cam.CFrame:Lerp(CFrame.new(camPos, bestPart.Position), 0.65)
-                        end)
-                        plStatus.Text = "Aim: " .. best.Name
-                    end
+                    _G.__NZAbLock = true
+                    pcall(function()
+                        cam.CFrame = CFrame.new(camPos, bestPart.Position)
+                    end)
+                    plStatus.Text = "Aim: " .. best.Name
                 end
             end)
         else
@@ -2851,6 +2895,57 @@ do
             end)
         end
     end)
+    local function cleanPL()
+        noclipOn = false
+        infJOn = false
+        pflyOn = false
+        mcOn = false
+        abOn = false
+        espOn = false
+        abHolding = false
+        mcFiring = false
+        _G.__NZAbLock = false
+        _G.__NZZHold = false
+        if infJConn then pcall(function() infJConn:Disconnect() end) infJConn = nil end
+        if pflyConn then pcall(function() pflyConn:Disconnect() end) pflyConn = nil end
+        if abConn then pcall(function() abConn:Disconnect() end) abConn = nil end
+        if espConn then pcall(function() espConn:Disconnect() end) espConn = nil end
+        for p, d in pairs(origColl) do pcall(function() p.CanCollide = d.c; p.CanTouch = d.t end) end
+        origColl = {}
+        for _, c in ipairs(noclipConns) do pcall(function() c:Disconnect() end) end
+        noclipConns = {}
+        for plr, set in pairs(espTracked) do
+            pcall(function() set.box:Remove() end)
+            pcall(function() set.name:Remove() end)
+            pcall(function() set.tracer:Remove() end)
+            espTracked[plr] = nil
+        end
+        if abCircle then pcall(function() abCircle:Remove() end) abCircle = nil end
+        jumpAllow = true
+        applyJump()
+        local ch = player.Character
+        if ch then
+            local hum = ch:FindFirstChildOfClass("Humanoid")
+            if hum then
+                pcall(function() hum.WalkSpeed = 16 end)
+                pcall(function() hum.JumpPower = 50 end)
+                pcall(function() hum.JumpHeight = 7.2 end)
+            end
+        end
+        if chHbChar and chHbOrig then
+            local rp = chHbChar:FindFirstChild("HumanoidRootPart")
+            if rp then pcall(function() rp.Size = chHbOrig end) end
+        end
+        chHbMult = 1
+        while lagCount > 0 do lagHide() end
+        if tpOn then
+            tpOn = false
+            if tpMode then player.CameraMode = tpMode end
+            local cam = Workspace.CurrentCamera
+            if tpZoom and cam then cam.MaxZoomDistance = tpZoom end
+        end
+    end
+    _G.__NZCleanPL = cleanPL
 end
 
 do
@@ -3095,7 +3190,7 @@ do
             lzStatus.Text = "InvisibleWalls restored (" .. c .. ")"
         end
     end)
-    local fovVal, fovLoop = nil, false
+    local fovVal, fovLoop, fovRun = nil, false, false
     fovApply.MouseButton1Click:Connect(function()
         local n = tonumber(fovBox.Text)
         if not n then flashErr(fovBox) return end
@@ -3105,8 +3200,9 @@ do
         lzStatus.Text = "FOV looping " .. tostring(n); lzStatus.TextColor3 = COL_GREEN
         if not fovLoop then
             fovLoop = true
+            fovRun = true
             task.spawn(function()
-                while true do
+                while fovRun do
                     if fovVal then
                         local m = lzMe()
                         local v = m and m:FindFirstChild("CamFOV")
@@ -3274,20 +3370,10 @@ do
                 if best and bestPart and bestPart.Parent then
                     local ch0 = player.Character
                     local camPos = cam.CFrame.Position
-                    local dir = bestPart.Position - camPos
-                    local prm = RaycastParams.new()
-                    prm.FilterType = Enum.RaycastFilterType.Exclude
-                    local f = {}
-                    if ch0 then table.insert(f, ch0) end
-                    table.insert(f, best)
-                    prm.FilterDescendantsInstances = f
-                    local hit = Workspace:Raycast(camPos, dir, prm)
-                    if not hit then
-                        pcall(function()
-                            cam.CFrame = cam.CFrame:Lerp(CFrame.new(camPos, bestPart.Position), 0.65)
-                        end)
-                        lzStatus.Text = "ZAim"
-                    end
+                    pcall(function()
+                        cam.CFrame = CFrame.new(camPos, bestPart.Position)
+                    end)
+                    lzStatus.Text = "ZAim"
                 end
             end)
         else
@@ -3306,6 +3392,28 @@ do
             zHolding = false
         end
     end)
+    local function cleanLZ()
+        peaceOn = false
+        zrOn = false
+        fovVal = nil
+        fovRun = false
+        zespOn = false
+        zAbOn = false
+        zHolding = false
+        if zespConn then pcall(function() zespConn:Disconnect() end) zespConn = nil end
+        if zAbConn then pcall(function() zAbConn:Disconnect() end) zAbConn = nil end
+        for mm, set in pairs(zespSets) do
+            pcall(function() set.box:Remove() end)
+            pcall(function() set.name:Remove() end)
+            zespSets[mm] = nil
+        end
+        if zAbCircle then pcall(function() zAbCircle:Remove() end) zAbCircle = nil end
+        for _, dd in ipairs(invSaved) do
+            if dd.Item then pcall(function() dd.Item.Parent = dd.Parent end) end
+        end
+        invSaved = {}
+    end
+    _G.__NZCleanLZ = cleanLZ
 end
 
 do
@@ -3523,6 +3631,18 @@ do
         end
         collLbl.Text = (#f > 0) and ("Collection Models:\n• " .. table.concat(f, "\n• ")) or "Collection Models: None found"
     end)
+    local function cleanIS()
+        for kk in pairs(flags) do
+            flags[kk] = false
+            if stores[kk] then resItems(stores[kk]) end
+        end
+        antiInfOn = false
+        if dupSad then pcall(function() dupSad:Destroy() end) dupSad = nil end
+        toolCDOn = false
+        if toolLoop then pcall(function() toolLoop:Disconnect() end) toolLoop = nil end
+        if seisConn then pcall(function() seisConn:Disconnect() end) seisConn = nil end
+    end
+    _G.__NZCleanIS = cleanIS
 end
 
 do
@@ -3658,6 +3778,15 @@ do
         if cb then pcall(cb, tostring(game.PlaceId)) copyPlace.Text = "Copied!" task.wait(1) copyPlace.Text = "Copy PlaceId" end
     end)
     destroyBtn.MouseButton1Click:Connect(function()
+        for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanIS" }) do
+            local fn = _G[k]
+            if fn then pcall(fn) end
+            _G[k] = nil
+        end
+        _G.__NZFlyActive = false
+        _G.__NZAbLock = false
+        _G.__NZZHold = false
+        _G.__NZZAbRadius = nil
         if _G.__NZFlyStop then pcall(_G.__NZFlyStop) end
         if _G.__NZSitStop then pcall(_G.__NZSitStop) end
         pcall(function() blur:Destroy() end)
@@ -3666,4 +3795,59 @@ do
     end)
 end
 
-print("NZ-HUB loaded: Car Mods / Brookhaven / INF Smile / Backdoor / Utility")
+do
+    local page = pages["Graphics"]
+    local y = 4
+    pageLabel(page, y, "FPS Unlock"); local fuBox = pageBox(page, y - 2, 160, 90, "144"); local fuApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
+    pageLabel(page, y, "Fake FPS"); local ffBox = pageBox(page, y - 2, 160, 90, "9999"); local ffApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
+    local fpsLbl = Instance.new("TextLabel")
+    fpsLbl.Size = UDim2.new(1, -8, 0, 16); fpsLbl.Position = UDim2.new(0, 4, 0, y)
+    fpsLbl.BackgroundTransparency = 1; fpsLbl.Text = "FPS: -"; fpsLbl.TextColor3 = COL_GREEN
+    fpsLbl.Font = Enum.Font.GothamBold; fpsLbl.TextSize = 12; fpsLbl.TextXAlignment = Enum.TextXAlignment.Left; fpsLbl.Parent = page
+    y = y + 20
+    local gfxStatus = Instance.new("TextLabel")
+    gfxStatus.Size = UDim2.new(1, -8, 0, 16); gfxStatus.Position = UDim2.new(0, 4, 0, y)
+    gfxStatus.BackgroundTransparency = 1; gfxStatus.Text = "Status: Ready"; gfxStatus.TextColor3 = COL_TEXT_DIM
+    gfxStatus.Font = Enum.Font.Gotham; gfxStatus.TextSize = 10; gfxStatus.TextXAlignment = Enum.TextXAlignment.Left; gfxStatus.Parent = page
+    y = y + 22
+    page.CanvasSize = UDim2.new(0, 0, 0, y + 20)
+    local function setCap(n)
+        if not setfpscap then return false end
+        local ok = pcall(function() setfpscap(n) end)
+        return ok
+    end
+    fuApply.MouseButton1Click:Connect(function()
+        local n = tonumber(fuBox.Text)
+        if not n then flashErr(fuBox) return end
+        n = math.clamp(math.floor(n), 30, 1000)
+        if setCap(n) then
+            fuBox.Text = tostring(n); flashOk(fuBox)
+            gfxStatus.Text = "FPS cap " .. tostring(n); gfxStatus.TextColor3 = COL_GREEN
+        else
+            gfxStatus.Text = "setfpscap unsupported"; gfxStatus.TextColor3 = COL_RED
+        end
+    end)
+    ffApply.MouseButton1Click:Connect(function()
+        local n = tonumber(ffBox.Text)
+        if not n then flashErr(ffBox) return end
+        n = math.clamp(math.floor(n), 1, 100000)
+        if setCap(n) then
+            ffBox.Text = tostring(n); flashOk(ffBox)
+            gfxStatus.Text = "Fake FPS " .. tostring(n); gfxStatus.TextColor3 = COL_GREEN
+        else
+            gfxStatus.Text = "setfpscap unsupported"; gfxStatus.TextColor3 = COL_RED
+        end
+    end)
+    local fpsAcc, fpsN = 0, 0
+    RunService.RenderStepped:Connect(function(dt)
+        fpsAcc = fpsAcc + dt
+        fpsN = fpsN + 1
+        if fpsAcc >= 0.5 then
+            local f = math.floor(fpsN / math.max(fpsAcc, 0.001) + 0.5)
+            if fpsLbl and fpsLbl.Parent then fpsLbl.Text = "FPS: " .. tostring(f) end
+            fpsAcc, fpsN = 0, 0
+        end
+    end)
+end
+
+print("NZ-HUB loaded: Car Mods / Brookhaven / Player / Project Lazarus / INF Smile / Backdoor / Utility / Graphics")
