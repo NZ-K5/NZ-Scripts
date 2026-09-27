@@ -2977,7 +2977,8 @@ do
     pageLabel(page, y, "Change FOV"); local fovBox = pageBox(page, y - 2, 160, 90, "70"); local fovApply = pageApply(page, y - 2, 258); y = y + 30
     pageLabel(page, y, "Zombie Esp"); local zespTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "Zombie Aimbot"); local zAimTog = pageToggle(page, y - 2, 160); zAimTog.Text = "Zombie Aimbot: Off"; y = y + 30
-    pageLabel(page, y, "Zombie Aim Radius"); local zAbBox = pageBox(page, y - 2, 160, 90, "120"); local zAbApply = pageApply(page, y - 2, 258, "Set"); y = y + 34
+    pageLabel(page, y, "Zombie Aim Radius"); local zAbBox = pageBox(page, y - 2, 160, 90, "120"); local zAbApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
+    pageLabel(page, y, "Zombie Hitbox"); local zhbBox = pageBox(page, y - 2, 160, 90, "15"); local zhbApply = pageApply(page, y - 2, 258, "Set"); local zhbTog = pageToggle(page, y - 2, 282, 70); y = y + 34
     page.CanvasSize = UDim2.new(0, 0, 0, y + 20)
     local camoData = {
         { name = "Common", items = { "Default", "Autumn", "Blue", "Desert", "Jungle", "Olive", "Red", "Snow", "Urban", "Violet", "Woodland" } },
@@ -3392,6 +3393,54 @@ do
             zHolding = false
         end
     end)
+    local zhbOn, zhbMult, zhbOrig = false, 15, {}
+    zhbApply.MouseButton1Click:Connect(function()
+        local n = tonumber(zhbBox.Text)
+        if n then zhbMult = math.clamp(n, 1, 100); zhbBox.Text = tostring(zhbMult); flashOk(zhbBox)
+        else flashErr(zhbBox) end
+    end)
+    local function zhbApplyModel(m)
+        local rp = m:FindFirstChild("HumanoidRootPart") or m:FindFirstChildWhichIsA("BasePart")
+        if not rp then return end
+        if zhbOrig[rp] == nil then
+            zhbOrig[rp] = { s = rp.Size, t = rp.Transparency, c = rp.CanCollide, m = rp.Massless }
+        end
+        pcall(function()
+            rp.Size = zhbOrig[rp].s * zhbMult
+            rp.Transparency = 1
+            rp.CanCollide = false
+            rp.CanQuery = true
+            rp.Massless = true
+        end)
+    end
+    zhbTog.MouseButton1Click:Connect(function()
+        zhbOn = not zhbOn; setToggle(zhbTog, zhbOn)
+        if zhbOn then
+            lzStatus.Text = "Zombie Hitbox x" .. tostring(zhbMult)
+            task.spawn(function()
+                while zhbOn do
+                    local bf = Workspace:FindFirstChild("Baddies")
+                    if bf then
+                        for _, m in ipairs(bf:GetChildren()) do
+                            if m:IsA("Model") and m.Name == "Zombie" then zhbApplyModel(m) end
+                        end
+                    end
+                    task.wait(1)
+                end
+            end)
+        else
+            for p, v in pairs(zhbOrig) do
+                pcall(function()
+                    p.Size = v.s
+                    p.Transparency = v.t
+                    p.CanCollide = v.c
+                    p.Massless = v.m
+                end)
+            end
+            zhbOrig = {}
+            lzStatus.Text = "Zombie Hitbox OFF"
+        end
+    end)
     local function cleanLZ()
         peaceOn = false
         zrOn = false
@@ -3400,6 +3449,16 @@ do
         zespOn = false
         zAbOn = false
         zHolding = false
+        zhbOn = false
+        for p, v in pairs(zhbOrig) do
+            pcall(function()
+                p.Size = v.s
+                p.Transparency = v.t
+                p.CanCollide = v.c
+                p.Massless = v.m
+            end)
+        end
+        zhbOrig = {}
         if zespConn then pcall(function() zespConn:Disconnect() end) zespConn = nil end
         if zAbConn then pcall(function() zAbConn:Disconnect() end) zAbConn = nil end
         for mm, set in pairs(zespSets) do
