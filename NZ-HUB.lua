@@ -31,8 +31,8 @@ pcall(function()
     end
 end)
 for _, v in ipairs(Lighting:GetChildren()) do
-    if v:IsA("BlurEffect") and (v.Name == "_NZBlur" or v.Name == "BlurEffect") then
-
+    if v:IsA("BlurEffect") and v.Name == "_NZBlur" then
+        pcall(function() v:Destroy() end)
     end
 end
 _G.__NZFlyActive = false
@@ -221,6 +221,7 @@ closeBtn.MouseButton1Click:Connect(function()
     pcall(function() blur:Destroy() end)
     gui:Destroy()
     _G.__NZHUB, _G.__NZHub, _G.__NZFly = nil, nil, nil
+    _G.__NZFlyStop, _G.__NZSitStop, _G.__NZHoldFlingStop = nil, nil, nil
 end)
 
 do
@@ -627,7 +628,7 @@ do
     inputState.Parent = pageA
     local info = Instance.new("TextLabel")
     info.Size = UDim2.new(1, -8, 0, 14)
-    info.Position = UDim2.new(0, 4, 0, 470)
+    info.Position = UDim2.new(0, 4, 0, 34)
     info.BackgroundTransparency = 1
     info.Text = ""
     info.TextColor3 = COL_TEXT_DIM
@@ -636,7 +637,7 @@ do
     info.TextXAlignment = Enum.TextXAlignment.Left
     info.Parent = pageA
 
-    local y0 = 38
+    local y0 = 54
     pageLabel(pageA, y0, "Thrust");            local thrustBox, thrustStroke = pageBox(pageA, y0 - 2, 160, 110, 2500);       local thrustApply = pageApply(pageA, y0 - 2, 278)
     pageLabel(pageA, y0 + 32, "Wheelie Force"); local wfBox, wfStroke = pageBox(pageA, y0 + 30, 160, 110, 11000);             local wfApply = pageApply(pageA, y0 + 30, 278)
     pageLabel(pageA, y0 + 64, "Wheelie Delay"); local wdBox, wdStroke = pageBox(pageA, y0 + 62, 160, 110, 0.03);              local wdApply = pageApply(pageA, y0 + 62, 278)
@@ -1192,6 +1193,7 @@ do
         info.Text = "Stood up"; info.TextColor3 = COL_YELLOW
     end
     _G.__NZSitStop = stopSit
+    _G.__NZHoldFlingStop = stopHold
     local sitSelecting = false
     sitBtn.MouseButton1Click:Connect(function()
         if sitActive then stopSit() return end
@@ -1302,6 +1304,21 @@ do
         if isClick and flingMode == "hold" and holdActive then stopHold() end
     end)
     gui.Destroying:Connect(function() stopThrust(); if holdActive then stopHold() end; if sitActive then stopSit() end end)
+
+    local function cleanA()
+        boostEnabled, backEnabled, wheelieEnabled = false, false, false
+        sitSelecting = false
+        flingEnabled = false
+        state.keyForward, state.keyBack, state.forwardHeld, state.backHeld = false, false, false, false
+        stopThrust()
+        stopFly()
+        if holdActive then stopHold() end
+        if sitActive then stopSit() end
+        for k in pairs(_G.__NZFlyHold) do _G.__NZFlyHold[k] = false end
+        _G.__NZFlyActive = false
+        updateInputLabel()
+    end
+    _G.__NZCleanA = cleanA
 end
 
 do
@@ -1699,6 +1716,8 @@ do
         cmcMode.Text = cmcOrbit and "Spin: Around Cursor" or "Spin: In-place"
         TweenService:Create(cmcMode, TweenInfo.new(0.15), { BackgroundColor3 = COL_ACCENT }):Play()
     end)
+    local cmOrbOn, cmOrbSpeed, cmOrbLoop = false, 60, nil
+    local cmOrbAng, cmOrbRad, cmOrbY, cmOrbRot = 0, 15, 0, CFrame.new(0, 0, 0)
     cmcToggle.MouseButton1Click:Connect(function()
         if not cmNeedCar() then
             cmcOn = false; setToggle(cmcToggle, false)
@@ -1894,8 +1913,6 @@ do
         end
     end)
 
-    local cmOrbOn, cmOrbSpeed, cmOrbLoop = false, 60, nil
-    local cmOrbAng, cmOrbRad, cmOrbY, cmOrbRot = 0, 15, 0, CFrame.new(0, 0, 0)
     cmOrbApply.MouseButton1Click:Connect(function()
         local n = tonumber(cmOrbBox.Text)
         if n then cmOrbSpeed = math.clamp(n, -360, 360); cmOrbBox.Text = tostring(cmOrbSpeed); flashOk(cmOrbBox)
@@ -2617,7 +2634,7 @@ do
         local ch = player.Character; local hum = ch and ch:FindFirstChildOfClass("Humanoid")
         if hum then hum.Health = 0 end
     end)
-    local espOn, espTracked, espConn, espAcc, espFrame, espPhase, espLastT, espLastS = false, {}, nil, 0, 0, 0, -1, -1
+    local espOn, espTracked, espConn, espAcc, espFrame, espPhase, espLastT, espLastS, espShown = false, {}, nil, 0, 0, 0, -1, -1, 0
     local espRad = 500
     espRadApply.MouseButton1Click:Connect(function()
         local n = tonumber(espRadBox.Text)
@@ -2704,9 +2721,9 @@ do
                     espSync()
                     local total = 0
                     for _ in pairs(espTracked) do total = total + 1 end
-                    if total ~= espLastT or pShown ~= espLastS then
-                        espLastT, espLastS = total, pShown
-                        plStatus.Text = "ESP " .. pShown .. "/" .. total .. " in range"
+                    if total ~= espLastT or espShown ~= espLastS then
+                        espLastT, espLastS = total, espShown
+                        plStatus.Text = "ESP " .. tostring(espShown) .. "/" .. total .. " in range"
                     end
                 end
                 espFrame = espFrame + 1
@@ -2730,7 +2747,7 @@ do
                     if hum and root and hum.Health > 0 then
                         local d = (camPos - root.Position).Magnitude
                         if d > espRad then
-                            hideSet(e)
+                            espHide(e)
                         elseif d <= 400 or (espFrame + (e.phase or 0)) % 3 == 0 then
                             local v, on = cam:WorldToViewportPoint(root.Position)
                             if on then
@@ -2757,6 +2774,7 @@ do
                         espHide(e)
                     end
                 end
+                espShown = pShown
             end)
         else
             for _, set in pairs(espTracked) do espHide(set) end
@@ -4003,9 +4021,11 @@ do
         _G.__NZZAbRadius = nil
         if _G.__NZFlyStop then pcall(_G.__NZFlyStop) end
         if _G.__NZSitStop then pcall(_G.__NZSitStop) end
+        if _G.__NZHoldFlingStop then pcall(_G.__NZHoldFlingStop) end
         pcall(function() blur:Destroy() end)
         gui:Destroy()
-        _G.__NZHUB, _G.__NZHub = nil, nil
+        _G.__NZHUB, _G.__NZHub, _G.__NZFly = nil, nil, nil
+        _G.__NZFlyStop, _G.__NZSitStop, _G.__NZHoldFlingStop = nil, nil, nil
     end)
 end
 
@@ -4013,7 +4033,6 @@ do
     local page = pages["Graphics"]
     local y = 4
     pageLabel(page, y, "FPS Unlock"); local fuBox = pageBox(page, y - 2, 160, 90, "144"); local fuApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
-    pageLabel(page, y, "Fake FPS"); local ffBox = pageBox(page, y - 2, 160, 90, "9999"); local ffApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
     pageLabel(page, y, "Graphic Mode"); local gfxTog = pageToggle(page, y - 2, 160); y = y + 30
     local gfxNames = { "Optimized Realism", "Low Realism", "Medium Realism", "Ultra Realism" }
     local gfxOptBtns = {}
@@ -4050,19 +4069,9 @@ do
             gfxStatus.Text = "setfpscap unsupported"; gfxStatus.TextColor3 = COL_RED
         end
     end)
-    ffApply.MouseButton1Click:Connect(function()
-        local n = tonumber(ffBox.Text)
-        if not n then flashErr(ffBox) return end
-        n = math.clamp(math.floor(n), 1, 100000)
-        if setCap(n) then
-            ffBox.Text = tostring(n); flashOk(ffBox)
-            gfxStatus.Text = "Fake FPS " .. tostring(n); gfxStatus.TextColor3 = COL_GREEN
-        else
-            gfxStatus.Text = "setfpscap unsupported"; gfxStatus.TextColor3 = COL_RED
-        end
-    end)
     local fpsAcc, fpsN = 0, 0
-    RunService.RenderStepped:Connect(function(dt)
+    local fpsConn = RunService.RenderStepped:Connect(function(dt)
+        if not gui.Parent then return end
         fpsAcc = fpsAcc + dt
         fpsN = fpsN + 1
         if fpsAcc >= 0.5 then
@@ -4186,6 +4195,7 @@ do
                 gfxApply(pick)
             end
         end)
+        b.MouseLeave:Connect(function() task.defer(gfxPaintOpts) end)
     end
     gfxPaintOpts()
     gfxTog.MouseButton1Click:Connect(function()
@@ -4194,11 +4204,7 @@ do
             gfxStatus.Text = "Applying..."; gfxStatus.TextColor3 = COL_YELLOW
             gfxSave()
             gfxApply(gfxPreset)
-            local want = gfxPresets[gfxPreset]
-            local stick = false
-            pcall(function()
-                stick = want and math.abs(Lighting.Brightness - want.bright) < 0.01
-            end)
+            local applied = gfxPreset
             if not gfxLoop then
                 gfxLoop = true
                 task.spawn(function()
@@ -4209,11 +4215,16 @@ do
                     gfxLoop = false
                 end)
             end
-            if stick then
-                gfxStatus.Text = gfxPreset .. " ON"; gfxStatus.TextColor3 = COL_GREEN
-            else
-                gfxStatus.Text = "Game is reverting graphics"; gfxStatus.TextColor3 = COL_RED
-            end
+            gfxStatus.Text = applied .. " ON"; gfxStatus.TextColor3 = COL_GREEN
+            task.delay(1.5, function()
+                if not gfxOn or gfxPreset ~= applied then return end
+                local okC, cur = pcall(function() return Lighting.Brightness end)
+                local w = gfxPresets[applied]
+                if okC and w and math.abs(cur - w.bright) > 0.01 then
+                    gfxStatus.Text = applied .. " - game is reverting"
+                    gfxStatus.TextColor3 = COL_YELLOW
+                end
+            end)
         else
             gfxRestore()
             gfxSaved = {}
@@ -4222,6 +4233,8 @@ do
     end)
     local function cleanGFX()
         gfxOn = false
+        gfxLoop = false
+        if fpsConn then pcall(function() fpsConn:Disconnect() end) fpsConn = nil end
         gfxRestore()
         gfxSaved = {}
     end
