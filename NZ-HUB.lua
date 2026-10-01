@@ -130,8 +130,9 @@ gui.Name = "NZ-HUB"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-local okP = pcall(function() gui.Parent = CoreGui end)
-if not okP then gui.Parent = player:WaitForChild("PlayerGui") end
+local pg = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui", 10)
+local okP = pg and pcall(function() gui.Parent = pg end)
+if not okP then pcall(function() gui.Parent = CoreGui end) end
 _G.__NZHUB = gui
 _G.__NZHub = gui
 
