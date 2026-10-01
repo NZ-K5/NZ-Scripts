@@ -4042,6 +4042,36 @@ do
         gfxOptBtns[nm] = b
         y = y + 34
     end
+    local fogMode = "Original Fog"
+    local fogPresets = {
+        ["Low Fog"]    = { fogEnd = 70000, density = 0.18, haze = 1 },
+        ["Medium Fog"] = { fogEnd = 24000, density = 0.35, haze = 3 },
+        ["High Fog"]   = { fogEnd = 6000,  density = 0.55, haze = 5 },
+        ["FoggyDay"]   = { fogEnd = 1200,  density = 0.78, haze = 8 },
+    }
+    local fogBtns = {}
+    local function fogPaint()
+        for nm, b in pairs(fogBtns) do
+            if nm == fogMode then
+                TweenService:Create(b, TweenInfo.new(0.15), { BackgroundColor3 = COL_ACCENT, TextColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+            else
+                TweenService:Create(b, TweenInfo.new(0.15), { BackgroundColor3 = COL_BG_ALT, TextColor3 = COL_TEXT_DIM }):Play()
+            end
+        end
+    end
+    y = y + 8
+    pageLabel(page, y, "Fog Options")
+    y = y + 24
+    local fogNames = { "Original Fog", "Low Fog", "Medium Fog", "High Fog", "FoggyDay" }
+    for i, nm in ipairs(fogNames) do
+        local b = pageWideBtn(page, y, nm)
+        b.Size = UDim2.new(0, 165, 0, 26)
+        b.TextColor3 = COL_TEXT_DIM
+        if i % 2 == 0 then b.Position = UDim2.new(0, 177, 0, y) end
+        if i % 2 == 0 then y = y + 30 end
+        fogBtns[nm] = b
+    end
+    y = y + 34
     local fpsLbl = Instance.new("TextLabel")
     fpsLbl.Size = UDim2.new(1, -8, 0, 16); fpsLbl.Position = UDim2.new(0, 4, 0, y)
     fpsLbl.BackgroundTransparency = 1; fpsLbl.Text = "FPS: -"; fpsLbl.TextColor3 = COL_GREEN
@@ -4094,10 +4124,10 @@ do
         Future = techEnum("Future"),
     }
     local gfxPresets = {
-        ["Optimized Realism"] = { tech = TECH.ShadowMap, shadows = true, bright = 2, fog = 10000, bloom = 0.6, dof = 0, rays = 0.02, sat = 0.15, con = 0.1, atmo = 0.35, haze = 2 },
-        ["Low Realism"] = { tech = TECH.Voxel, shadows = false, bright = 1.5, fog = 100000, bloom = 0, dof = 0, rays = 0, sat = 0, con = 0, atmo = 0.3, haze = 1 },
-        ["Medium Realism"] = { tech = TECH.ShadowMap, shadows = true, bright = 2.2, fog = 8000, bloom = 1, dof = 0.15, rays = 0.05, sat = 0.25, con = 0.15, atmo = 0.4, haze = 3 },
-        ["Ultra Realism"] = { tech = TECH.Future, shadows = true, bright = 2.5, fog = 6000, bloom = 1.6, dof = 0.4, rays = 0.09, sat = 0.35, con = 0.2, atmo = 0.5, haze = 5 },
+        ["Optimized Realism"] = { tech = TECH.ShadowMap, shadows = true, bright = 2, bloom = 0.6, dof = 0, rays = 0.02, sat = 0.15, con = 0.1 },
+        ["Low Realism"] = { tech = TECH.Voxel, shadows = false, bright = 1.5, bloom = 0, dof = 0, rays = 0, sat = 0, con = 0 },
+        ["Medium Realism"] = { tech = TECH.ShadowMap, shadows = true, bright = 2.2, bloom = 1, dof = 0.15, rays = 0.05, sat = 0.25, con = 0.15 },
+        ["Ultra Realism"] = { tech = TECH.Future, shadows = true, bright = 2.5, bloom = 1.6, dof = 0.4, rays = 0.09, sat = 0.35, con = 0.2 },
     }
     local function gfxPaintOpts()
         for nm, b in pairs(gfxOptBtns) do
@@ -4151,6 +4181,54 @@ do
         end
         gfxClearMade()
     end
+    local function applyFog(day)
+        if fogMode == "Original Fog" then
+            local s = gfxSaved
+            pcall(function()
+                Lighting.FogStart = (s.FogStart ~= nil) and s.FogStart or 0
+                Lighting.FogEnd = (s.FogEnd ~= nil) and s.FogEnd or 100000
+                if s.FogColor then Lighting.FogColor = s.FogColor end
+            end)
+            local a = s.atmo
+            local at = Lighting:FindFirstChildOfClass("Atmosphere")
+            if at and at.Name == "_NZFx" and not a then
+                for i, e in ipairs(gfxMade) do
+                    if e == at then table.remove(gfxMade, i) break end
+                end
+                pcall(function() at:Destroy() end)
+                at = nil
+            end
+            if at and a then
+                pcall(function()
+                    if a.Density then at.Density = a.Density end
+                    if a.Haze then at.Haze = a.Haze end
+                    if a.Color then at.Color = a.Color end
+                    if a.Decay then at.Decay = a.Decay end
+                    if a.Glare then at.Glare = a.Glare end
+                    if a.Offset then at.Offset = a.Offset end
+                end)
+            end
+            return
+        end
+        local f = fogPresets[fogMode]
+        if not f then return end
+        pcall(function()
+            Lighting.FogStart = 0
+            Lighting.FogEnd = f.fogEnd
+            Lighting.FogColor = day and Color3.fromRGB(200, 208, 220) or Color3.fromRGB(24, 28, 44)
+        end)
+        local at = Lighting:FindFirstChildOfClass("Atmosphere")
+        if not at then at = gfxFx("Atmosphere", {}) end
+        if at then
+            pcall(function()
+                at.Density = f.density
+                at.Haze = f.haze
+                at.Color = day and Color3.fromRGB(205, 214, 228) or Color3.fromRGB(26, 32, 50)
+                at.Decay = day and Color3.fromRGB(150, 180, 200) or Color3.fromRGB(10, 15, 30)
+                at.Glare = 0
+            end)
+        end
+    end
     local function gfxApply(name)
         local p = gfxPresets[name]
         if not p then return end
@@ -4160,37 +4238,16 @@ do
         if p.tech then pcall(function() Lighting.Technology = p.tech end) end
         pcall(function() Lighting.GlobalShadows = p.shadows end)
         pcall(function() Lighting.Brightness = p.bright end)
-        pcall(function() Lighting.FogEnd = p.fog end)
-        pcall(function() Lighting.FogStart = 0 end)
         pcall(function()
             if day then
-                Lighting.FogColor = Color3.fromRGB(190, 200, 215)
                 Lighting.Ambient = Color3.fromRGB(140, 140, 150)
                 Lighting.OutdoorAmbient = Color3.fromRGB(120, 120, 130)
             else
-                Lighting.FogColor = Color3.fromRGB(15, 18, 30)
                 Lighting.Ambient = Color3.fromRGB(35, 35, 45)
                 Lighting.OutdoorAmbient = Color3.fromRGB(30, 30, 40)
             end
         end)
-        local at = Lighting:FindFirstChildOfClass("Atmosphere")
-        if not at then
-            at = gfxFx("Atmosphere", {})
-        end
-        if at then
-            pcall(function()
-                at.Density = p.atmo
-                at.Haze = p.haze
-                if day then
-                    at.Color = Color3.fromRGB(200, 210, 225)
-                    at.Decay = Color3.fromRGB(150, 180, 200)
-                else
-                    at.Color = Color3.fromRGB(20, 25, 45)
-                    at.Decay = Color3.fromRGB(10, 15, 30)
-                end
-                at.Glare = 0
-            end)
-        end
+        applyFog(day)
         gfxFx("BloomEffect", { Intensity = p.bloom, Size = 24, Threshold = day and 1.2 or 0.9 })
         gfxFx("SunRaysEffect", { Intensity = p.rays, Spread = 0.3 })
         gfxFx("ColorCorrectionEffect", { Saturation = p.sat, Contrast = p.con, TintColor = Color3.fromRGB(255, 255, 255) })
@@ -4210,6 +4267,17 @@ do
         b.MouseLeave:Connect(function() task.defer(gfxPaintOpts) end)
     end
     gfxPaintOpts()
+    for nm, b in pairs(fogBtns) do
+        local pick = nm
+        b.MouseButton1Click:Connect(function()
+            fogMode = pick
+            fogPaint()
+            gfxStatus.Text = "Fog: " .. pick
+            if gfxOn then gfxApply(gfxPreset) end
+        end)
+        b.MouseLeave:Connect(function() task.defer(fogPaint) end)
+    end
+    fogPaint()
     gfxTog.MouseButton1Click:Connect(function()
         gfxOn = not gfxOn; setToggle(gfxTog, gfxOn)
         if gfxOn then
