@@ -4081,11 +4081,23 @@ do
         end
     end)
     local gfxOn, gfxPreset, gfxSaved, gfxMade, gfxLoop = false, "Optimized Realism", {}, {}, false
+    local function techEnum(member)
+        local ok, e = pcall(function() return Enum.Technology[member] end)
+        if ok and e then return e end
+        ok, e = pcall(function() return Enum.LightingTechnology[member] end)
+        if ok and e then return e end
+        return nil
+    end
+    local TECH = {
+        ShadowMap = techEnum("ShadowMap"),
+        Voxel = techEnum("Voxel"),
+        Future = techEnum("Future"),
+    }
     local gfxPresets = {
-        ["Optimized Realism"] = { tech = Enum.LightingTechnology.ShadowMap, shadows = true, bright = 2, fog = 10000, bloom = 0.6, dof = 0, rays = 0.02, sat = 0.15, con = 0.1, atmo = 0.35, haze = 2 },
-        ["Low Realism"] = { tech = Enum.LightingTechnology.Voxel, shadows = false, bright = 1.5, fog = 100000, bloom = 0, dof = 0, rays = 0, sat = 0, con = 0, atmo = 0.3, haze = 1 },
-        ["Medium Realism"] = { tech = Enum.LightingTechnology.ShadowMap, shadows = true, bright = 2.2, fog = 8000, bloom = 1, dof = 0.15, rays = 0.05, sat = 0.25, con = 0.15, atmo = 0.4, haze = 3 },
-        ["Ultra Realism"] = { tech = Enum.LightingTechnology.Future, shadows = true, bright = 2.5, fog = 6000, bloom = 1.6, dof = 0.4, rays = 0.09, sat = 0.35, con = 0.2, atmo = 0.5, haze = 5 },
+        ["Optimized Realism"] = { tech = TECH.ShadowMap, shadows = true, bright = 2, fog = 10000, bloom = 0.6, dof = 0, rays = 0.02, sat = 0.15, con = 0.1, atmo = 0.35, haze = 2 },
+        ["Low Realism"] = { tech = TECH.Voxel, shadows = false, bright = 1.5, fog = 100000, bloom = 0, dof = 0, rays = 0, sat = 0, con = 0, atmo = 0.3, haze = 1 },
+        ["Medium Realism"] = { tech = TECH.ShadowMap, shadows = true, bright = 2.2, fog = 8000, bloom = 1, dof = 0.15, rays = 0.05, sat = 0.25, con = 0.15, atmo = 0.4, haze = 3 },
+        ["Ultra Realism"] = { tech = TECH.Future, shadows = true, bright = 2.5, fog = 6000, bloom = 1.6, dof = 0.4, rays = 0.09, sat = 0.35, con = 0.2, atmo = 0.5, haze = 5 },
     }
     local function gfxPaintOpts()
         for nm, b in pairs(gfxOptBtns) do
@@ -4145,7 +4157,7 @@ do
         local mins = 720
         pcall(function() mins = Lighting:GetMinutesAfterMidnight() end)
         local day = mins > 360 and mins < 1080
-        pcall(function() Lighting.Technology = p.tech end)
+        if p.tech then pcall(function() Lighting.Technology = p.tech end) end
         pcall(function() Lighting.GlobalShadows = p.shadows end)
         pcall(function() Lighting.Brightness = p.bright end)
         pcall(function() Lighting.FogEnd = p.fog end)
