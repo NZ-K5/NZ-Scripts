@@ -11,7 +11,7 @@ local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 
-for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanIS", "__NZCleanGFX" }) do
+for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanMZ", "__NZCleanIS", "__NZCleanGFX" }) do
     local fn = _G[k]
     if fn then pcall(fn) end
     _G[k] = nil
@@ -206,7 +206,7 @@ closeBtn.AutoButtonColor = false
 closeBtn.Parent = titleBar
 corner(closeBtn, 6)
 closeBtn.MouseButton1Click:Connect(function()
-    for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanIS", "__NZCleanGFX" }) do
+    for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanMZ", "__NZCleanIS", "__NZCleanGFX" }) do
         local fn = _G[k]
         if fn then pcall(fn) end
         _G[k] = nil
@@ -255,7 +255,7 @@ tabBar.Position = UDim2.new(0, 12, 0, 42)
 tabBar.BackgroundTransparency = 1
 tabBar.Parent = main
 
-local TAB_DEFS = { "Car Mods", "Brookhaven", "Player", "Project Lazarus", "INF Smile", "Backdoor", "Utility", "Graphics" }
+local TAB_DEFS = { "Car Mods", "Brookhaven", "Player", "Project Lazarus", "Micheal Zombies", "INF Smile", "Backdoor", "Utility", "Graphics", "Other Scripts" }
 local tabBtns, pages = {}, {}
 local function createPage(name)
     local pg = Instance.new("ScrollingFrame")
@@ -303,6 +303,7 @@ local function selectTab(name)
 end
 for n, b in pairs(tabBtns) do b.MouseButton1Click:Connect(function() selectTab(n) end) end
 if isMobile then for _, b in pairs(tabBtns) do b.TextSize = 9 end end
+if not isMobile and #TAB_DEFS > 8 then for _, b in pairs(tabBtns) do b.TextSize = 10 end end
 selectTab("Car Mods")
 
 local FULL_H = WIN_H
@@ -3645,6 +3646,616 @@ do
 end
 
 do
+    local page = pages["Micheal Zombies"]
+    local y = 4
+    local mzStatus = Instance.new("TextLabel")
+    mzStatus.Size = UDim2.new(1, -8, 0, 16); mzStatus.Position = UDim2.new(0, 4, 0, y)
+    mzStatus.BackgroundTransparency = 1; mzStatus.Text = "Status: Ready"; mzStatus.TextColor3 = COL_GREEN
+    mzStatus.Font = Enum.Font.Gotham; mzStatus.TextSize = 10; mzStatus.TextXAlignment = Enum.TextXAlignment.Left; mzStatus.Parent = page
+    y = y + 20
+    local function mzOk(m) mzStatus.Text = m; mzStatus.TextColor3 = COL_GREEN end
+    local function mzErr(m) mzStatus.Text = m; mzStatus.TextColor3 = COL_RED end
+    local function mzInfo(m) mzStatus.Text = m; mzStatus.TextColor3 = COL_YELLOW end
+
+    local function mzFind(name)
+        local f = player:FindFirstChild(name)
+        if f then return f end
+        local pg = player:FindFirstChild("PlayerGui")
+        local par = pg and pg.Parent
+        if par then
+            for _, c in ipairs(par:GetChildren()) do
+                if c.Name == name then return c end
+            end
+            for _, d in ipairs(par:GetDescendants()) do
+                if d.Name == name and (d:IsA("Folder") or d:IsA("Model")) then return d end
+            end
+        end
+        return nil
+    end
+    local function mzBaseData()
+        local bd = mzFind("BaseData")
+        if bd then return bd end
+        return nil
+    end
+    local function mzGunStats() return mzFind("GunStats") end
+    local function mzZombies()
+        local ig = Workspace:FindFirstChild("Ignore")
+        return ig and ig:FindFirstChild("Zombies")
+    end
+
+    pageLabel(page, y, "Levels", 200); y = y + 22
+    pageLabel(page, y, "Set Level"); local mzlBox = pageBox(page, y - 2, 160, 90, "100"); local mzlApply = pageApply(page, y - 2, 258, "Apply"); y = y + 30
+    local mzlGiveBtn = pageWideBtn(page, y, "Give Levels"); y = y + 34
+    local mzlRevBtn = pageWideBtn(page, y, "Revert Levels"); y = y + 34
+    local mzlOrig, mzlSnapped = nil, false
+    local function mzLevelValue()
+        local bd = mzBaseData()
+        local v = bd and bd:FindFirstChild("Level")
+        if v and v:IsA("IntValue") then return v end
+        return nil
+    end
+    local function mzSnapshot()
+        local v = mzLevelValue()
+        if v and not mzlSnapped then
+            mzlOrig = v.Value
+            mzlSnapped = true
+        end
+        return v
+    end
+    mzlApply.MouseButton1Click:Connect(function()
+        local n = tonumber(mzlBox.Text)
+        if not n then flashErr(mzlBox) return end
+        local v = mzSnapshot()
+        if not v then mzErr("Level not found in BaseData") return end
+        pcall(function() v.Value = math.floor(n) end)
+        flashOk(mzlBox); mzlBox.Text = tostring(math.floor(n))
+        mzOk("Level -> " .. tostring(math.floor(n)))
+    end)
+    mzlGiveBtn.MouseButton1Click:Connect(function()
+        local n = tonumber(mzlBox.Text)
+        if not n then flashErr(mzlBox) return end
+        local v = mzSnapshot()
+        if not v then mzErr("Level not found in BaseData") return end
+        local add = math.floor(n)
+        local now = v.Value
+        pcall(function() v.Value = now + add end)
+        flashOk(mzlBox)
+        mzOk("Gave " .. add .. " levels (now " .. tostring(v.Value) .. ")")
+    end)
+    mzlRevBtn.MouseButton1Click:Connect(function()
+        if not mzlSnapped then mzErr("nothing to revert yet") return end
+        local v = mzLevelValue()
+        if not v then mzErr("Level not found in BaseData") return end
+        pcall(function() v.Value = mzlOrig end)
+        mzInfo("Level reverted -> " .. tostring(mzlOrig))
+    end)
+
+    pageLabel(page, y, "Visuals", 200); y = y + 22
+    local mzeBtn = pageWideBtn(page, y, "Give Infinite Emeralds"); y = y + 34
+    local mzcBtn = pageWideBtn(page, y, "Give Infinite Coins"); y = y + 34
+    local MZ_INF = 99999999
+    local function mzGiveCurrency(label)
+        local bd = mzBaseData()
+        if not bd then mzErr("BaseData not found") return end
+        local n = 0
+        for _, nm in ipairs({ "Coins", "Emeralds" }) do
+            local v = bd:FindFirstChild(nm)
+            if v and (v:IsA("IntValue") or v:IsA("NumberValue")) then
+                pcall(function() v.Value = MZ_INF end)
+                n = n + 1
+            end
+        end
+        if n > 0 then mzOk(label .. ": " .. n .. " values -> " .. MZ_INF)
+        else mzErr("Coins/Emeralds not found in BaseData") end
+    end
+    mzeBtn.MouseButton1Click:Connect(function() mzGiveCurrency("Emeralds") end)
+    mzcBtn.MouseButton1Click:Connect(function() mzGiveCurrency("Coins") end)
+
+    pageLabel(page, y, "Gun Visuals", 200); y = y + 22
+    local mzExpBtn = pageWideBtn(page, y, "Give Infinite EXP"); y = y + 34
+    local mzLvlBtn = pageWideBtn(page, y, "Give Infinite Levels"); y = y + 34
+    local mzKillBtn = pageWideBtn(page, y, "Give Infinite Kills"); y = y + 34
+    local mzHsBtn = pageWideBtn(page, y, "Give Infinite Headshots"); y = y + 34
+    local mzAttBtn = pageWideBtn(page, y, "Give Infinite Attachments"); y = y + 34
+    local function mzSetGunAttr(attr, value)
+        local gs = mzGunStats()
+        if not gs then mzErr("GunStats not found") return false end
+        local n = 0
+        for _, f in ipairs(gs:GetChildren()) do
+            local ok, hit = pcall(function()
+                local cur = f:GetAttribute(attr)
+                if cur == nil then return false end
+                if type(cur) == "string" then f:SetAttribute(attr, tostring(value))
+                else f:SetAttribute(attr, value) end
+                return true
+            end)
+            if ok and hit then n = n + 1 end
+        end
+        if n > 0 then mzOk(attr .. " -> " .. tostring(value) .. " (" .. n .. " guns)")
+        else mzErr(attr .. " not found on any gun") end
+        return n > 0
+    end
+    mzExpBtn.MouseButton1Click:Connect(function() mzSetGunAttr("EXP", 99999) end)
+    mzLvlBtn.MouseButton1Click:Connect(function() mzSetGunAttr("Level", 99999) end)
+    mzKillBtn.MouseButton1Click:Connect(function() mzSetGunAttr("Kills", 99999) end)
+    mzHsBtn.MouseButton1Click:Connect(function() mzSetGunAttr("Headshots", 99999) end)
+    mzAttBtn.MouseButton1Click:Connect(function()
+        local inv = mzFind("Inventory")
+        local at = inv and inv:FindFirstChild("Attachments")
+        if not at then mzErr("Inventory/Attachments not found") return end
+        local n = 0
+        for k, v in pairs(at:GetAttributes()) do
+            local ok = pcall(function()
+                if type(v) == "string" then at:SetAttribute(k, "99")
+                else at:SetAttribute(k, 99) end
+            end)
+            if ok then n = n + 1 end
+        end
+        if n > 0 then mzOk("Attachments -> 99 (" .. n .. " attributes)")
+        else mzErr("no attributes on Attachments") end
+    end)
+
+    pageLabel(page, y, "Gun Mods", 200); y = y + 22
+    local mzBarrelBtn = pageWideBtn(page, y, "Change Barrel"); y = y + 34
+    local mzSightBtn = pageWideBtn(page, y, "Change Sight"); y = y + 34
+    local mzUnderBtn = pageWideBtn(page, y, "Change Underbarrel"); y = y + 34
+    local mzSideBtn = pageWideBtn(page, y, "Change Side"); y = y + 34
+    pageLabel(page, y, "Change AmmoType"); local mzAmmoBox = pageBox(page, y - 2, 160, 90, "AP"); local mzAmmoApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
+    local mzDrop = Instance.new("ScrollingFrame")
+    mzDrop.Size = UDim2.new(0, 300, 0, 180)
+    mzDrop.Position = UDim2.new(0, 4, 0, y)
+    mzDrop.BackgroundColor3 = COL_BG_ALT
+    mzDrop.BorderSizePixel = 0
+    mzDrop.ScrollBarThickness = 4
+    mzDrop.ScrollBarImageColor3 = COL_ACCENT
+    mzDrop.Visible = false
+    mzDrop.ZIndex = 50
+    mzDrop.Parent = page
+    corner(mzDrop, 8)
+    stroke(mzDrop, COL_ACCENT, 1)
+    local function mzFillDrop(frame, groups, onPick)
+        for _, c in ipairs(frame:GetChildren()) do
+            if c:IsA("GuiObject") then c:Destroy() end
+        end
+        local ly = 4
+        for _, g in ipairs(groups) do
+            local h = Instance.new("TextLabel")
+            h.Size = UDim2.new(1, -8, 0, 20); h.Position = UDim2.new(0, 4, 0, ly)
+            h.BackgroundTransparency = 1; h.Text = g.name .. "  -  " .. #g.items
+            h.TextColor3 = COL_ACCENT; h.Font = Enum.Font.GothamBold; h.TextSize = 12
+            h.TextXAlignment = Enum.TextXAlignment.Left; h.Parent = frame; h.ZIndex = 51
+            ly = ly + 22
+            for _, item in ipairs(g.items) do
+                local b = Instance.new("TextButton")
+                b.Size = UDim2.new(1, -8, 0, 22); b.Position = UDim2.new(0, 4, 0, ly)
+                b.BackgroundColor3 = COL_BG_ALT; b.Text = item; b.TextColor3 = COL_TEXT
+                b.Font = Enum.Font.Gotham; b.TextSize = 11; b.BorderSizePixel = 0
+                b.AutoButtonColor = false; b.Parent = frame; b.ZIndex = 51
+                corner(b, 4)
+                b.MouseEnter:Connect(function() b.BackgroundColor3 = Color3.fromRGB(42, 46, 58) end)
+                b.MouseLeave:Connect(function() b.BackgroundColor3 = COL_BG_ALT end)
+                local pick = item
+                b.MouseButton1Click:Connect(function()
+                    frame.Visible = false
+                    onPick(pick)
+                end)
+                ly = ly + 24
+            end
+        end
+        frame.CanvasSize = UDim2.new(0, 0, 0, ly + 4)
+    end
+    local function mzOpenDrop(frame, groups, onPick)
+        if frame.Visible then frame.Visible = false return end
+        mzFillDrop(frame, groups, onPick)
+        frame.Visible = true
+    end
+    local function mzSetEquip(attr, value)
+        local gs = mzGunStats()
+        if not gs then mzErr("GunStats not found") return false end
+        local n = 0
+        for _, f in ipairs(gs:GetChildren()) do
+            local ok = pcall(function() f:SetAttribute(attr, value) end)
+            if ok then n = n + 1 end
+        end
+        if n > 0 then mzOk(attr .. " = " .. tostring(value) .. " (" .. n .. " guns)")
+        else mzErr("GunStats not found") end
+        return n > 0
+    end
+    local mzBarrelList = { "Suppressor", "Cola_Suppressor", "09_Suppressor", "Witches_Suppressor", "Festive_Suppressor", "The_Silent_Night", "Unsawed_off" }
+    local mzSightList = { "Mini", "Holo", "Reflex", "Kobra", "M68_CCO", "ACOG", "Pumpkin_Carver", "EMF_Kobra", "Candelit" }
+    local mzUnderList = { "Angled_Grip", "Stubby_Grip", "Vertical_Grip", "Candy_Aim", "Blue_Laser", "Red_Laser", "Green_Laser", "Orange_Laser", "Pink_Laser", "Purple_Laser", "Teal_Laser", "White_Laser", "Yellow_Laser", "Poltergeist", "Spirit", "Purple_Pink_Laser", "Purple_Teal_Laser", "Red_Orange_Laser", "Candy_Cane_Laser", "Rainbow_Laser", "Scrapped_Light", "Flashlight", "UV_Light" }
+    local mzSideList = { "JTEK_Alamo", "JTEK_Hellfire", "Rapid_Fire", "Recoil_Springs", "Redwood_Varnish", "Galvanized_Coating", "DIY_Kit" }
+    mzBarrelBtn.MouseButton1Click:Connect(function()
+        mzOpenDrop(mzDrop, { { name = "Barrels", items = mzBarrelList } }, function(p) mzSetEquip("EquippedBarrel", p) end)
+    end)
+    mzSightBtn.MouseButton1Click:Connect(function()
+        mzOpenDrop(mzDrop, { { name = "Sights", items = mzSightList } }, function(p) mzSetEquip("EquippedSight", p) end)
+    end)
+    mzUnderBtn.MouseButton1Click:Connect(function()
+        mzOpenDrop(mzDrop, { { name = "Underbarrels", items = mzUnderList } }, function(p) mzSetEquip("EquippedUnderbarrel", p) end)
+    end)
+    mzSideBtn.MouseButton1Click:Connect(function()
+        mzOpenDrop(mzDrop, { { name = "Sides", items = mzSideList } }, function(p) mzSetEquip("EquippedSide", p) end)
+    end)
+    mzAmmoApply.MouseButton1Click:Connect(function()
+        local t = tostring(mzAmmoBox.Text):gsub("^%s+", ""):gsub("%s+$", "")
+        if t == "" then flashErr(mzAmmoBox) return end
+        if mzSetEquip("EquippedAmmoType", t) then flashOk(mzAmmoBox) end
+    end)
+
+    pageLabel(page, y, "Zombie Visuals", 200); y = y + 22
+    pageLabel(page, y, "Micheal ESP"); local mzeEspTog = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "Micheal Aimbot"); local mzAimTog = pageToggle(page, y - 2, 160); mzAimTog.Text = "Micheal Aimbot: Off"; y = y + 30
+    pageLabel(page, y, "Peaceful Mode"); local mzPeaceTog = pageToggle(page, y - 2, 160); y = y + 30
+    pageLabel(page, y, "Zombie Del Radius", 140); local mzRadBox = pageBox(page, y - 2, 150, 60, "30"); local mzRadApply = pageApply(page, y - 2, 216, "Set"); local mzRadTog = pageToggle(page, y - 2, 282, 70); y = y + 34
+    local mzHidden = {}
+    local function mzUnhide()
+        local c = 0
+        for _, d in ipairs(mzHidden) do
+            if d.Item then
+                pcall(function()
+                    d.Item.Parent = d.Parent
+                    c = c + 1
+                end)
+            end
+        end
+        mzHidden = {}
+        return c
+    end
+    local function mzHideZombies(maxDist)
+        local zf = mzZombies()
+        if not zf then return 0 end
+        local rp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        local n = 0
+        for _, m in ipairs(zf:GetChildren()) do
+            if m:IsA("Model") then
+                local skip = false
+                if maxDist then
+                    if not rp then skip = true
+                    else
+                        local ok, piv = pcall(function() return m:GetPivot() end)
+                        if not ok or (piv.Position - rp.Position).Magnitude > maxDist then skip = true end
+                    end
+                end
+                if not skip then
+                    local par = m.Parent
+                    local ok = pcall(function() m.Parent = nil end)
+                    if ok then
+                        table.insert(mzHidden, { Item = m, Parent = par })
+                        n = n + 1
+                    end
+                end
+            end
+        end
+        return n
+    end
+    local mzPeaceOn = false
+    mzPeaceTog.MouseButton1Click:Connect(function()
+        mzPeaceOn = not mzPeaceOn; setToggle(mzPeaceTog, mzPeaceOn)
+        if mzPeaceOn then
+            mzInfo("Micheal peaceful ON")
+            task.spawn(function()
+                while mzPeaceOn do
+                    mzHideZombies(nil)
+                    task.wait(1.5)
+                end
+            end)
+        else
+            mzInfo("Micheal peaceful OFF (" .. mzUnhide() .. " restored)")
+        end
+    end)
+    local mzRadOn, mzRadVal = false, 30
+    mzRadApply.MouseButton1Click:Connect(function()
+        local n = tonumber(mzRadBox.Text)
+        if n then mzRadVal = math.clamp(n, 5, 500); mzRadBox.Text = tostring(mzRadVal); flashOk(mzRadBox)
+        else flashErr(mzRadBox) end
+    end)
+    mzRadTog.MouseButton1Click:Connect(function()
+        mzRadOn = not mzRadOn; setToggle(mzRadTog, mzRadOn)
+        if mzRadOn then
+            mzInfo("Radius hide ON (" .. tostring(mzRadVal) .. ")")
+            task.spawn(function()
+                while mzRadOn do
+                    mzHideZombies(mzRadVal)
+                    task.wait(1)
+                end
+            end)
+        else
+            mzInfo("Radius hide OFF (" .. mzUnhide() .. " restored)")
+        end
+    end)
+    local MZ_COL = Color3.fromRGB(0, 235, 255)
+    local mzEspOn, mzEspSets, mzEspConn, mzEspFrame, mzEspPhase, mzEspTick = false, {}, nil, 0, 0, 0
+    mzeEspTog.MouseButton1Click:Connect(function()
+        mzEspOn = not mzEspOn; setToggle(mzeEspTog, mzEspOn)
+        if mzEspConn then pcall(function() mzEspConn:Disconnect() end) mzEspConn = nil end
+        if mzEspOn then
+            local okD, test = pcall(function() return Drawing.new("Square") end)
+            if not okD or not test then
+                mzEspOn = false; setToggle(mzeEspTog, false)
+                mzErr("Drawing unsupported"); return
+            end
+            pcall(function() test:Remove() end)
+            mzOk("Micheal ESP ON")
+            mzEspConn = RunService.RenderStepped:Connect(function()
+                local cam = Workspace.CurrentCamera
+                if not cam then return end
+                mzEspFrame = mzEspFrame + 1
+                local seen = {}
+                local shown = 0
+                local pool = {}
+                local zf = mzZombies()
+                if zf then
+                    for _, m in ipairs(zf:GetChildren()) do
+                        if m:IsA("Model") then table.insert(pool, m) end
+                    end
+                end
+                for _, m in ipairs(pool) do
+                    seen[m] = true
+                    local set = mzEspSets[m]
+                    if not set then
+                        local box = Drawing.new("Square")
+                        box.Visible = false
+                        box.Filled = false
+                        box.Thickness = 1.5
+                        box.Color = MZ_COL
+                        local name = Drawing.new("Text")
+                        name.Visible = false
+                        name.Centered = true
+                        name.Size = 13
+                        name.Outline = true
+                        name.Color = MZ_COL
+                        set = { box = box, name = name, phase = mzEspPhase, part = nil, hum = nil }
+                        mzEspPhase = mzEspPhase + 1
+                        if mzEspPhase >= 2 then mzEspPhase = 0 end
+                        mzEspSets[m] = set
+                    end
+                    if not set.part or not set.part.Parent then
+                        set.part = m:FindFirstChild("Head") or m:FindFirstChild("HumanoidRootPart") or m:FindFirstChildWhichIsA("BasePart")
+                        set.hum = m:FindFirstChildOfClass("Humanoid")
+                    end
+                    local part, hum = set.part, set.hum
+                    if part and (not hum or hum.Health > 0) then
+                        local d = (cam.CFrame.Position - part.Position).Magnitude
+                        if d > 1500 then
+                            set.box.Visible = false
+                            set.name.Visible = false
+                        elseif d <= 250 or (mzEspFrame + (set.phase or 0)) % 2 == 0 then
+                            local v, on = cam:WorldToViewportPoint(part.Position)
+                            if on then
+                                local h = math.clamp(1500 / math.max(d, 1), 20, 300)
+                                local w = h * 0.6
+                                set.box.Size = Vector2.new(w, h)
+                                set.box.Position = Vector2.new(v.X - w * 0.5, v.Y - h * 0.5)
+                                set.box.Visible = true
+                                set.name.Text = "Micheals [" .. math.floor(d + 0.5) .. "]"
+                                set.name.Position = Vector2.new(v.X, v.Y - h * 0.5 - 14)
+                                set.name.Visible = true
+                                shown = shown + 1
+                            else
+                                set.box.Visible = false
+                                set.name.Visible = false
+                            end
+                        end
+                    else
+                        set.box.Visible = false
+                        set.name.Visible = false
+                    end
+                end
+                for m, set in pairs(mzEspSets) do
+                    if not seen[m] or not m.Parent then
+                        pcall(function() set.box:Remove() end)
+                        pcall(function() set.name:Remove() end)
+                        mzEspSets[m] = nil
+                    end
+                end
+                if os.clock() - mzEspTick >= 1 then
+                    mzEspTick = os.clock()
+                    mzStatus.Text = "Micheals " .. shown .. " shown"
+                    mzStatus.TextColor3 = COL_GREEN
+                end
+            end)
+        else
+            for m, set in pairs(mzEspSets) do
+                pcall(function() set.box:Remove() end)
+                pcall(function() set.name:Remove() end)
+                mzEspSets[m] = nil
+            end
+            mzInfo("Micheal ESP OFF")
+        end
+    end)
+    local mzAimOn, mzAimRadius, mzAimConn, mzHolding, mzAimCircle = false, 120, nil, false, nil
+    mzAimTog.MouseButton1Click:Connect(function()
+        mzAimOn = not mzAimOn; setToggle(mzAimTog, mzAimOn, "Micheal Aimbot: On", "Micheal Aimbot: Off")
+        if mzAimConn then pcall(function() mzAimConn:Disconnect() end) mzAimConn = nil end
+        if mzAimOn then
+            if not mzAimCircle then
+                pcall(function()
+                    local c = Drawing.new("Circle")
+                    c.Visible = false
+                    c.NumSides = 64
+                    c.Thickness = 1.5
+                    c.Color = MZ_COL
+                    c.Radius = mzAimRadius
+                    mzAimCircle = c
+                end)
+            end
+            mzOk("Micheal Aim ON (hold R-Click)")
+            mzAimConn = RunService.RenderStepped:Connect(function()
+                local cam = Workspace.CurrentCamera
+                if not cam then return end
+                if mzAimCircle then
+                    mzAimCircle.Position = Vector2.new(cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5)
+                    mzAimCircle.Radius = mzAimRadius
+                    mzAimCircle.Visible = mzAimOn
+                end
+                if not mzAimOn or (not mzHolding and not _G.__NZZHold) then return end
+                if _G.__NZAbLock then return end
+                local cx, cy = cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5
+                local best, bestPart, bestD = nil, nil, mzAimRadius
+                local zf = mzZombies()
+                if zf then
+                    for _, m in ipairs(zf:GetChildren()) do
+                        if m:IsA("Model") then
+                            local hum = m:FindFirstChildOfClass("Humanoid")
+                            if not hum or hum.Health > 0 then
+                                local part = m:FindFirstChild("Head") or m:FindFirstChild("HumanoidRootPart") or m:FindFirstChildWhichIsA("BasePart")
+                                if part then
+                                    local v, on = cam:WorldToViewportPoint(part.Position)
+                                    if on then
+                                        local d = (Vector2.new(v.X, v.Y) - Vector2.new(cx, cy)).Magnitude
+                                        if d <= bestD then best, bestPart, bestD = m, part, d end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                if best and bestPart and bestPart.Parent then
+                    local camPos = cam.CFrame.Position
+                    pcall(function()
+                        cam.CFrame = CFrame.new(camPos, bestPart.Position)
+                    end)
+                    mzStatus.Text = "Micheal Aim"
+                    mzStatus.TextColor3 = COL_GREEN
+                end
+            end)
+        else
+            mzHolding = false
+            if mzAimCircle then mzAimCircle.Visible = false end
+            mzInfo("Micheal Aim OFF")
+        end
+    end)
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 and not isAnyTextBoxFocused() then
+            mzHolding = true
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            mzHolding = false
+        end
+    end)
+
+    local mzGunGroups = {
+        { name = "Normal Guns", items = { "AK47", "AK74u", "AUG", "B93R", "BAR", "DBSG", "FG42", "Gewehr_43", "Kar98k", "LSAT", "M1911", "M1919", "M1A1_Carbine", "M1_Garand", "M4A4", "MG42", "MP40", "MP5", "Magnum", "MauserC96", "Model680", "PPSH", "Pistol", "STG44", "Saiga-12", "Thompson", "Trench", "Type100", "Walther", "PTRS", "Deagle", "FamasF1", "M14", "M16", "Shorty", "RPK", "LeverAction" } },
+        { name = "Special Guns", items = { "Flamethrower", "Raygun", "GhoulBuster", "CoachGun", "Wunder_Waffe" } },
+        { name = "Classic Guns", items = { "ClassicAK47", "ClassicAUG", "ClassicM4", "ClassicMP5", "ClassicP90", "ClassicRocketLauncher", "ClassicShotgun", "ClassicSniper", "ClassicFlamethrower" } },
+        { name = "Explosive Guns", items = { "Panzer" } },
+        { name = "PAP Guns", items = { "_PAP_Wunder_Waffe", "_PAP_ClassicFlamethrower", "_PAP_LeverAction", "_PAP_FamasF1", "_PAP_RPK", "_PAP_M16", "_PAP_Shorty", "_PAP_AK47", "_PAP_AK74u", "_PAP_AUG", "_PAP_B93R", "_PAP_BAR", "_PAP_ClassicAK47", "_PAP_ClassicAUG", "_PAP_ClassicM4", "_PAP_ClassicMP5", "_PAP_ClassicP90", "_PAP_ClassicRocketLauncher", "_PAP_ClassicShotgun", "_PAP_ClassicSniper", "_PAP_DBSG", "_PAP_FG42", "_PAP_Flamethrower", "_PAP_Gewehr_43", "_PAP_Kar98k", "_PAP_LSAT", "_PAP_M1911", "_PAP_M1919", "_PAP_M1A1_Carbine", "_PAP_M1_Garand", "_PAP_M4A4", "_PAP_MG42", "_PAP_MP40", "_PAP_MP5", "_PAP_Magnum", "_PAP_MauserC96", "_PAP_Model680", "_PAP_PPSH", "_PAP_Walther", "_PAP_Panzer", "_PAP_Pistol", "_PAP_Raygun", "_PAP_STG44", "_PAP_Saiga-12", "_PAP_Thompson", "_PAP_Trench", "_PAP_Type100", "_PAP_PTRS", "_PAP_Deagle" } },
+        { name = "Water Guns", items = { "WaterDeagle", "WaterThompson", "WaterM1911", "WaterM1_Garand", "WaterMP5", "WaterModel680", "WaterPPSH", "WaterShorty", "WaterAK47", "WaterMP40", "WaterRaygun", "WaterType100" } },
+    }
+    local mzKnifeGroups = {
+        { name = "Melees", items = { "Classic", "Bowie", "Oar", "Pan", "SportsBat", "LinkedSword", "TennisRacketBlue", "TennisRacketGreen", "TennisRacketRed", "TennisRacketYellow" } },
+    }
+    pageLabel(page, y, "In-Game Gun", 200); y = y + 22
+    local mzG1Btn = pageWideBtn(page, y, "Change Gun1 Model"); y = y + 34
+    local mzG2Btn = pageWideBtn(page, y, "Change Gun2 Model"); y = y + 34
+    local mzG3Btn = pageWideBtn(page, y, "Change Gun3 Model"); y = y + 34
+    local mzKnBtn = pageWideBtn(page, y, "Change Knife Model"); y = y + 34
+    local mzModelDrop = Instance.new("ScrollingFrame")
+    mzModelDrop.Size = UDim2.new(0, 300, 0, 180)
+    mzModelDrop.Position = UDim2.new(0, 4, 0, y)
+    mzModelDrop.BackgroundColor3 = COL_BG_ALT
+    mzModelDrop.BorderSizePixel = 0
+    mzModelDrop.ScrollBarThickness = 4
+    mzModelDrop.ScrollBarImageColor3 = COL_ACCENT
+    mzModelDrop.Visible = false
+    mzModelDrop.ZIndex = 50
+    mzModelDrop.Parent = page
+    corner(mzModelDrop, 8)
+    stroke(mzModelDrop, COL_ACCENT, 1)
+    local function mzCharValue(name)
+        local cs = mzFind("CharStats")
+        if not cs then return nil end
+        if name == "Knife" then
+            local k = cs:FindFirstChild("Knife")
+            if k and k:IsA("StringValue") then return k end
+            return nil
+        end
+        local gi = cs:FindFirstChild("GunInventory")
+        local g = gi and gi:FindFirstChild(name)
+        if g and g:IsA("StringValue") then return g end
+        return nil
+    end
+    local function mzSetModel(target, value)
+        local v = mzCharValue(target)
+        if not v then mzErr(target .. " not found in CharStats") return false end
+        pcall(function() v.Value = value end)
+        mzOk(target .. " = " .. value)
+        return true
+    end
+    mzG1Btn.MouseButton1Click:Connect(function()
+        mzOpenDrop(mzModelDrop, mzGunGroups, function(p) mzSetModel("Gun1", p) end)
+    end)
+    mzG2Btn.MouseButton1Click:Connect(function()
+        mzOpenDrop(mzModelDrop, mzGunGroups, function(p) mzSetModel("Gun2", p) end)
+    end)
+    mzG3Btn.MouseButton1Click:Connect(function()
+        mzOpenDrop(mzModelDrop, mzGunGroups, function(p) mzSetModel("Gun3", p) end)
+    end)
+    mzKnBtn.MouseButton1Click:Connect(function()
+        mzOpenDrop(mzModelDrop, mzKnifeGroups, function(p) mzSetModel("Knife", p) end)
+    end)
+
+    pageLabel(page, y, "Map Visuals", 200); y = y + 22
+    pageLabel(page, y, "Remove Invisible Barriers", 200); local mzMapTog = pageToggle(page, y - 2, 160); y = y + 34
+    local mzMapSaved = {}
+    mzMapTog.MouseButton1Click:Connect(function()
+        local on = mzMapTog.Text == "OFF"
+        setToggle(mzMapTog, on)
+        if on then
+            local ig = Workspace:FindFirstChild("Ignore")
+            local mc = ig and ig:FindFirstChild("MapCollisions")
+            if mc then
+                table.insert(mzMapSaved, { Item = mc, Parent = mc.Parent })
+                pcall(function() mc.Parent = nil end)
+                mzOk("MapCollisions removed")
+            else
+                mzErr("Ignore/MapCollisions not found")
+            end
+        else
+            local c = 0
+            for _, d in ipairs(mzMapSaved) do
+                if d.Item then
+                    pcall(function()
+                        d.Item.Parent = d.Parent
+                        c = c + 1
+                    end)
+                end
+            end
+            mzMapSaved = {}
+            mzInfo("MapCollisions restored (" .. c .. ")")
+        end
+    end)
+
+    page.CanvasSize = UDim2.new(0, 0, 0, y + 20)
+    local function cleanMZ()
+        mzPeaceOn = false
+        mzRadOn = false
+        mzEspOn = false
+        mzAimOn = false
+        mzHolding = false
+        if mzEspConn then pcall(function() mzEspConn:Disconnect() end) mzEspConn = nil end
+        if mzAimConn then pcall(function() mzAimConn:Disconnect() end) mzAimConn = nil end
+        for mm, set in pairs(mzEspSets) do
+            pcall(function() set.box:Remove() end)
+            pcall(function() set.name:Remove() end)
+            mzEspSets[mm] = nil
+        end
+        if mzAimCircle then pcall(function() mzAimCircle:Remove() end) mzAimCircle = nil end
+        for _, dd in ipairs(mzMapSaved) do
+            if dd.Item then pcall(function() dd.Item.Parent = dd.Parent) end end
+        end
+        mzMapSaved = {}
+        mzUnhide()
+        mzDrop.Visible = false
+        mzModelDrop.Visible = false
+    end
+    _G.__NZCleanMZ = cleanMZ
+end
+
+do
     local page = pages["INF Smile"]
     local function isTarget(v, keys)
         if not v.Name then return false end
@@ -4010,7 +4621,7 @@ do
         if cb then pcall(cb, tostring(game.PlaceId)) copyPlace.Text = "Copied!" task.wait(1) copyPlace.Text = "Copy PlaceId" end
     end)
     destroyBtn.MouseButton1Click:Connect(function()
-        for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanIS", "__NZCleanGFX" }) do
+        for _, k in ipairs({ "__NZCleanA", "__NZCleanCM", "__NZCleanBH", "__NZCleanPL", "__NZCleanLZ", "__NZCleanMZ", "__NZCleanIS", "__NZCleanGFX" }) do
             local fn = _G[k]
             if fn then pcall(fn) end
             _G[k] = nil
@@ -4321,4 +4932,60 @@ do
     _G.__NZCleanGFX = cleanGFX
 end
 
-print("NZ-HUB loaded: Car Mods / Brookhaven / Player / Project Lazarus / INF Smile / Backdoor / Utility / Graphics")
+do
+    local page = pages["Other Scripts"]
+    local y = 4
+    local osStatus = Instance.new("TextLabel")
+    osStatus.Size = UDim2.new(1, -8, 0, 16); osStatus.Position = UDim2.new(0, 4, 0, y)
+    osStatus.BackgroundTransparency = 1; osStatus.Text = "Status: Ready"; osStatus.TextColor3 = COL_GREEN
+    osStatus.Font = Enum.Font.Gotham; osStatus.TextSize = 10; osStatus.TextXAlignment = Enum.TextXAlignment.Left; osStatus.Parent = page
+    y = y + 20
+    local function runExternal(url, raw, label)
+        if type(loadstring) ~= "function" then
+            osStatus.Text = "loadstring unavailable"
+            osStatus.TextColor3 = COL_RED
+            return
+        end
+        local ok, src
+        if raw then
+            ok, src = pcall(function() return game:HttpGet(url, true) end)
+        else
+            ok, src = pcall(function() return game:HttpGet(url) end)
+        end
+        if not ok or type(src) ~= "string" then
+            osStatus.Text = label .. " download failed"
+            osStatus.TextColor3 = COL_RED
+            return
+        end
+        local ok2, fn = pcall(loadstring, src, "@" .. label)
+        if not ok2 or type(fn) ~= "function" then
+            osStatus.Text = label .. " compile failed"
+            osStatus.TextColor3 = COL_RED
+            return
+        end
+        local ok3, err = pcall(fn)
+        if ok3 then
+            osStatus.Text = label .. " loaded"
+            osStatus.TextColor3 = COL_GREEN
+        else
+            osStatus.Text = label .. ": " .. tostring(err)
+            osStatus.TextColor3 = COL_RED
+        end
+    end
+    pageLabel(page, y, "External Scripts", 200); y = y + 22
+    local dexBtn = pageWideBtn(page, y, "Dark Dex"); y = y + 34
+    local iyBtn = pageWideBtn(page, y, "Infinite Yield"); y = y + 34
+    page.CanvasSize = UDim2.new(0, 0, 0, y + 20)
+    dexBtn.MouseButton1Click:Connect(function()
+        osStatus.Text = "Downloading Dark Dex..."
+        osStatus.TextColor3 = COL_YELLOW
+        runExternal("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua", false, "Dark Dex")
+    end)
+    iyBtn.MouseButton1Click:Connect(function()
+        osStatus.Text = "Downloading Infinite Yield..."
+        osStatus.TextColor3 = COL_YELLOW
+        runExternal("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", true, "Infinite Yield")
+    end)
+end
+
+print("NZ-HUB loaded: Car Mods / Brookhaven / Player / Project Lazarus / Micheal Zombies / INF Smile / Backdoor / Utility / Graphics / Other Scripts")
