@@ -396,7 +396,7 @@ end)
 
 local function pageLabel(parent, y, text, w)
     local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(0, w or 150, 0, 22)
+    l.Size = UDim2.new(0, math.min(600, math.max(w or 150, math.ceil(#text * 6.4) + 10)), 0, 22)
     l.Position = UDim2.new(0, 4, 0, y)
     l.BackgroundTransparency = 1
     l.Text = text
@@ -2328,7 +2328,7 @@ do
     pageLabel(page, y, "ESP"); local espTog = pageToggle(page, y - 2, 160); espTog.Text = "ESP: Off"; y = y + 30
     pageLabel(page, y, "ESP Radius"); local espRadBox = pageBox(page, y - 2, 160, 90, "500"); local espRadApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
     local espDestroy = pageWideBtn(page, y, "Destroy ESP"); y = y + 34
-    pageLabel(page, y, "Aimbot"); local abTog = pageToggle(page, y - 2, 160); abTog.Text = "Aimbot: Off"; y = y + 30
+    pageLabel(page, y, "Aimbot"); local abTog = pageToggle(page, y - 2, 160, 110); abTog.Text = "Aimbot: Off"; y = y + 30
     pageLabel(page, y, "Aim Radius"); local abBox = pageBox(page, y - 2, 160, 90, "120"); local abApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
     pageLabel(page, y, "Team Check"); local abTeamTog = pageToggle(page, y - 2, 160); setToggle(abTeamTog, false); y = y + 34
     pageLabel(page, y, "Clicks Per Click"); local mcCountBox = pageBox(page, y - 2, 160, 90, "1"); local mcCountApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
@@ -3017,7 +3017,7 @@ do
     pageLabel(page, y, "Change All Weapon Camos"); y = y + 22
     local camoBtn = pageWideBtn(page, y, "Click To Select Camo"); y = y + 34
     local camoList = Instance.new("ScrollingFrame")
-    camoList.Size = UDim2.new(0, 300, 0, 180)
+    camoList.Size = UDim2.new(0, 300, 0, 300)
     camoList.Position = UDim2.new(0, 4, 0, y)
     camoList.BackgroundColor3 = COL_BG_ALT
     camoList.BorderSizePixel = 0
@@ -3034,7 +3034,7 @@ do
     pageLabel(page, y, "Del InvisibleWalls"); local invTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "Change FOV"); local fovBox = pageBox(page, y - 2, 160, 90, "70"); local fovApply = pageApply(page, y - 2, 258); y = y + 30
     pageLabel(page, y, "Zombie Esp"); local zespTog = pageToggle(page, y - 2, 160); y = y + 30
-    pageLabel(page, y, "Zombie Aimbot"); local zAimTog = pageToggle(page, y - 2, 160); zAimTog.Text = "Zombie Aimbot: Off"; y = y + 30
+    pageLabel(page, y, "Zombie Aimbot"); local zAimTog = pageToggle(page, y - 2, 160, 150); zAimTog.Text = "Zombie Aimbot: Off"; y = y + 30
     pageLabel(page, y, "Zombie Aim Radius"); local zAbBox = pageBox(page, y - 2, 160, 90, "120"); local zAbApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
     pageLabel(page, y, "Freeze All Zombies"); local zhbTog = pageToggle(page, y - 2, 160); y = y + 34
     pageLabel(page, y, "Perk Stuff", 200); y = y + 22
@@ -3124,7 +3124,7 @@ do
     for _, g in ipairs(camoData) do
         local h = Instance.new("TextLabel")
         h.Size = UDim2.new(1, -8, 0, 20); h.Position = UDim2.new(0, 4, 0, ly)
-        h.BackgroundTransparency = 1; h.Text = g.name .. " — " .. #g.items
+        h.BackgroundTransparency = 1; h.Text = g.name .. " â€” " .. #g.items
         h.TextColor3 = COL_ACCENT; h.Font = Enum.Font.GothamBold; h.TextSize = 12
         h.TextXAlignment = Enum.TextXAlignment.Left; h.Parent = camoList; h.ZIndex = 51
         ly = ly + 22
@@ -3803,7 +3803,7 @@ do
     local mzSideBtn = pageWideBtn(page, y, "Change Side"); y = y + 34
     pageLabel(page, y, "Change AmmoType"); local mzAmmoBox = pageBox(page, y - 2, 160, 90, "AP"); local mzAmmoApply = pageApply(page, y - 2, 258, "Set"); y = y + 30
     local mzDrop = Instance.new("ScrollingFrame")
-    mzDrop.Size = UDim2.new(0, 300, 0, 180)
+    mzDrop.Size = UDim2.new(0, 300, 0, 300)
     mzDrop.Position = UDim2.new(0, 4, 0, y)
     mzDrop.BackgroundColor3 = COL_BG_ALT
     mzDrop.BorderSizePixel = 0
@@ -3886,7 +3886,7 @@ do
 
     pageLabel(page, y, "Zombie Visuals", 200); y = y + 22
     pageLabel(page, y, "Micheal ESP"); local mzeEspTog = pageToggle(page, y - 2, 160); y = y + 30
-    pageLabel(page, y, "Micheal Aimbot"); local mzAimTog = pageToggle(page, y - 2, 160); mzAimTog.Text = "Micheal Aimbot: Off"; y = y + 30
+    pageLabel(page, y, "Micheal Aimbot"); local mzAimTog = pageToggle(page, y - 2, 160, 150); mzAimTog.Text = "Micheal Aimbot: Off"; y = y + 30
     pageLabel(page, y, "Peaceful Mode"); local mzPeaceTog = pageToggle(page, y - 2, 160); y = y + 30
     pageLabel(page, y, "Zombie Del Radius", 140); local mzRadBox = pageBox(page, y - 2, 150, 60, "30"); local mzRadApply = pageApply(page, y - 2, 216, "Set"); local mzRadTog = pageToggle(page, y - 2, 282, 70); y = y + 34
     local mzHidden = {}
@@ -4155,7 +4155,7 @@ do
     local mzG3Btn = pageWideBtn(page, y, "Change Gun3 Model"); y = y + 34
     local mzKnBtn = pageWideBtn(page, y, "Change Knife Model"); y = y + 34
     local mzModelDrop = Instance.new("ScrollingFrame")
-    mzModelDrop.Size = UDim2.new(0, 300, 0, 180)
+    mzModelDrop.Size = UDim2.new(0, 300, 0, 300)
     mzModelDrop.Position = UDim2.new(0, 4, 0, y)
     mzModelDrop.BackgroundColor3 = COL_BG_ALT
     mzModelDrop.BorderSizePixel = 0
@@ -4230,7 +4230,7 @@ do
         end
     end)
 
-    page.CanvasSize = UDim2.new(0, 0, 0, y + 20)
+    page.CanvasSize = UDim2.new(0, 0, 0, math.max(y + 20, mzDrop.Position.Y.Offset + mzDrop.Size.Y.Offset, mzModelDrop.Position.Y.Offset + mzModelDrop.Size.Y.Offset) + 8)
     local function cleanMZ()
         mzPeaceOn = false
         mzRadOn = false
@@ -4246,7 +4246,7 @@ do
         end
         if mzAimCircle then pcall(function() mzAimCircle:Remove() end) mzAimCircle = nil end
         for _, dd in ipairs(mzMapSaved) do
-            if dd.Item then pcall(function() dd.Item.Parent = dd.Parent) end end
+            if dd.Item then pcall(function() dd.Item.Parent = dd.Parent end) end
         end
         mzMapSaved = {}
         mzUnhide()
@@ -4469,7 +4469,7 @@ do
         for _, v in ipairs(Workspace:GetDescendants()) do
             if v:IsA("Model") and v.Name and string.lower(v.Name):find("collection") then table.insert(f, v.Name) end
         end
-        collLbl.Text = (#f > 0) and ("Collection Models:\n• " .. table.concat(f, "\n• ")) or "Collection Models: None found"
+        collLbl.Text = (#f > 0) and ("Collection Models:\nâ€¢ " .. table.concat(f, "\nâ€¢ ")) or "Collection Models: None found"
     end)
     local function cleanIS()
         for kk in pairs(flags) do
